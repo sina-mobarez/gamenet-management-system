@@ -1,36 +1,102 @@
 {% extends 'base.html' %}
 {% load shamsi %}
 {% block title %}فروش کافه{% endblock %}
+
+{% block extra_css %}
+<style>
+.product-card {
+  background: var(--s2); border: 1px solid var(--border);
+  border-radius: 14px; padding: 1rem .85rem; text-align: center;
+  cursor: pointer; transition: all .2s; height: 100%;
+  position: relative; overflow: hidden;
+  user-select: none;
+}
+.product-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--violet), var(--pink));
+  opacity: 0; transition: opacity .2s;
+}
+.product-card:hover:not(.disabled) {
+  border-color: var(--border2); transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(124,58,237,0.15);
+}
+.product-card:hover:not(.disabled)::before { opacity: 1; }
+.product-card.selected {
+  border-color: var(--violet); background: rgba(124,58,237,0.1);
+  box-shadow: 0 0 30px rgba(124,58,237,0.2);
+}
+.product-card.selected::before { opacity: 1; }
+.product-card.disabled { opacity: .35; cursor: not-allowed; }
+.product-emoji { font-size: 2rem; margin-bottom: .4rem; }
+.product-name { font-size: .82rem; font-weight: 600; margin-bottom: .2rem; color: var(--text); }
+.product-price { font-family: 'Oxanium', sans-serif; font-size: .9rem; color: var(--amber); font-weight: 700; }
+.product-stock { font-size: .7rem; margin-top: .2rem; }
+
+/* Sell panel */
+.sell-panel {
+  background: var(--s2); border: 1px solid var(--border);
+  border-radius: 16px; padding: 1.4rem;
+  position: sticky; top: 1.5rem;
+}
+.sell-panel::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--violet), var(--cyan));
+  border-radius: 16px 16px 0 0;
+}
+.total-box {
+  background: rgba(0,0,0,0.3); border: 1px solid var(--border2);
+  border-radius: 12px; padding: .9rem; text-align: center; margin: 1rem 0;
+}
+.total-box .total-label { font-size: .62rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted-lt); font-family: 'Oxanium', sans-serif; }
+.total-box .total-val { font-family: 'Oxanium', sans-serif; font-size: 2.2rem; font-weight: 800; color: var(--amber); text-shadow: 0 0 20px rgba(245,158,11,0.4); }
+
+.selected-info {
+  background: rgba(124,58,237,0.08); border: 1px solid var(--border);
+  border-radius: 10px; padding: .75rem 1rem; margin-bottom: 1rem;
+}
+
+.category-header {
+  font-family: 'Oxanium', sans-serif;
+  font-size: .65rem; text-transform: uppercase; letter-spacing: 2px;
+  color: var(--muted-lt); margin-bottom: .75rem;
+  display: flex; align-items: center; gap: .5rem;
+}
+.category-header::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, var(--border), transparent);
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header d-flex justify-content-between align-items-center">
-  <h2><i class="bi bi-bag-fill me-2 text-accent"></i>فروش / کافه</h2>
+  <h2><i class="bi bi-bag-fill me-2" style="-webkit-text-fill-color:var(--pink);color:var(--pink)"></i>فروش / کافه</h2>
   <a href="{% url 'products_manage' %}" class="btn btn-sm btn-outline-secondary">مدیریت محصولات</a>
 </div>
+
 <div class="row g-3">
   <!-- Product grid -->
   <div class="col-lg-8">
     {% regroup products by category as cat_list %}
     {% for cat in cat_list %}
     <div class="mb-4">
-      <div class="section-label">{{ cat.grouper|default:"سایر" }}</div>
+      <div class="category-header">{{ cat.grouper|default:"سایر" }}</div>
       <div class="row g-2">
         {% for p in cat.list %}
         <div class="col-6 col-sm-4 col-md-3">
-          <div class="card p-3 text-center h-100"
-               style="cursor:{% if p.stock > 0 %}pointer{% else %}not-allowed{% endif %};
-                      transition:.15s;opacity:{% if p.stock == 0 %}0.45{% else %}1{% endif %}"
-               onclick="{% if p.stock > 0 %}selectProduct({{ p.id }},'{{ p.name|escapejs }}',{{ p.price }},{{ p.stock }}){% endif %}"
-               id="pcard-{{ p.id }}">
-            <div style="font-size:1.9rem">
+          <div class="product-card {% if p.stock == 0 %}disabled{% endif %}"
+               id="pcard-{{ p.id }}"
+               onclick="{% if p.stock > 0 %}selectProduct({{ p.id }},'{{ p.name|escapejs }}',{{ p.price }},{{ p.stock }}){% endif %}">
+            <div class="product-emoji">
               {% if p.category.name == 'Drinks' or p.category.name == 'نوشیدنی' %}🥤
               {% elif p.category.name == 'Snacks' or p.category.name == 'اسنک' %}🍟
               {% elif p.category.name == 'Cakes' or p.category.name == 'کیک' %}🎂
               {% else %}🛍️{% endif %}
             </div>
-            <div class="fw-semibold small mt-1">{{ p.name }}</div>
-            <div class="text-warning num small">${{ p.price }}</div>
-            <div class="small {% if p.is_low_stock %}text-danger fw-bold{% else %}text-muted{% endif %}">
-              موجودی: {{ p.stock }}
+            <div class="product-name">{{ p.name }}</div>
+            <div class="product-price">${{ p.price }}</div>
+            <div class="product-stock {% if p.is_low_stock %}text-danger fw-bold{% else %}text-muted{% endif %}">
+              {{ p.stock }} موجود
             </div>
           </div>
         </div>
@@ -38,23 +104,29 @@
       </div>
     </div>
     {% empty %}
-    <div class="card p-4 text-center text-muted">
-      محصولی ندارید. <a href="{% url 'products_manage' %}">محصول اضافه کنید.</a>
+    <div class="card p-5 text-center text-muted">
+      <i class="bi bi-bag d-block mb-2" style="font-size:2rem;opacity:.25"></i>
+      محصولی ندارید.
+      <a href="{% url 'products_manage' %}" class="btn btn-primary mt-2">افزودن محصول</a>
     </div>
     {% endfor %}
   </div>
 
   <!-- Sell panel -->
   <div class="col-lg-4">
-    <div class="card p-4" style="position:sticky;top:1rem">
-      <strong class="d-block mb-3"><i class="bi bi-cart3 me-1"></i>ثبت فروش</strong>
-      <div id="noSelected" class="p-3 rounded mb-3 text-center text-muted" style="background:var(--surface2)">
-        ← یک محصول انتخاب کنید
+    <div class="sell-panel">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <i class="bi bi-cart3 text-accent"></i>
+        <strong>ثبت فروش</strong>
       </div>
-      <div id="selectedDisplay" class="p-3 rounded mb-3" style="background:var(--surface2);display:none">
-        <div class="section-label">محصول انتخاب‌شده</div>
-        <div class="fw-bold" id="selName"></div>
-        <div class="text-warning num">$<span id="selPrice">0</span></div>
+
+      <div id="noSelected" class="text-center text-muted py-3" style="font-size:.85rem">
+        ← یک محصول از لیست انتخاب کنید
+      </div>
+      <div id="selectedDisplay" class="selected-info" style="display:none">
+        <div class="section-label">محصول انتخابی</div>
+        <div class="fw-bold" id="selName" style="font-size:.95rem"></div>
+        <div class="text-warning num fw-bold">$<span id="selPrice">0</span></div>
         <div class="text-muted small">موجودی: <span id="selStock">0</span></div>
       </div>
 
@@ -63,7 +135,7 @@
         <input type="hidden" name="product_id" id="productId">
 
         <div class="mb-3">
-          <label class="form-label small fw-semibold">تعداد</label>
+          <label class="form-label">تعداد</label>
           <div class="input-group">
             <button type="button" class="btn btn-outline-secondary" onclick="changeQty(-1)">−</button>
             <input type="number" name="quantity" id="qtyInput" value="1" min="1"
@@ -73,7 +145,7 @@
         </div>
 
         <div class="mb-3">
-          <label class="form-label small fw-semibold">روش پرداخت</label>
+          <label class="form-label">روش پرداخت</label>
           <select name="payment_type" id="payType" class="form-select" onchange="toggleCustomerSell()">
             <option value="cash">💵 نقد</option>
             <option value="account">🏦 به حساب</option>
@@ -81,7 +153,7 @@
         </div>
 
         <div id="customerSellSection" style="display:none" class="mb-3">
-          <label class="form-label small fw-semibold">مشتری</label>
+          <label class="form-label">مشتری</label>
           <select name="customer_id" class="form-select">
             <option value="">— انتخاب —</option>
             {% for c in customers %}
@@ -91,7 +163,7 @@
         </div>
 
         <div class="mb-3">
-          <label class="form-label small fw-semibold">لینک به سشن (اختیاری)</label>
+          <label class="form-label">لینک به سشن <span class="text-muted">(اختیاری)</span></label>
           <select name="session_id" class="form-select">
             <option value="">— بدون سشن —</option>
             {% for s in active_sessions %}
@@ -100,11 +172,9 @@
           </select>
         </div>
 
-        <div class="p-3 rounded mb-3 text-center" style="background:var(--surface2)">
-          <div class="section-label">جمع کل</div>
-          <div class="num" style="font-size:1.6rem;font-weight:700;color:var(--yellow)">
-            $<span id="totalDisplay">0.00</span>
-          </div>
+        <div class="total-box">
+          <div class="total-label">جمع کل</div>
+          <div class="total-val">$<span id="totalDisplay">0.00</span></div>
         </div>
 
         <button type="submit" class="btn btn-success w-100 py-2 fw-bold" id="sellBtn" disabled>
@@ -115,10 +185,10 @@
   </div>
 </div>
 {% endblock %}
+
 {% block extra_js %}
 <script>
-let selPrice = 0;
-let lastSelectedCard = null;
+let selPrice = 0, lastCard = null;
 
 function selectProduct(id, name, price, stock) {
   document.getElementById('productId').value = id;
@@ -128,25 +198,21 @@ function selectProduct(id, name, price, stock) {
   document.getElementById('selectedDisplay').style.display = 'block';
   document.getElementById('noSelected').style.display = 'none';
   document.getElementById('sellBtn').disabled = false;
-  selPrice = price;
   document.getElementById('qtyInput').max = stock;
-  updateTotal();
-  if (lastSelectedCard) lastSelectedCard.style.outline = '';
-  const card = document.getElementById(`pcard-${id}`);
-  if (card) { card.style.outline = '2px solid var(--accent)'; lastSelectedCard = card; }
+  selPrice = price; updateTotal();
+  if (lastCard) lastCard.classList.remove('selected');
+  lastCard = document.getElementById(`pcard-${id}`);
+  if (lastCard) lastCard.classList.add('selected');
 }
-
 function changeQty(d) {
   const inp = document.getElementById('qtyInput');
   inp.value = Math.max(1, parseInt(inp.value || 1) + d);
   updateTotal();
 }
-
 function updateTotal() {
   const qty = parseInt(document.getElementById('qtyInput').value) || 1;
   document.getElementById('totalDisplay').textContent = (selPrice * qty).toFixed(2);
 }
-
 function toggleCustomerSell() {
   const v = document.getElementById('payType').value;
   document.getElementById('customerSellSection').style.display = v === 'account' ? 'block' : 'none';

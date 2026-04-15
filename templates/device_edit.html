@@ -3,41 +3,46 @@
 {% block title %}ویرایش {{ device.name }}{% endblock %}
 {% block content %}
 <div class="page-header">
-  <a href="{% url 'devices_manage' %}" class="btn btn-sm btn-outline-secondary mb-2">← دستگاه‌ها</a>
+  <a href="{% url 'devices_manage' %}" class="btn btn-sm btn-outline-secondary mb-3">← دستگاه‌ها</a>
   <h2>ویرایش: {{ device.name }}</h2>
 </div>
-<div class="card p-4" style="max-width:500px">
+<div class="card p-4" style="max-width:520px">
   <form method="post">
     {% csrf_token %}
     <div class="mb-3">
-      <label class="form-label small">نام</label>
+      <label class="form-label">نام دستگاه</label>
       <input type="text" name="name" class="form-control" value="{{ device.name }}" required>
     </div>
-    <div class="row g-2 mb-3">
+    <div class="row g-3 mb-3">
       <div class="col">
-        <label class="form-label small">قیمت/ساعت ($)</label>
+        <label class="form-label">قیمت / ساعت ($)</label>
         <input type="number" name="price_per_hour" class="form-control ltr"
                step="0.01" value="{{ device.price_per_hour }}" required>
       </div>
       <div class="col">
-        <label class="form-label small">کنترلر پایه</label>
+        <label class="form-label">کنترلر پایه</label>
         <input type="number" name="included_controllers" class="form-control ltr"
                value="{{ device.included_controllers }}" min="0">
       </div>
     </div>
-    <div class="mb-3">
-      <label class="form-label small">قیمت کنترلر اضافه ($)</label>
+    <div class="mb-4">
+      <label class="form-label">قیمت کنترلر اضافه ($)</label>
       <input type="number" name="extra_controller_price" class="form-control ltr"
              step="0.01" value="{{ device.extra_controller_price }}">
     </div>
-    <div class="form-check form-switch mb-4">
-      <input class="form-check-input" type="checkbox" name="is_active" id="isActive"
-             {% if device.is_active %}checked{% endif %}>
-      <label class="form-check-label" for="isActive">دستگاه فعال است</label>
+    <div class="p-3 rounded-3 mb-4" style="background:rgba(124,58,237,0.07);border:1px solid var(--border)">
+      <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" name="is_active" id="isActive"
+               {% if device.is_active %}checked{% endif %}>
+        <label class="form-check-label" for="isActive">
+          دستگاه فعال است
+          <span class="badge badge-free ms-2">آنلاین</span>
+        </label>
+      </div>
     </div>
     <div class="d-flex gap-2">
-      <button type="submit" class="btn btn-primary">ذخیره</button>
-      <a href="{% url 'devices_manage' %}" class="btn btn-secondary">انصراف</a>
+      <button type="submit" class="btn btn-primary">ذخیره تغییرات</button>
+      <a href="{% url 'devices_manage' %}" class="btn btn-outline-secondary">انصراف</a>
     </div>
   </form>
 </div>

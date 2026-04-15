@@ -3,61 +3,78 @@
 {% block title %}بدهی‌ها{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h2><i class="bi bi-exclamation-triangle-fill me-2 text-danger"></i>بدهی‌های معوق</h2>
+  <h2><i class="bi bi-exclamation-triangle-fill me-2" style="-webkit-text-fill-color:var(--red);color:var(--red)"></i>بدهی‌های معوق</h2>
 </div>
+
 <div class="card">
   <div class="table-responsive">
     <table class="table table-hover mb-0">
-      <thead><tr>
-        <th>مشتری</th><th>تلفن</th><th>مبلغ بدهی</th><th>عملیات</th>
-      </tr></thead>
+      <thead>
+        <tr>
+          <th>مشتری</th>
+          <th>تلفن</th>
+          <th>مبلغ بدهی</th>
+          <th>عملیات</th>
+        </tr>
+      </thead>
       <tbody>
       {% for c in debtors %}
       <tr>
-        <td><a href="{% url 'customer_detail' c.pk %}" class="fw-bold text-decoration-none">{{ c.name }}</a></td>
-        <td class="text-muted ltr">{{ c.phone|default:"—" }}</td>
-        <td><span class="badge badge-busy px-3 py-2 num">${{ c.debt_amount|floatformat:2 }}</span></td>
         <td>
-          <button class="btn btn-sm btn-success me-1"
+          <a href="{% url 'customer_detail' c.pk %}" class="fw-bold text-decoration-none" style="color:var(--text)">
+            {{ c.name }}
+          </a>
+        </td>
+        <td class="text-muted ltr" style="font-family:'Oxanium',monospace">{{ c.phone|default:"—" }}</td>
+        <td>
+          <span class="badge badge-busy px-3 py-2 num" style="font-size:.85rem">${{ c.debt_amount|floatformat:2 }}</span>
+        </td>
+        <td class="d-flex gap-2">
+          <button class="btn btn-sm btn-success"
                   data-bs-toggle="modal" data-bs-target="#settleModal"
                   data-cid="{{ c.id }}" data-name="{{ c.name }}" data-debt="{{ c.debt_amount|floatformat:2 }}">
-            تسویه
+            ✓ تسویه
           </button>
           <a href="{% url 'customer_detail' c.pk %}" class="btn btn-sm btn-outline-secondary">مشاهده</a>
         </td>
       </tr>
       {% empty %}
-      <tr><td colspan="4" class="text-center text-success py-4">
-        <i class="bi bi-check-circle-fill me-2 fs-5"></i>هیچ بدهی معوقی وجود ندارد!
-      </td></tr>
+      <tr>
+        <td colspan="4" class="text-center py-5">
+          <i class="bi bi-check-circle-fill d-block mb-2" style="font-size:2rem;color:var(--green);opacity:.6"></i>
+          <span class="text-success">هیچ بدهی معوقی وجود ندارد!</span>
+        </td>
+      </tr>
       {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
 
+<!-- Settle Modal -->
 <div class="modal fade" id="settleModal" tabindex="-1">
   <div class="modal-dialog modal-sm">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">تسویه بدهی</h5>
+        <h5 class="modal-title">✓ تسویه بدهی</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <form id="settleForm" method="post" action="">
         {% csrf_token %}
         <div class="modal-body">
-          <p class="text-muted small mb-1">مشتری: <strong id="settleName"></strong></p>
-          <p class="text-danger small mb-3">جمع بدهی: $<span id="settleDebt" class="num"></span></p>
-          <label class="form-label small">مبلغ دریافتی ($)</label>
-          <input type="number" name="amount" id="settleAmount" class="form-control ltr" step="0.01" min="0.01" required>
-          <div class="mt-2">
-            <label class="form-label small">یادداشت</label>
-            <input type="text" name="notes" class="form-control form-control-sm" placeholder="نقد، کارت و…">
+          <div class="p-3 rounded-3 mb-3" style="background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.2)">
+            <div class="text-muted small mb-1">مشتری</div>
+            <div class="fw-bold" id="settleName"></div>
+            <div class="text-danger small mt-1">جمع بدهی: $<span id="settleDebt" class="num fw-bold"></span></div>
           </div>
+          <label class="form-label">مبلغ دریافتی ($)</label>
+          <input type="number" name="amount" id="settleAmount" class="form-control ltr mb-2" step="0.01" min="0.01" required>
+          <label class="form-label">یادداشت</label>
+          <input type="text" name="notes" class="form-control form-control-sm" placeholder="نقد، کارت و…">
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
-          <button type="submit" class="btn btn-success">تسویه</button>
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">انصراف</button>
+          <button type="submit" class="btn btn-success fw-bold">✓ تسویه</button>
         </div>
       </form>
     </div>

@@ -1,69 +1,160 @@
 {% extends 'base.html' %}
 {% load shamsi %}
-{% block title %}داشبورد - گیم‌نت{% endblock %}
-{% block content %}
+{% block title %}داشبورد — گیم‌نت{% endblock %}
 
-<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+{% block extra_css %}
+<style>
+.device-name-display {
+  font-family: 'Oxanium', sans-serif;
+  font-weight: 700; font-size: 1.05rem;
+}
+.device-type-label {
+  font-size: .65rem; text-transform: uppercase; letter-spacing: 1.5px;
+  font-family: 'Oxanium', sans-serif; opacity: .7; margin-bottom: .2rem;
+}
+.device-players { font-size: .78rem; color: rgba(255,255,255,.55); margin-top: .5rem; }
+.player-chip {
+  display: inline-block; padding: .2rem .6rem;
+  background: rgba(255,255,255,.07); border-radius: 6px;
+  font-size: .72rem; margin: 2px 2px 0 0;
+  border: 1px solid rgba(255,255,255,.1);
+}
+.free-rate {
+  font-family: 'Oxanium', sans-serif;
+  font-size: .9rem; color: rgba(16,185,129,.8);
+  margin-top: .25rem;
+}
+.start-btn-area { margin-top: auto; padding-top: .75rem; }
+
+/* Dashboard header stats */
+.dash-stat {
+  background: rgba(8,6,24,0.9);
+  border: 1px solid var(--border);
+  border-radius: 14px; padding: .9rem 1.4rem;
+  text-align: center; min-width: 140px;
+  position: relative; overflow: hidden;
+}
+.dash-stat::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+}
+.dash-stat.stat-green::before { background: var(--green); box-shadow: 0 0 10px var(--green); }
+.dash-stat.stat-red::before   { background: var(--red);   box-shadow: 0 0 10px var(--red);   }
+.dash-stat .ds-label { font-size: .62rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted-lt); font-family: 'Oxanium', sans-serif; }
+.dash-stat .ds-value { font-family: 'Oxanium', sans-serif; font-size: 1.6rem; font-weight: 800; margin-top: .1rem; line-height: 1; }
+
+/* Unpaid alert */
+.unpaid-alert {
+  background: rgba(245,158,11,0.08);
+  border: 1px solid rgba(245,158,11,0.25);
+  border-radius: 14px; padding: .9rem 1.2rem;
+  margin-bottom: 1.5rem;
+  display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+}
+.unpaid-alert .ua-icon { font-size: 1.4rem; opacity: .8; }
+.unpaid-alert .ua-label { color: #fbbf24; font-weight: 600; font-size: .9rem; }
+
+/* Low stock */
+.low-stock-alert {
+  background: rgba(244,63,94,0.07);
+  border: 1px solid rgba(244,63,94,0.2);
+  border-radius: 14px; padding: .9rem 1.2rem;
+  margin-top: 1.25rem;
+  display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
+}
+.low-stock-alert .ls-label { color: #fca5a5; font-weight: 600; font-size: .88rem; }
+
+/* Live clock */
+#live-clock {
+  font-family: 'Oxanium', monospace;
+  font-size: .9rem;
+  color: var(--cyan-lt);
+  letter-spacing: 1px;
+}
+
+/* Device grid spacing */
+.devices-grid { margin-top: 0; }
+
+/* Remaining cost badge */
+.remaining-badge {
+  background: rgba(244,63,94,0.15);
+  border: 1px solid rgba(244,63,94,0.3);
+  border-radius: 8px; padding: .3rem .7rem;
+  font-family: 'Oxanium', sans-serif;
+  font-size: .85rem; font-weight: 700; color: #fb7185;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- ── Header ── -->
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
   <div>
-    <h2><i class="bi bi-grid-1x2-fill me-2 text-accent"></i>داشبورد</h2>
-    <small class="text-muted">{% shamsi_today %} &nbsp;|&nbsp; <span id="live-clock" class="ltr"></span></small>
+    <h2><i class="bi bi-grid-1x2-fill me-2" style="-webkit-text-fill-color:var(--violet-lt);color:var(--violet-lt)"></i>داشبورد</h2>
+    <div class="d-flex align-items-center gap-2 mt-1">
+      <span class="text-muted" style="font-size:.82rem">{% shamsi_today %}</span>
+      <span class="text-muted" style="font-size:.75rem">·</span>
+      <span id="live-clock"></span>
+    </div>
   </div>
   <div class="d-flex gap-2">
-    <div class="stat-card text-center px-3 py-2">
-      <div class="section-label">دریافتی امروز</div>
-      <div class="value text-success num">${{ today_cash|floatformat:2 }}</div>
+    <div class="dash-stat stat-green">
+      <div class="ds-label">دریافتی امروز</div>
+      <div class="ds-value text-success">${{ today_cash|floatformat:2 }}</div>
     </div>
-    <div class="stat-card text-center px-3 py-2">
-      <div class="section-label">بدهی کل</div>
-      <div class="value text-danger num">${{ total_debt|floatformat:2 }}</div>
+    <div class="dash-stat stat-red">
+      <div class="ds-label">بدهی کل</div>
+      <div class="ds-value text-danger">${{ total_debt|floatformat:2 }}</div>
     </div>
   </div>
 </div>
 
-<!-- Unpaid sessions alert -->
+<!-- ── Unpaid sessions alert ── -->
 {% if unpaid_sessions %}
-<div class="alert mb-3 d-flex align-items-center gap-2 flex-wrap"
-     style="background:rgba(245,158,11,.12);border-color:var(--yellow);color:var(--yellow)">
-  <i class="bi bi-hourglass-split fs-5"></i>
-  <strong>سشن‌های پرداخت‌نشده:</strong>
+<div class="unpaid-alert">
+  <span class="ua-icon">⏳</span>
+  <span class="ua-label">سشن‌های پرداخت‌نشده:</span>
   {% for s in unpaid_sessions %}
-  <a href="{% url 'session_pay' s.pk %}" class="btn btn-sm btn-warning fw-bold">
-    {{ s.device.name }} — ${{ s.remaining_amount|floatformat:2 }} مانده
+  <a href="{% url 'session_pay' s.pk %}" class="btn btn-warning btn-sm fw-bold">
+    {{ s.device.name }} &nbsp;—&nbsp; <span class="num">${{ s.remaining_amount|floatformat:2 }}</span> مانده
   </a>
   {% endfor %}
 </div>
 {% endif %}
 
-<!-- Device grid -->
-<div class="row g-3">
+<!-- ── Device Grid ── -->
+<div class="row g-3 devices-grid">
 {% for device in devices %}
 <div class="col-xl-3 col-lg-4 col-md-6">
+
   {% if device.is_occupied %}
     {% with session=device.active_session %}
-    <div class="device-card busy h-100">
-      <div class="d-flex justify-content-between align-items-start mb-2">
+    <div class="device-card busy d-flex flex-column">
+      <div class="d-flex justify-content-between align-items-start mb-3">
         <div>
-          <div class="section-label">{{ device.get_device_type_display }}</div>
-          <div style="font-weight:700;font-size:1rem">{{ device.name }}</div>
+          <div class="device-type-label">{{ device.get_device_type_display }}</div>
+          <div class="device-name-display">{{ device.name }}</div>
         </div>
-        <span class="badge badge-busy rounded-pill">● فعال</span>
+        <span class="badge badge-busy badge-dot">فعال</span>
       </div>
-      <div class="timer-display"
-           id="timer-{{ session.pk }}"
+
+      <div class="timer-display" id="timer-{{ session.pk }}"
            data-started="{{ session.started_at|date:'c' }}">{{ session.duration_display }}</div>
       <div class="cost-display mt-1">$<span id="cost-{{ session.pk }}">{{ session.calculate_cost|floatformat:2 }}</span></div>
-      <div class="mt-2" style="font-size:.8rem;color:var(--muted)">
+
+      <div class="device-players">
         {% for p in session.players.all %}
-          <span class="badge me-1" style="background:rgba(255,255,255,.12)">{{ p.display_name }}</span>
-        {% empty %}<em>بدون بازیکن</em>{% endfor %}
+          <span class="player-chip">{{ p.display_name }}</span>
+        {% empty %}<em style="opacity:.5">بدون بازیکن</em>{% endfor %}
+        {% if session.extra_controllers > 0 %}
+        <span class="player-chip" style="border-color:rgba(245,158,11,.3);color:rgba(245,158,11,.8)">
+          +{{ session.extra_controllers }} کنترلر
+        </span>
+        {% endif %}
       </div>
-      {% if session.extra_controllers > 0 %}
-      <div class="text-muted" style="font-size:.75rem">+ {{ session.extra_controllers }} کنترلر اضافه</div>
-      {% endif %}
-      <div class="mt-3 d-flex gap-2">
+
+      <div class="start-btn-area d-flex gap-2 mt-auto">
         <a href="{% url 'session_detail' session.pk %}" class="btn btn-sm btn-outline-light flex-fill">جزئیات</a>
-        <a href="{% url 'session_end' session.pk %}"
-           class="btn btn-sm btn-danger flex-fill"
+        <a href="{% url 'session_end' session.pk %}" class="btn btn-sm btn-danger flex-fill"
            onclick="return confirm('سشن {{ device.name }} پایان یابد؟')">⏹ پایان</a>
       </div>
     </div>
@@ -71,37 +162,35 @@
 
   {% elif device.unpaid_session %}
     {% with session=device.unpaid_session %}
-    <div class="device-card unpaid h-100">
-      <div class="d-flex justify-content-between align-items-start mb-2">
+    <div class="device-card unpaid d-flex flex-column">
+      <div class="d-flex justify-content-between align-items-start mb-3">
         <div>
-          <div class="section-label">{{ device.get_device_type_display }}</div>
-          <div style="font-weight:700;font-size:1rem">{{ device.name }}</div>
+          <div class="device-type-label">{{ device.get_device_type_display }}</div>
+          <div class="device-name-display">{{ device.name }}</div>
         </div>
-        <span class="badge badge-unpaid rounded-pill">⏳ پرداخت‌نشده</span>
+        <span class="badge badge-unpaid">⏳ پرداخت‌نشده</span>
       </div>
-      <div class="text-muted small mt-1">کل: <span class="text-warning num">${{ session.total_cost|floatformat:2 }}</span></div>
-      <div class="text-muted small">پرداخت‌شده: <span class="text-success num">${{ session.paid_amount|floatformat:2 }}</span></div>
-      <div class="fw-bold mt-1">مانده: <span class="text-danger num">${{ session.remaining_amount|floatformat:2 }}</span></div>
-      <div class="mt-3 d-flex gap-2">
-        <a href="{% url 'session_pay' session.pk %}" class="btn btn-sm btn-warning flex-fill fw-bold">
-          💳 ادامه پرداخت
-        </a>
-        <button class="btn btn-success flex-fill"
+      <div class="d-flex flex-column gap-1 small mb-2">
+        <div class="text-muted">کل: <span class="text-warning num fw-bold">${{ session.total_cost|floatformat:2 }}</span></div>
+        <div class="text-muted">پرداخت‌شده: <span class="text-success num">${{ session.paid_amount|floatformat:2 }}</span></div>
+      </div>
+      <div class="remaining-badge d-inline-block mb-3">مانده: ${{ session.remaining_amount|floatformat:2 }}</div>
+      <div class="d-flex gap-2 mt-auto">
+        <a href="{% url 'session_pay' session.pk %}" class="btn btn-sm btn-warning flex-fill fw-bold">💳 پرداخت</a>
+        <button class="btn btn-sm btn-success flex-fill"
                 data-bs-toggle="modal" data-bs-target="#startModal"
                 data-device-id="{{ device.id }}"
                 data-device-name="{{ device.name }}"
                 data-device-type="{{ device.get_device_type_display }}"
                 data-price="{{ device.price_per_hour }}"
                 data-extra-price="{{ device.extra_controller_price }}"
-                data-device-type-raw="{{ device.device_type }}">
-          ▶ سشن جدید
-        </button>
+                data-device-type-raw="{{ device.device_type }}">▶ سشن جدید</button>
       </div>
     </div>
     {% endwith %}
 
   {% else %}
-    <div class="device-card free h-100 d-flex flex-column"
+    <div class="device-card free d-flex flex-column"
          data-bs-toggle="modal" data-bs-target="#startModal"
          data-device-id="{{ device.id }}"
          data-device-name="{{ device.name }}"
@@ -109,42 +198,47 @@
          data-price="{{ device.price_per_hour }}"
          data-extra-price="{{ device.extra_controller_price }}"
          data-device-type-raw="{{ device.device_type }}">
-      <div class="d-flex justify-content-between align-items-start mb-2">
+      <div class="d-flex justify-content-between align-items-start mb-3">
         <div>
-          <div class="section-label">{{ device.get_device_type_display }}</div>
-          <div style="font-weight:700;font-size:1rem">{{ device.name }}</div>
+          <div class="device-type-label">{{ device.get_device_type_display }}</div>
+          <div class="device-name-display">{{ device.name }}</div>
         </div>
-        <span class="badge badge-free rounded-pill">● آزاد</span>
+        <span class="badge badge-free badge-dot">آزاد</span>
       </div>
-      <div class="text-muted" style="font-size:.85rem">${{ device.price_per_hour }}/ساعت</div>
+      <div class="free-rate">${{ device.price_per_hour }}<span style="opacity:.5;font-size:.8em">/ساعت</span></div>
       {% if device.extra_controller_price > 0 %}
-      <div class="text-muted" style="font-size:.75rem">+${{ device.extra_controller_price }} کنترلر اضافه</div>
+      <div style="font-size:.75rem;color:rgba(255,255,255,.35);margin-top:.2rem">+${{ device.extra_controller_price }} کنترلر اضافه</div>
       {% endif %}
-      <div class="mt-auto pt-3">
-        <div class="btn btn-success w-100">▶ شروع سشن</div>
+      <div class="start-btn-area mt-auto">
+        <div class="btn btn-success w-100 fw-bold"
+             style="background:linear-gradient(135deg,rgba(5,150,105,.8),rgba(16,185,129,.8));border:none;box-shadow:0 0 20px rgba(16,185,129,.25)">
+          ▶ شروع سشن
+        </div>
       </div>
     </div>
   {% endif %}
+
 </div>
 {% empty %}
 <div class="col-12">
-  <div class="card p-4 text-center text-muted">
+  <div class="card p-5 text-center text-muted">
+    <i class="bi bi-hdd-stack d-block mb-2" style="font-size:2.5rem;opacity:.3"></i>
     دستگاهی تنظیم نشده.
-    <a href="{% url 'devices_manage' %}" class="btn btn-primary ms-2">افزودن دستگاه</a>
+    <a href="{% url 'devices_manage' %}" class="btn btn-primary ms-2 mt-2">افزودن دستگاه</a>
   </div>
 </div>
 {% endfor %}
 </div>
 
+<!-- Low stock -->
 {% if low_stock %}
-<div class="alert mt-3 d-flex align-items-center gap-2 flex-wrap"
-     style="background:rgba(239,68,68,.1);border-color:var(--red);color:#fca5a5">
-  <i class="bi bi-exclamation-triangle-fill"></i>
-  <strong>موجودی کم:</strong>
+<div class="low-stock-alert">
+  <i class="bi bi-exclamation-triangle-fill text-danger fs-5"></i>
+  <span class="ls-label">موجودی کم:</span>
   {% for p in low_stock %}
-    <span>{{ p.name }} ({{ p.stock }} عدد)</span>{% if not forloop.last %},{% endif %}
+    <span class="badge badge-busy">{{ p.name }} ({{ p.stock }})</span>
   {% endfor %}
-  <a href="{% url 'products_manage' %}" class="btn btn-sm btn-danger ms-auto">به‌روزرسانی موجودی</a>
+  <a href="{% url 'products_manage' %}" class="btn btn-danger btn-sm ms-auto">به‌روزرسانی موجودی</a>
 </div>
 {% endif %}
 
@@ -153,59 +247,54 @@
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-play-circle-fill me-2 text-success"></i>شروع سشن</h5>
+        <h5 class="modal-title"><i class="bi bi-play-circle-fill me-2" style="color:var(--green)"></i>شروع سشن</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <form method="post" action="{% url 'session_start' %}">
         {% csrf_token %}
         <input type="hidden" name="device_id" id="modalDeviceId">
         <div class="modal-body">
-          <div class="p-3 rounded mb-3 d-flex justify-content-between align-items-center"
-               style="background:var(--surface2)">
+          <div class="p-3 rounded-3 mb-3 d-flex justify-content-between align-items-center"
+               style="background:rgba(124,58,237,0.08);border:1px solid var(--border)">
             <div>
-              <strong id="modalDeviceName" style="font-size:1.1rem"></strong>
-              <span class="badge ms-2" style="background:var(--accent)" id="modalDeviceTypeBadge"></span>
+              <strong id="modalDeviceName" style="font-size:1.1rem;font-family:'Oxanium',sans-serif"></strong>
+              <span class="badge badge-violet ms-2" id="modalDeviceTypeBadge"></span>
             </div>
-            <div class="text-success fw-bold">$<span id="modalPrice"></span>/ساعت</div>
+            <div style="font-family:'Oxanium',sans-serif;font-weight:700;color:var(--green)">
+              $<span id="modalPrice"></span>/ساعت
+            </div>
           </div>
 
-          <!-- Extra controllers (PS4/PS5 only) -->
           <div id="controllerSection" class="mb-3" style="display:none">
             <label class="form-label small fw-semibold">کنترلر اضافه</label>
-            <div class="input-group" style="max-width:220px">
+            <div class="input-group" style="max-width:230px">
               <span class="input-group-text"><i class="bi bi-controller"></i></span>
               <input type="number" name="extra_controllers" id="extraControllers"
                      class="form-control ltr" value="0" min="0" max="8">
-              <span class="input-group-text text-warning">+$<span id="extraPrice"></span>/عدد</span>
+              <span class="input-group-text" style="color:var(--amber)">+$<span id="extraPrice"></span>/عدد</span>
             </div>
           </div>
 
           <div class="row g-3">
             <div class="col-md-6">
-              <label class="form-label small fw-semibold">
-                <i class="bi bi-person-check me-1"></i>بازیکنان ثبت‌نام‌شده
-              </label>
+              <label class="form-label small fw-semibold"><i class="bi bi-person-check me-1"></i>بازیکنان ثبت‌نام‌شده</label>
               <div id="playerSelects"></div>
-              <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-1"
-                      onclick="addPlayerSelect()">
+              <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-1" onclick="addPlayerSelect()">
                 <i class="bi bi-plus-circle me-1"></i>افزودن مشتری
               </button>
             </div>
             <div class="col-md-6">
-              <label class="form-label small fw-semibold">
-                <i class="bi bi-person-plus me-1"></i>بازیکنان مهمان
-              </label>
+              <label class="form-label small fw-semibold"><i class="bi bi-person-plus me-1"></i>بازیکنان مهمان</label>
               <div id="walkInNames"></div>
-              <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-1"
-                      onclick="addWalkIn()">
+              <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-1" onclick="addWalkIn()">
                 <i class="bi bi-plus-circle me-1"></i>افزودن مهمان
               </button>
             </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
-          <button type="submit" class="btn btn-success px-4">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">انصراف</button>
+          <button type="submit" class="btn btn-success px-4 fw-bold">
             <i class="bi bi-play-fill me-1"></i>شروع سشن
           </button>
         </div>
@@ -214,7 +303,6 @@
   </div>
 </div>
 
-<!-- Embedded customers for modal JS -->
 <script>
 const CUSTOMERS = [
   {% for c in customers_for_modal %}
@@ -226,36 +314,31 @@ const CUSTOMERS = [
 
 {% block extra_js %}
 <script>
-// Live clock (ltr numbers)
+// Live clock
 function updateClock() {
-  const now = new Date();
   document.getElementById('live-clock').textContent =
-    now.toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    new Date().toLocaleTimeString('fa-IR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
 }
-setInterval(updateClock, 1000);
-updateClock();
+setInterval(updateClock, 1000); updateClock();
 
 // Live timers
 function updateTimers() {
   document.querySelectorAll('[data-started]').forEach(el => {
     const elapsed = Math.floor((Date.now() - new Date(el.dataset.started).getTime()) / 1000);
-    const h = String(Math.floor(elapsed / 3600)).padStart(2, '0');
-    const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
-    const s = String(elapsed % 60).padStart(2, '0');
+    const h = String(Math.floor(elapsed / 3600)).padStart(2,'0');
+    const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2,'0');
+    const s = String(elapsed % 60).padStart(2,'0');
     el.textContent = `${h}:${m}:${s}`;
   });
 }
-setInterval(updateTimers, 1000);
-updateTimers();
+setInterval(updateTimers, 1000); updateTimers();
 
-// Cost refresh every 30s
+// Cost refresh
 function refreshCosts() {
   document.querySelectorAll('[id^="cost-"]').forEach(el => {
-    const sid = el.id.replace('cost-', '');
-    fetch(`/session/${sid}/status/`)
-      .then(r => r.json())
-      .then(d => { el.textContent = d.current_cost.toFixed(2); })
-      .catch(() => {});
+    const sid = el.id.replace('cost-','');
+    fetch(`/session/${sid}/status/`).then(r=>r.json())
+      .then(d=>{ el.textContent = d.current_cost.toFixed(2); }).catch(()=>{});
   });
 }
 setInterval(refreshCosts, 30000);
@@ -269,7 +352,7 @@ document.getElementById('startModal').addEventListener('show.bs.modal', e => {
   document.getElementById('modalDeviceTypeBadge').textContent = c.dataset.deviceType;
   document.getElementById('modalPrice').textContent = c.dataset.price;
   document.getElementById('extraPrice').textContent = c.dataset.extraPrice;
-  const isConsole = ['ps4', 'ps5'].includes(c.dataset.deviceTypeRaw);
+  const isConsole = ['ps4','ps5'].includes(c.dataset.deviceTypeRaw);
   document.getElementById('controllerSection').style.display = isConsole ? 'block' : 'none';
   document.getElementById('playerSelects').innerHTML = '';
   document.getElementById('walkInNames').innerHTML = '';
@@ -283,21 +366,17 @@ function buildCustomerOptions() {
   });
   return opts;
 }
-
 function addPlayerSelect() {
   const div = document.createElement('div');
   div.className = 'd-flex gap-2 mb-2';
-  div.innerHTML = `
-    <select name="player_ids" class="form-select form-select-sm">${buildCustomerOptions()}</select>
+  div.innerHTML = `<select name="player_ids" class="form-select form-select-sm">${buildCustomerOptions()}</select>
     <button type="button" class="btn btn-sm btn-outline-danger px-2" onclick="this.parentElement.remove()">✕</button>`;
   document.getElementById('playerSelects').appendChild(div);
 }
-
 function addWalkIn() {
   const div = document.createElement('div');
   div.className = 'd-flex gap-2 mb-2';
-  div.innerHTML = `
-    <input type="text" name="player_names" class="form-control form-control-sm" placeholder="نام بازیکن">
+  div.innerHTML = `<input type="text" name="player_names" class="form-control form-control-sm" placeholder="نام بازیکن">
     <button type="button" class="btn btn-sm btn-outline-danger px-2" onclick="this.parentElement.remove()">✕</button>`;
   document.getElementById('walkInNames').appendChild(div);
 }

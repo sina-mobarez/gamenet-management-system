@@ -1,9 +1,41 @@
 {% extends 'base.html' %}
 {% load shamsi %}
 {% block title %}دستگاه‌ها{% endblock %}
+
+{% block extra_css %}
+<style>
+.device-manage-card {
+  background: var(--s2); border: 1px solid var(--border);
+  border-radius: 16px; padding: 1.4rem; position: relative; overflow: hidden;
+  transition: all .2s;
+}
+.device-manage-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--violet), var(--pink));
+  opacity: 0; transition: opacity .2s;
+}
+.device-manage-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+.device-manage-card:hover::before { opacity: 1; }
+.device-type-icon {
+  width: 48px; height: 48px; border-radius: 14px;
+  background: rgba(124,58,237,0.15); border: 1px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; margin-bottom: .85rem;
+}
+.device-stat-row { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .75rem; }
+.device-stat-chip {
+  background: rgba(255,255,255,.04); border: 1px solid var(--border);
+  border-radius: 8px; padding: .2rem .6rem;
+  font-size: .72rem; color: var(--muted-lt);
+  font-family: 'Oxanium', sans-serif;
+}
+.device-stat-chip span { color: var(--amber); }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header d-flex justify-content-between align-items-center">
-  <h2><i class="bi bi-hdd-stack-fill me-2 text-accent"></i>دستگاه‌ها</h2>
+  <h2><i class="bi bi-hdd-stack-fill me-2" style="-webkit-text-fill-color:var(--violet-lt);color:var(--violet-lt)"></i>دستگاه‌ها</h2>
   <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDeviceModal">
     <i class="bi bi-plus-lg me-1"></i>دستگاه جدید
   </button>
@@ -11,32 +43,38 @@
 
 <div class="row g-3">
 {% for d in devices %}
-<div class="col-md-4">
-  <div class="card p-4">
-    <div class="d-flex justify-content-between align-items-start mb-2">
+<div class="col-lg-4 col-md-6">
+  <div class="device-manage-card">
+    <div class="device-type-icon">
+      {% if d.device_type == 'ps4' or d.device_type == 'ps5' %}🎮{% else %}🎱{% endif %}
+    </div>
+    <div class="d-flex justify-content-between align-items-start">
       <div>
         <div class="section-label">{{ d.get_device_type_display }}</div>
-        <strong style="font-size:1.1rem">{{ d.name }}</strong>
+        <strong style="font-size:1.1rem;font-family:'Oxanium',sans-serif">{{ d.name }}</strong>
       </div>
-      <span class="badge {% if d.is_active %}badge-free{% else %}bg-secondary{% endif %}">
+      <span class="badge {% if d.is_active %}badge-free{% else %}" style="background:rgba(255,255,255,.06);color:var(--muted-lt);border:1px solid var(--border){% endif %}">
         {% if d.is_active %}فعال{% else %}غیرفعال{% endif %}
       </span>
     </div>
-    <div class="small mt-2 d-flex flex-column gap-1">
-      <div class="text-muted">نرخ: <span class="text-warning num">${{ d.price_per_hour }}/ساعت</span></div>
+    <div class="device-stat-row">
+      <div class="device-stat-chip">نرخ: <span>${{ d.price_per_hour }}/ساعت</span></div>
       {% if d.extra_controller_price > 0 %}
-      <div class="text-muted">کنترلر اضافه: <span class="num">${{ d.extra_controller_price }}</span></div>
+      <div class="device-stat-chip">کنترلر: <span>+${{ d.extra_controller_price }}</span></div>
       {% endif %}
-      <div class="text-muted">کنترلر پایه: {{ d.included_controllers }} عدد</div>
+      <div class="device-stat-chip">پایه: <span>{{ d.included_controllers }} کنترلر</span></div>
     </div>
-    <a href="{% url 'device_edit' d.pk %}" class="btn btn-sm btn-outline-secondary mt-3 w-100">
+    <a href="{% url 'device_edit' d.pk %}" class="btn btn-sm btn-outline-secondary w-100 mt-3">
       <i class="bi bi-pencil me-1"></i>ویرایش
     </a>
   </div>
 </div>
 {% empty %}
 <div class="col-12">
-  <div class="card p-4 text-center text-muted">دستگاهی تنظیم نشده.</div>
+  <div class="card p-5 text-center text-muted">
+    <i class="bi bi-hdd-stack d-block mb-2" style="font-size:2.5rem;opacity:.25"></i>
+    دستگاهی تنظیم نشده.
+  </div>
 </div>
 {% endfor %}
 </div>
@@ -46,19 +84,19 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">دستگاه جدید</h5>
+        <h5 class="modal-title"><i class="bi bi-plus-circle me-2" style="color:var(--violet-lt)"></i>دستگاه جدید</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <form method="post" action="{% url 'device_create' %}">
         {% csrf_token %}
         <div class="modal-body">
           <div class="mb-3">
-            <label class="form-label small">نام دستگاه *</label>
+            <label class="form-label">نام دستگاه *</label>
             <input type="text" name="name" class="form-control"
-                   placeholder="مثلاً: میز بیلیارد ۱، PS5 ایستگاه A" required>
+                   placeholder="مثلاً: میز بیلیارد ۱ یا PS5 ایستگاه A" required>
           </div>
           <div class="mb-3">
-            <label class="form-label small">نوع *</label>
+            <label class="form-label">نوع *</label>
             <select name="device_type" class="form-select" required>
               <option value="billiard">🎱 بیلیارد</option>
               <option value="snooker">🎱 اسنوکر</option>
@@ -68,25 +106,22 @@
           </div>
           <div class="row g-2">
             <div class="col">
-              <label class="form-label small">قیمت/ساعت ($) *</label>
-              <input type="number" name="price_per_hour" class="form-control ltr"
-                     step="0.01" min="0" required>
+              <label class="form-label">قیمت/ساعت ($) *</label>
+              <input type="number" name="price_per_hour" class="form-control ltr" step="0.01" min="0" required>
             </div>
             <div class="col">
-              <label class="form-label small">کنترلر پایه</label>
-              <input type="number" name="included_controllers" class="form-control ltr"
-                     value="2" min="0">
+              <label class="form-label">کنترلر پایه</label>
+              <input type="number" name="included_controllers" class="form-control ltr" value="2" min="0">
             </div>
           </div>
           <div class="mt-2">
-            <label class="form-label small">قیمت کنترلر اضافه ($)</label>
-            <input type="number" name="extra_controller_price" class="form-control ltr"
-                   step="0.01" value="0" min="0">
+            <label class="form-label">قیمت کنترلر اضافه ($)</label>
+            <input type="number" name="extra_controller_price" class="form-control ltr" step="0.01" value="0" min="0">
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
-          <button type="submit" class="btn btn-primary">ایجاد</button>
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">انصراف</button>
+          <button type="submit" class="btn btn-primary">ایجاد دستگاه</button>
         </div>
       </form>
     </div>

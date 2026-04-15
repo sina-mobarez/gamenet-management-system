@@ -2,23 +2,23 @@
 {% block title %}{{ action }} مشتری{% endblock %}
 {% block content %}
 <div class="page-header">
-  <a href="{% url 'customers_list' %}" class="btn btn-sm btn-outline-secondary mb-2">← مشتریان</a>
+  <a href="{% url 'customers_list' %}" class="btn btn-sm btn-outline-secondary mb-3">← مشتریان</a>
   <h2>{{ action }} مشتری</h2>
 </div>
-<div class="card p-4" style="max-width:420px">
+<div class="card p-4" style="max-width:440px">
   <form method="post">
     {% csrf_token %}
     <div class="mb-3">
-      <label class="form-label small">نام کامل *</label>
-      <input type="text" name="name" class="form-control" required autofocus>
+      <label class="form-label">نام کامل *</label>
+      <input type="text" name="name" class="form-control" required autofocus placeholder="علی احمدی">
     </div>
     <div class="mb-4">
-      <label class="form-label small">تلفن (اختیاری)</label>
-      <input type="text" name="phone" class="form-control ltr">
+      <label class="form-label">تلفن <span class="text-muted">(اختیاری)</span></label>
+      <input type="text" name="phone" class="form-control ltr" placeholder="09123456789">
     </div>
     <div class="d-flex gap-2">
       <button type="submit" class="btn btn-primary">{{ action }}</button>
-      <a href="{% url 'customers_list' %}" class="btn btn-secondary">انصراف</a>
+      <a href="{% url 'customers_list' %}" class="btn btn-outline-secondary">انصراف</a>
     </div>
   </form>
 </div>

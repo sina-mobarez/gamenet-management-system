@@ -2,73 +2,99 @@
 {% load shamsi %}
 {% block title %}مشتریان{% endblock %}
 {% block content %}
-<div class="page-header d-flex justify-content-between align-items-center">
-  <h2><i class="bi bi-people-fill me-2 text-accent"></i>مشتریان</h2>
+<div class="page-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
+  <h2><i class="bi bi-people-fill me-2" style="-webkit-text-fill-color:var(--violet-lt);color:var(--violet-lt)"></i>مشتریان</h2>
   <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">
     <i class="bi bi-person-plus me-1"></i>مشتری جدید
   </button>
 </div>
-<form method="get" class="mb-3">
-  <div class="input-group" style="max-width:360px">
+
+<form method="get" class="mb-4">
+  <div class="input-group" style="max-width:380px">
+    <span class="input-group-text"><i class="bi bi-search"></i></span>
     <input type="text" name="q" value="{{ q }}" placeholder="جستجو با نام یا تلفن…" class="form-control">
     <button type="submit" class="btn btn-outline-secondary">جستجو</button>
   </div>
 </form>
+
 <div class="card">
   <div class="table-responsive">
     <table class="table table-hover mb-0">
-      <thead><tr>
-        <th>نام</th><th>تلفن</th><th>موجودی</th><th>وضعیت</th><th></th>
-      </tr></thead>
+      <thead>
+        <tr>
+          <th>نام مشتری</th>
+          <th>تلفن</th>
+          <th>موجودی</th>
+          <th>وضعیت</th>
+          <th style="width:100px"></th>
+        </tr>
+      </thead>
       <tbody>
       {% for c in customers %}
       <tr>
-        <td><strong>{{ c.name }}</strong></td>
-        <td class="text-muted ltr">{{ c.phone|default:"—" }}</td>
-        <td class="fw-semibold num {% if c.balance < 0 %}text-danger{% elif c.balance > 0 %}text-success{% endif %}">
-          ${{ c.balance|floatformat:2 }}
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <div style="width:36px;height:36px;border-radius:10px;background:rgba(124,58,237,0.2);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0">
+              {{ c.name|slice:":1" }}
+            </div>
+            <strong style="font-size:.9rem">{{ c.name }}</strong>
+          </div>
+        </td>
+        <td class="text-muted ltr" style="font-family:'Oxanium',monospace">{{ c.phone|default:"—" }}</td>
+        <td>
+          <span class="num fw-bold {% if c.balance < 0 %}text-danger{% elif c.balance > 0 %}text-success{% else %}text-muted{% endif %}">
+            ${{ c.balance|floatformat:2 }}
+          </span>
         </td>
         <td>
           {% if c.balance < 0 %}
-          <span class="badge badge-busy">بدهی: ${{ c.debt_amount|floatformat:2 }}</span>
+          <span class="badge badge-busy">بدهی ${{ c.debt_amount|floatformat:2 }}</span>
           {% elif c.balance > 0 %}
           <span class="badge badge-free">اعتبار</span>
           {% else %}
-          <span class="badge bg-secondary">تسویه</span>
+          <span class="badge" style="background:rgba(255,255,255,.07);color:var(--muted-lt);border:1px solid var(--border)">تسویه</span>
           {% endif %}
         </td>
-        <td><a href="{% url 'customer_detail' c.pk %}" class="btn btn-sm btn-outline-secondary">مشاهده</a></td>
+        <td>
+          <a href="{% url 'customer_detail' c.pk %}" class="btn btn-sm btn-outline-secondary">مشاهده</a>
+        </td>
       </tr>
       {% empty %}
-      <tr><td colspan="5" class="text-center text-muted py-4">مشتری‌ای یافت نشد.</td></tr>
+      <tr>
+        <td colspan="5" class="text-center py-5">
+          <i class="bi bi-people d-block mb-2" style="font-size:2rem;opacity:.25"></i>
+          <span class="text-muted">مشتری‌ای یافت نشد.</span>
+        </td>
+      </tr>
       {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
 
+<!-- Create Modal -->
 <div class="modal fade" id="createModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">مشتری جدید</h5>
+        <h5 class="modal-title"><i class="bi bi-person-plus-fill me-2" style="color:var(--violet-lt)"></i>مشتری جدید</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <form method="post" action="{% url 'customer_create' %}">
         {% csrf_token %}
         <div class="modal-body">
           <div class="mb-3">
-            <label class="form-label small">نام کامل *</label>
-            <input type="text" name="name" class="form-control" required autofocus>
+            <label class="form-label">نام کامل *</label>
+            <input type="text" name="name" class="form-control" required autofocus placeholder="علی احمدی">
           </div>
-          <div class="mb-3">
-            <label class="form-label small">تلفن (اختیاری)</label>
-            <input type="text" name="phone" class="form-control ltr">
+          <div class="mb-1">
+            <label class="form-label">تلفن <span class="text-muted">(اختیاری)</span></label>
+            <input type="text" name="phone" class="form-control ltr" placeholder="09123456789">
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
-          <button type="submit" class="btn btn-primary">ایجاد</button>
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">انصراف</button>
+          <button type="submit" class="btn btn-primary">ایجاد مشتری</button>
         </div>
       </form>
     </div>
