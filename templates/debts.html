@@ -51,6 +51,10 @@
   </div>
 </div>
 
+
+{% endblock %}
+
+{% block modals %}
 <!-- Settle Modal -->
 <div class="modal fade" id="settleModal" tabindex="-1">
   <div class="modal-dialog modal-sm">
@@ -81,6 +85,7 @@
   </div>
 </div>
 {% endblock %}
+
 {% block extra_js %}
 <script>
 document.getElementById('settleModal').addEventListener('show.bs.modal', e => {

@@ -57,6 +57,9 @@
   </div>
 </div>
 
+{% endblock %}
+
+{% block modals %}
 <!-- Add Product Modal -->
 <div class="modal fade" id="addProductModal" tabindex="-1">
   <div class="modal-dialog">
@@ -131,6 +134,8 @@
   </div>
 </div>
 {% endblock %}
+
+
 {% block extra_js %}
 <script>
 document.getElementById('stockModal').addEventListener('show.bs.modal', e => {
