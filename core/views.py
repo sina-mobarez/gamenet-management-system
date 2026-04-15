@@ -70,8 +70,8 @@ def dashboard(request):
     return render(request, 'dashboard.html', {
         'devices': devices,
         'low_stock': low_stock,
-        'today_cash': float(today_cash) + float(today_sales_cash),
-        'total_debt': float(total_debt),
+        'today_cash': int(today_cash + today_sales_cash),
+        'total_debt': int(total_debt),
         'customers_for_modal': Customer.objects.all().order_by('name'),
         'unpaid_sessions': unpaid_sessions,
     })
@@ -242,7 +242,7 @@ def session_status(request, pk):
     session = get_object_or_404(Session, pk=pk)
     return JsonResponse({
         'elapsed_seconds': session.elapsed_seconds,
-        'current_cost': float(session.calculate_cost()),
+        'current_cost': int(session.calculate_cost()),
         'duration_display': session.duration_display,
     })
 
@@ -519,19 +519,19 @@ def reports(request):
 
     return render(request, 'reports.html', {
         'period': period,
-        'session_cash': float(session_payments),
-        'sales_cash': float(sales_cash),
-        'total_cash': float(session_payments) + float(sales_cash),
-        'account_charges': float(account_charges),
-        'sales_account': float(sales_account),
-        'total_account': float(account_charges) + float(sales_account),
-        'grand_total': float(session_payments) + float(sales_cash) + float(account_charges) + float(sales_account),
+        'session_cash': int(session_payments),
+        'sales_cash': int(sales_cash),
+        'total_cash': int(session_payments) + int(sales_cash),
+        'account_charges': int(account_charges),
+        'sales_account': int(sales_account),
+        'total_account': int(account_charges) + int(sales_account),
+        'grand_total': int(session_payments) + int(sales_cash) + int(account_charges) + int(sales_account),
         'period_sessions': period_sessions,
         'device_usage': device_usage,
         'top_customers': top_customers,
-        'total_debt': float(total_debt),
+        'total_debt': int(total_debt),
         'top_products': top_products,
-        'settlements': float(settlements),
+        'settlements': int(settlements),
     })
 
 
