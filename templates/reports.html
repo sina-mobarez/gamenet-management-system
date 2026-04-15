@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% load shamsi %}
+{% block title %}گزارش‌ها{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <h2><i class="bi bi-bar-chart-fill me-2 text-accent"></i>گزارش مالی</h2>
+  <div class="btn-group">
+    <a href="?period=today"
+       class="btn btn-sm {% if period == 'today' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+      امروز
+    </a>
+    <a href="?period=week"
+       class="btn btn-sm {% if period == 'week' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+      ۷ روز اخیر
+    </a>
+    <a href="?period=month"
+       class="btn btn-sm {% if period == 'month' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+      ۳۰ روز اخیر
+    </a>
+  </div>
+</div>
+
+<!-- Top stats row -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-lg-3">
+    <div class="stat-card text-center h-100" style="border-color:var(--green);border-width:2px">
+      <div class="section-label">درآمد کل</div>
+      <div class="value text-success num">${{ grand_total|floatformat:2 }}</div>
+      <div class="text-muted small mt-1">نقد + حساب</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="stat-card text-center h-100">
+      <div class="section-label">دریافت نقد</div>
+      <div class="value text-warning num">${{ total_cash|floatformat:2 }}</div>
+      <div class="text-muted small mt-1">سشن + فروش</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="stat-card text-center h-100">
+      <div class="section-label">ثبت به حساب</div>
+      <div class="value text-info num">${{ total_account|floatformat:2 }}</div>
+      <div class="text-muted small mt-1">سشن + فروش</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="stat-card text-center h-100">
+      <div class="section-label">تسویه بدهی</div>
+      <div class="value text-success num">${{ settlements|floatformat:2 }}</div>
+      <div class="text-muted small mt-1">دریافتی از بدهکاران</div>
+    </div>
+  </div>
+</div>
+
+<!-- Second row -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-4">
+    <div class="stat-card text-center">
+      <div class="section-label">تعداد سشن</div>
+      <div class="value">{{ period_sessions }}</div>
+    </div>
+  </div>
+  <div class="col-sm-4">
+    <div class="stat-card text-center">
+      <div class="section-label">بدهی کل (جاری)</div>
+      <div class="value text-danger num">${{ total_debt|floatformat:2 }}</div>
+    </div>
+  </div>
+  <div class="col-sm-4">
+    <div class="stat-card text-center">
+      <div class="section-label">درآمد سشن نقد</div>
+      <div class="value text-warning num">${{ session_cash|floatformat:2 }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Detail tables -->
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card p-4 h-100">
+      <strong class="d-block mb-3">
+        <i class="bi bi-hdd-stack me-1 text-accent"></i>استفاده از دستگاه‌ها
+      </strong>
+      {% for d in device_usage %}
+      <div class="d-flex justify-content-between align-items-center py-2 border-bottom"
+           style="border-color:var(--border)!important">
+        <div>
+          <div class="small fw-semibold">{{ d.name }}</div>
+          <div class="text-muted" style="font-size:.75rem">{{ d.get_device_type_display }}</div>
+        </div>
+        <span class="badge" style="background:var(--accent)">{{ d.session_count }} سشن</span>
+      </div>
+      {% empty %}<p class="text-muted small">اطلاعاتی ندارد.</p>{% endfor %}
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card p-4 h-100">
+      <strong class="d-block mb-3">
+        <i class="bi bi-bag me-1"></i>پرفروش‌ترین محصولات
+      </strong>
+      {% for p in top_products %}
+      <div class="d-flex justify-content-between align-items-center py-2 border-bottom"
+           style="border-color:var(--border)!important">
+        <div>
+          <div class="small fw-semibold">{{ p.product__name }}</div>
+          <div class="text-muted" style="font-size:.75rem">{{ p.total_qty }} عدد فروخته‌شده</div>
+        </div>
+        <span class="text-warning small num">${{ p.total_rev|floatformat:2 }}</span>
+      </div>
+      {% empty %}<p class="text-muted small">فروشی ندارد.</p>{% endfor %}
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card p-4 h-100">
+      <strong class="d-block mb-3">
+        <i class="bi bi-people me-1"></i>فعال‌ترین مشتریان
+      </strong>
+      {% for c in top_customers %}
+      {% if c.session_count > 0 %}
+      <div class="d-flex justify-content-between align-items-center py-2 border-bottom"
+           style="border-color:var(--border)!important">
+        <div>
+          <div class="small fw-semibold">
+            <a href="{% url 'customer_detail' c.pk %}" class="text-decoration-none">{{ c.name }}</a>
+          </div>
+          {% if c.balance < 0 %}
+          <div class="text-danger" style="font-size:.75rem">بدهی: ${{ c.debt_amount|floatformat:2 }}</div>
+          {% endif %}
+        </div>
+        <span class="badge bg-secondary">{{ c.session_count }} سشن</span>
+      </div>
+      {% endif %}
+      {% empty %}<p class="text-muted small">اطلاعاتی ندارد.</p>{% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
