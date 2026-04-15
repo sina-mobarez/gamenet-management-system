@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% load shamsi %}
+{% block title %}تاریخچه سشن‌ها{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2><i class="bi bi-clock-history me-2 text-accent"></i>تاریخچه سشن‌ها</h2>
+</div>
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr>
+        <th>دستگاه</th><th>شروع</th><th>مدت</th><th>مبلغ</th><th>پرداخت‌شده</th><th>مانده</th><th>وضعیت</th><th></th>
+      </tr></thead>
+      <tbody>
+      {% for s in sessions %}
+      <tr>
+        <td>
+          <strong>{{ s.device.name }}</strong>
+          <div class="text-muted small">{{ s.device.get_device_type_display }}</div>
+        </td>
+        <td class="small">{{ s.started_at|shamsi }}</td>
+        <td class="num">{{ s.duration_display }}</td>
+        <td class="text-warning fw-bold num">${{ s.total_cost|default:"—"|floatformat:2 }}</td>
+        <td class="text-success num">${{ s.paid_amount|floatformat:2 }}</td>
+        <td>
+          {% if s.remaining_amount > 0 %}
+          <span class="text-danger fw-bold num">${{ s.remaining_amount|floatformat:2 }}</span>
+          {% else %}
+          <span class="text-success"><i class="bi bi-check-circle-fill"></i></span>
+          {% endif %}
+        </td>
+        <td>
+          <span class="badge {% if s.status == 'finished' %}badge-free{% else %}bg-secondary{% endif %}">
+            {% if s.status == 'finished' %}پایان{% else %}{{ s.get_status_display }}{% endif %}
+          </span>
+        </td>
+        <td class="d-flex gap-1">
+          <a href="{% url 'session_detail' s.pk %}" class="btn btn-sm btn-outline-secondary">جزئیات</a>
+          {% if s.status == 'finished' and not s.is_fully_paid %}
+          <a href="{% url 'session_pay' s.pk %}" class="btn btn-sm btn-warning">پرداخت</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" class="text-center text-muted py-4">سشنی وجود ندارد.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
