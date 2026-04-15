@@ -8,7 +8,7 @@ from django.db.models import Q, Sum
 from decimal import Decimal, InvalidOperation
 
 from .models import (
-    Device, Customer, Session, SessionPlayer,
+    Device, Customer, ProductCategory, Session, SessionPlayer,
     Product, Sale, Payment
 )
 
@@ -321,3 +321,94 @@ def customer_settle(request, pk):
         )
         messages.success(request, f'${amount} برای {customer.name} تسویه شد.')
     return redirect('customer_detail', pk=pk)
+
+
+# ── Shop ──────────────────────────────────────────────────────────────────────
+
+@login_required
+def shop(request):
+    products = (Product.objects.filter(is_active=True)
+                .select_related('category').order_by('category__name', 'name'))
+    active_sessions = Session.objects.filter(status='active').select_related('device')
+    customers = Customer.objects.all().order_by('name')
+    return render(request, 'shop.html', {
+        'products': products,
+        'active_sessions': active_sessions,
+        'customers': customers,
+    })
+
+
+@login_required
+def shop_sell(request):
+    if request.method != 'POST':
+        return redirect('shop')
+
+    product = get_object_or_404(Product, pk=request.POST.get('product_id'))
+    qty = int(request.POST.get('quantity', 1))
+    payment_type = request.POST.get('payment_type', 'cash')
+    session_id = request.POST.get('session_id') or None
+    customer_id = request.POST.get('customer_id') or None
+
+    if product.stock < qty:
+        messages.error(request, f'موجودی کافی نیست برای {product.name}.')
+        return redirect('shop')
+
+    sale = Sale.objects.create(
+        product=product,
+        quantity=qty,
+        unit_price=product.price,
+        payment_type=payment_type,
+        session_id=session_id,
+        customer_id=customer_id,
+    )
+    product.stock -= qty
+    product.save()
+
+    if payment_type == 'account' and customer_id:
+        customer = Customer.objects.get(pk=customer_id)
+        customer.balance -= sale.total_price
+        customer.save()
+    elif payment_type == 'cash':
+        Payment.objects.create(
+            amount=sale.total_price,
+            payment_type='cash',
+            customer_id=customer_id,
+            notes=f'فروش: {product.name} ×{qty}',
+        )
+
+    messages.success(request, f'{product.name} ×{qty} به مبلغ ${sale.total_price} فروخته شد.')
+    return redirect('shop')
+
+
+@login_required
+def products_manage(request):
+    products = (Product.objects.all()
+                .select_related('category').order_by('category__name', 'name'))
+    categories = ProductCategory.objects.all()
+    return render(request, 'products_manage.html', {
+        'products': products, 'categories': categories
+    })
+
+
+@login_required
+def product_create(request):
+    if request.method == 'POST':
+        Product.objects.create(
+            name=request.POST['name'],
+            price=request.POST['price'],
+            stock=request.POST.get('stock', 0),
+            category_id=request.POST.get('category_id') or None,
+            low_stock_threshold=request.POST.get('low_stock_threshold', 5),
+        )
+        messages.success(request, 'محصول اضافه شد.')
+    return redirect('products_manage')
+
+
+@login_required
+def product_update_stock(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    if request.method == 'POST':
+        product.stock = int(request.POST['stock'])
+        product.save()
+        messages.success(request, f'موجودی {product.name} به‌روز شد.')
+    return redirect('products_manage')
