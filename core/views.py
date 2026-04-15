@@ -4,7 +4,7 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
 from django.http import JsonResponse
 from django.utils import timezone
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from decimal import Decimal, InvalidOperation
 
 from .models import (
@@ -252,3 +252,72 @@ def sessions_history(request):
                 .order_by('-started_at')
                 .select_related('device')[:100])
     return render(request, 'sessions_history.html', {'sessions': sessions})
+
+
+# ── Customers ─────────────────────────────────────────────────────────────────
+
+@login_required
+def customers_list(request):
+    q = request.GET.get('q', '')
+    customers = Customer.objects.all()
+    if q:
+        customers = customers.filter(Q(name__icontains=q) | Q(phone__icontains=q))
+    return render(request, 'customers_list.html', {
+        'customers': customers.order_by('balance', 'name'),
+        'q': q,
+    })
+
+
+@login_required
+def customer_create(request):
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        if not name:
+            messages.error(request, 'نام الزامی است.')
+        else:
+            c = Customer.objects.create(
+                name=name,
+                phone=request.POST.get('phone', '').strip()
+            )
+            messages.success(request, f'مشتری "{c.name}" ساخته شد.')
+            return redirect('customers_list')
+    return render(request, 'customer_form.html', {'action': 'ایجاد'})
+
+
+@login_required
+def customer_detail(request, pk):
+    customer = get_object_or_404(Customer, pk=pk)
+    sessions = (Session.objects.filter(players__customer=customer)
+                .distinct().order_by('-started_at')[:20])
+    sales = Sale.objects.filter(customer=customer).order_by('-sold_at')[:20]
+    payments = Payment.objects.filter(customer=customer).order_by('-created_at')[:20]
+    return render(request, 'customer_detail.html', {
+        'customer': customer,
+        'sessions': sessions,
+        'sales': sales,
+        'payments': payments,
+    })
+
+
+@login_required
+def customer_settle(request, pk):
+    customer = get_object_or_404(Customer, pk=pk)
+    if request.method == 'POST':
+        try:
+            amount = Decimal(request.POST.get('amount', '0'))
+            if amount <= 0:
+                raise ValueError
+        except (InvalidOperation, ValueError):
+            messages.error(request, 'مبلغ نامعتبر.')
+            return redirect('customer_detail', pk=pk)
+
+        customer.balance += amount
+        customer.save()
+        Payment.objects.create(
+            customer=customer,
+            amount=amount,
+            payment_type='account_settlement',
+            notes=request.POST.get('notes', ''),
+        )
+        messages.success(request, f'${amount} برای {customer.name} تسویه شد.')
+    return redirect('customer_detail', pk=pk)
