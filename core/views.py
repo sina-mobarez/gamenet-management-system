@@ -412,3 +412,41 @@ def product_update_stock(request, pk):
         product.save()
         messages.success(request, f'موجودی {product.name} به‌روز شد.')
     return redirect('products_manage')
+
+
+# ── Devices ───────────────────────────────────────────────────────────────────
+
+@login_required
+def devices_manage(request):
+    return render(request, 'devices_manage.html', {
+        'devices': Device.objects.all()
+    })
+
+
+@login_required
+def device_create(request):
+    if request.method == 'POST':
+        Device.objects.create(
+            name=request.POST['name'],
+            device_type=request.POST['device_type'],
+            price_per_hour=request.POST['price_per_hour'],
+            extra_controller_price=request.POST.get('extra_controller_price', 0),
+            included_controllers=request.POST.get('included_controllers', 2),
+        )
+        messages.success(request, 'دستگاه اضافه شد.')
+    return redirect('devices_manage')
+
+
+@login_required
+def device_edit(request, pk):
+    device = get_object_or_404(Device, pk=pk)
+    if request.method == 'POST':
+        device.name = request.POST['name']
+        device.price_per_hour = request.POST['price_per_hour']
+        device.extra_controller_price = request.POST.get('extra_controller_price', 0)
+        device.included_controllers = request.POST.get('included_controllers', 2)
+        device.is_active = 'is_active' in request.POST
+        device.save()
+        messages.success(request, 'دستگاه به‌روز شد.')
+        return redirect('devices_manage')
+    return render(request, 'device_edit.html', {'device': device})
