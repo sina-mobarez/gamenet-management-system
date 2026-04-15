@@ -1,12 +1,13 @@
-{% load shamsi %}
+{% load shamsi static %}
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ورود — GameNet</title>
-<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;700;800;900&family=Vazirmatn:wght@400;600;700&display=swap" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+<link href="{% static 'css/fonts.css' %}" rel="stylesheet">
+<link href="{% static 'css/bootstrap.rtl.min.css' %}" rel="stylesheet">
+<link href="{% static 'css/bootstrap-icons.css' %}" rel="stylesheet">
 <style>
 *,*::before,*::after { box-sizing: border-box; margin: 0; }
 
@@ -224,11 +225,11 @@ body::after {
       <button type="submit" class="btn-login"><span>ورود به سیستم ←</span></button>
     </form>
 
-    <div class="version-tag">GAMENET v2.0 &nbsp;●&nbsp; POWERED BY DJANGO</div>
+    <div class="version-tag">GAMENET Manager &nbsp;●&nbsp; Developed BY Sina Mobarez</div>
   </div>
 </div>
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
 <script>
 const c = document.getElementById('particles');
 for (let i = 0; i < 28; i++) {
