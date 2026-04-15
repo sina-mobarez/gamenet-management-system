@@ -94,7 +94,7 @@
               {% else %}🛍️{% endif %}
             </div>
             <div class="product-name">{{ p.name }}</div>
-            <div class="product-price">${{ p.price }}</div>
+            <div class="product-price"> تومان {{ p.price }}</div>
             <div class="product-stock {% if p.is_low_stock %}text-danger fw-bold{% else %}text-muted{% endif %}">
               {{ p.stock }} موجود
             </div>
@@ -126,7 +126,7 @@
       <div id="selectedDisplay" class="selected-info" style="display:none">
         <div class="section-label">محصول انتخابی</div>
         <div class="fw-bold" id="selName" style="font-size:.95rem"></div>
-        <div class="text-warning num fw-bold">$<span id="selPrice">0</span></div>
+        <div class="text-warning num fw-bold"> تومان <span id="selPrice">0</span></div>
         <div class="text-muted small">موجودی: <span id="selStock">0</span></div>
       </div>
 
@@ -174,7 +174,7 @@
 
         <div class="total-box">
           <div class="total-label">جمع کل</div>
-          <div class="total-val">$<span id="totalDisplay">0.00</span></div>
+          <div class="total-val"> تومان <span id="totalDisplay">0</span></div>
         </div>
 
         <button type="submit" class="btn btn-success w-100 py-2 fw-bold" id="sellBtn" disabled>

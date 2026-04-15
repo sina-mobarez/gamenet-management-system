@@ -37,10 +37,10 @@
       {% if session.status == 'active' %}
       <div class="timer-display mb-1" id="timer"
            data-started="{{ session.started_at|date:'c' }}">{{ session.duration_display }}</div>
-      <div class="cost-display mt-1">$<span id="liveCost">{{ current_cost|floatformat:2 }}</span></div>
+      <div class="cost-display mt-1"> تومان <span id="liveCost">{{ current_cost }}</span></div>
       {% else %}
       <div class="timer-display mb-1">{{ session.duration_display }}</div>
-      <div class="cost-display mt-1">${{ session.total_cost|floatformat:2 }}</div>
+      <div class="cost-display mt-1"> تومان {{ session.total_cost }}</div>
       {% endif %}
 
       <hr class="glow-divider">
@@ -61,7 +61,7 @@
       {% endif %}
       <div class="session-info-row">
         <span class="sir-key">نرخ</span>
-        <span class="sir-val num">${{ session.device.price_per_hour }}/ساعت</span>
+        <span class="sir-val num"> تومان {{ session.device.price_per_hour }}/ساعت</span>
       </div>
       {% if session.extra_controllers > 0 %}
       <div class="session-info-row">
@@ -76,7 +76,7 @@
            onclick="return confirm('سشن پایان یابد؟')">⏹ پایان سشن</a>
         {% elif not session.is_fully_paid %}
         <a href="{% url 'session_pay' session.pk %}" class="btn btn-warning w-100 fw-bold">
-          💳 ادامه پرداخت (${{ session.remaining_amount|floatformat:2 }} مانده)
+          💳 ادامه پرداخت ( تومان {{ session.remaining_amount }} مانده)
         </a>
         {% else %}
         <div class="text-center py-2">
@@ -105,7 +105,7 @@
           <strong style="font-size:.9rem">{{ p.display_name }}</strong>
         </div>
         {% if p.customer and p.customer.balance < 0 %}
-        <span class="badge badge-busy small">بدهی: ${{ p.customer.debt_amount|floatformat:2 }}</span>
+        <span class="badge badge-busy small">بدهی:  تومان {{ p.customer.debt_amount }}</span>
         {% endif %}
       </div>
       {% empty %}
@@ -123,7 +123,7 @@
       <div class="d-flex justify-content-between py-2 border-bottom small"
            style="border-color:rgba(124,58,237,0.08)!important">
         <span>{{ sale.product.name }} × {{ sale.quantity }}</span>
-        <span class="text-warning num fw-bold">${{ sale.total_price }}</span>
+        <span class="text-warning num fw-bold"> تومان {{ sale.total_price }}</span>
       </div>
       {% endfor %}
     </div>

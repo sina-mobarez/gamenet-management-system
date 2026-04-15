@@ -58,9 +58,9 @@
       </span>
     </div>
     <div class="device-stat-row">
-      <div class="device-stat-chip">نرخ: <span>${{ d.price_per_hour }}/ساعت</span></div>
+      <div class="device-stat-chip">نرخ: <span> تومان {{ d.price_per_hour }}/ساعت</span></div>
       {% if d.extra_controller_price > 0 %}
-      <div class="device-stat-chip">کنترلر: <span>+${{ d.extra_controller_price }}</span></div>
+      <div class="device-stat-chip">کنترلر: <span>+ تومان {{ d.extra_controller_price }}</span></div>
       {% endif %}
       <div class="device-stat-chip">پایه: <span>{{ d.included_controllers }} کنترلر</span></div>
     </div>
@@ -109,7 +109,7 @@
           </div>
           <div class="row g-2">
             <div class="col">
-              <label class="form-label">قیمت/ساعت ($) *</label>
+              <label class="form-label">قیمت/ساعت ( تومان ) *</label>
               <input type="number" name="price_per_hour" class="form-control ltr" step="0.01" min="0" required>
             </div>
             <div class="col">
@@ -118,7 +118,7 @@
             </div>
           </div>
           <div class="mt-2">
-            <label class="form-label">قیمت کنترلر اضافه ($)</label>
+            <label class="form-label">قیمت کنترلر اضافه ( تومان )</label>
             <input type="number" name="extra_controller_price" class="form-control ltr" step="0.01" value="0" min="0">
           </div>
         </div>

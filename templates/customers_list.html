@@ -43,12 +43,12 @@
         <td class="text-muted ltr" style="font-family:'Oxanium',monospace">{{ c.phone|default:"—" }}</td>
         <td>
           <span class="num fw-bold {% if c.balance < 0 %}text-danger{% elif c.balance > 0 %}text-success{% else %}text-muted{% endif %}">
-            ${{ c.balance|floatformat:2 }}
+             تومان {{ c.balance }}
           </span>
         </td>
         <td>
           {% if c.balance < 0 %}
-          <span class="badge badge-busy">بدهی ${{ c.debt_amount|floatformat:2 }}</span>
+          <span class="badge badge-busy">بدهی  تومان {{ c.debt_amount }}</span>
           {% elif c.balance > 0 %}
           <span class="badge badge-free">اعتبار</span>
           {% else %}

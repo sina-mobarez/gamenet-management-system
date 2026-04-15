@@ -120,7 +120,7 @@ def session_end(request, pk):
     session.total_cost = session.calculate_cost()
     session.status = 'finished'
     session.save()
-    messages.success(request, f'سشن پایان یافت. مبلغ کل: ${session.total_cost}')
+    messages.success(request, f'سشن پایان یافت. مبلغ کل:  تومان {session.total_cost}')
     return redirect('session_pay', pk=session.pk)
 
 
@@ -176,7 +176,7 @@ def session_pay(request, pk):
                     payment_type='account_debit',
                     notes=request.POST.get('notes', ''),
                 )
-            messages.success(request, f'پرداخت ${amount} ثبت شد.')
+            messages.success(request, f'پرداخت  تومان {amount} ثبت شد.')
             return redirect('session_pay', pk=pk)
 
         elif action == 'delete_payment':
@@ -202,7 +202,7 @@ def session_pay(request, pk):
                     payment_type='cash',
                     notes='باقیمانده نقد',
                 )
-                messages.success(request, f'باقیمانده ${remaining} نقد دریافت شد.')
+                messages.success(request, f'باقیمانده  تومان {remaining} نقد دریافت شد.')
             return redirect('session_pay', pk=pk)
 
         elif action == 'pay_remaining_account':
@@ -222,7 +222,7 @@ def session_pay(request, pk):
                     payment_type='account_debit',
                     notes='باقیمانده به حساب',
                 )
-                messages.success(request, f'باقیمانده ${remaining} به حساب {customer.name} افزوده شد.')
+                messages.success(request, f'باقیمانده  تومان {remaining} به حساب {customer.name} افزوده شد.')
             return redirect('session_pay', pk=pk)
 
         elif action == 'leave':
@@ -320,7 +320,7 @@ def customer_settle(request, pk):
             payment_type='account_settlement',
             notes=request.POST.get('notes', ''),
         )
-        messages.success(request, f'${amount} برای {customer.name} تسویه شد.')
+        messages.success(request, f' تومان {amount} برای {customer.name} تسویه شد.')
     return redirect('customer_detail', pk=pk)
 
 
@@ -377,7 +377,7 @@ def shop_sell(request):
             notes=f'فروش: {product.name} ×{qty}',
         )
 
-    messages.success(request, f'{product.name} ×{qty} به مبلغ ${sale.total_price} فروخته شد.')
+    messages.success(request, f'{product.name} ×{qty} به مبلغ  تومان {sale.total_price} فروخته شد.')
     return redirect('shop')
 
 

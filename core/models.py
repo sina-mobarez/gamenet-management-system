@@ -199,4 +199,4 @@ class Payment(models.Model):
     created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
-        return f"{self.get_payment_type_display()} | ${self.amount} | {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+        return f"{self.get_payment_type_display()} |  تومان {self.amount} | {self.created_at.strftime('%Y-%m-%d %H:%M')}"
