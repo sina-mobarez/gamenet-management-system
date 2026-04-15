@@ -1,0 +1,259 @@
+{% load shamsi %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}گیم‌نت{% endblock %}</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap');
+
+  :root {
+    --sidebar-w: 230px;
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #242736;
+    --accent: #6c63ff;
+    --green: #22c55e;
+    --red: #ef4444;
+    --yellow: #f59e0b;
+    --cyan: #06b6d4;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --border: rgba(255,255,255,.07);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Vazirmatn', 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: var(--sidebar-w);
+    background: var(--surface);
+    height: 100vh;
+    position: fixed;
+    right: 0; top: 0;
+    overflow-y: auto;
+    border-left: 1px solid var(--border);
+    z-index: 200;
+  }
+  .sidebar .logo {
+    padding: 1.25rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar .logo h5 { color: var(--accent); margin: 0; font-weight: 800; font-size: 1.05rem; }
+  .sidebar .logo small { color: var(--muted); font-size: .72rem; }
+
+  .nav-section {
+    font-size: .62rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    padding: .75rem 1rem .2rem;
+  }
+  .nav-link {
+    color: var(--muted) !important;
+    border-radius: 8px;
+    margin: 2px 8px;
+    padding: .45rem .85rem !important;
+    font-size: .83rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    transition: .15s;
+  }
+  .nav-link:hover { background: rgba(108,99,255,.15) !important; color: #fff !important; }
+  .nav-link.active { background: var(--accent) !important; color: #fff !important; }
+
+  /* ── Main area ── */
+  .main {
+    margin-right: var(--sidebar-w);
+    padding: 1.5rem;
+    min-height: 100vh;
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .card-header {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    border-radius: 12px 12px 0 0 !important;
+    font-weight: 600;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+  }
+  .stat-card .value { font-size: 1.75rem; font-weight: 700; line-height: 1.1; }
+
+  /* ── Device cards ── */
+  .device-card {
+    border-radius: 12px;
+    padding: 1rem;
+    border: 2px solid;
+    cursor: pointer;
+    transition: .2s;
+    height: 100%;
+  }
+  .device-card.free  { border-color: var(--green); background: rgba(34,197,94,.07); }
+  .device-card.busy  { border-color: var(--red);   background: rgba(239,68,68,.07); }
+  .device-card.unpaid { border-color: var(--yellow); background: rgba(245,158,11,.07); }
+  .device-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+
+  /* ── Typography ── */
+  .section-label {
+    font-size: .65rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: .3rem;
+  }
+  .timer-display {
+    font-size: 1.6rem;
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 2px;
+    direction: ltr;
+    display: inline-block;
+  }
+  .cost-display { font-size: 1.1rem; font-weight: 700; color: var(--yellow); }
+  .badge-free  { background: var(--green)  !important; color: #fff; }
+  .badge-busy  { background: var(--red)    !important; color: #fff; }
+  .badge-unpaid { background: var(--yellow) !important; color: #000; }
+
+  /* ── Forms ── */
+  .form-control, .form-select {
+    background: var(--surface2) !important;
+    border-color: rgba(255,255,255,.12) !important;
+    color: var(--text) !important;
+    border-radius: 8px;
+  }
+  .form-control:focus, .form-select:focus {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 .2rem rgba(108,99,255,.2) !important;
+  }
+  .form-control::placeholder { color: var(--muted) !important; }
+  .input-group-text {
+    background: var(--surface2) !important;
+    border-color: rgba(255,255,255,.12) !important;
+    color: var(--muted) !important;
+  }
+
+  /* ── Tables ── */
+  .table { color: var(--text); }
+  .table > :not(caption) > * > * { background: transparent; color: var(--text); border-color: var(--border); }
+  .table-hover > tbody > tr:hover > * { background: var(--surface2) !important; }
+  thead tr { background: var(--surface2); }
+
+  /* ── Buttons ── */
+  .btn-primary   { background: var(--accent); border-color: var(--accent); }
+  .btn-primary:hover { background: #5a52d0; border-color: #5a52d0; }
+  .btn-success   { background: var(--green); border-color: var(--green); }
+  .btn-success:hover { background: #16a34a; border-color: #16a34a; }
+  .btn-danger    { background: var(--red);   border-color: var(--red); }
+  .btn-warning   { background: var(--yellow); border-color: var(--yellow); color: #000; }
+
+  /* ── Modal ── */
+  .modal-content { background: var(--surface); color: var(--text); border: 1px solid rgba(255,255,255,.1); }
+  .modal-header  { border-bottom-color: var(--border); }
+  .modal-footer  { border-top-color: var(--border); }
+
+  /* ── Alerts ── */
+  .alert-dismissible .btn-close { filter: invert(1); }
+
+  /* ── Progress bar ── */
+  .progress { background: var(--surface2); border-radius: 99px; }
+
+  /* ── Misc ── */
+  a { color: var(--accent); }
+  a:hover { color: #a89eff; }
+  .text-accent { color: var(--accent); }
+  .ltr { direction: ltr; display: inline-block; }
+  .num { font-family: 'Courier New', monospace; direction: ltr; display: inline-block; }
+  hr { border-color: var(--border); }
+  .page-header { margin-bottom: 1.5rem; }
+  .page-header h2 { font-weight: 800; font-size: 1.4rem; margin: 0; }
+</style>
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% if user.is_authenticated %}
+<nav class="sidebar">
+  <div class="logo">
+    <h5><i class="bi bi-controller"></i> گیم‌نت</h5>
+    <small>سیستم مدیریت</small>
+  </div>
+  <ul class="nav flex-column pt-2 pb-4">
+    <li><a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+      <i class="bi bi-grid-1x2-fill"></i> داشبورد
+    </a></li>
+
+    <div class="nav-section">سشن‌ها</div>
+    <li><a href="{% url 'sessions_history' %}" class="nav-link {% if request.resolver_match.url_name == 'sessions_history' %}active{% endif %}">
+      <i class="bi bi-clock-history"></i> تاریخچه
+    </a></li>
+
+    <div class="nav-section">مشتریان</div>
+    <li><a href="{% url 'customers_list' %}" class="nav-link {% if 'customer' in request.resolver_match.url_name %}active{% endif %}">
+      <i class="bi bi-people-fill"></i> مشتریان
+    </a></li>
+    <li><a href="{% url 'debts' %}" class="nav-link {% if request.resolver_match.url_name == 'debts' %}active{% endif %}">
+      <i class="bi bi-exclamation-triangle-fill"></i> بدهی‌ها
+    </a></li>
+
+    <div class="nav-section">کافه / فروش</div>
+    <li><a href="{% url 'shop' %}" class="nav-link {% if request.resolver_match.url_name == 'shop' %}active{% endif %}">
+      <i class="bi bi-bag-fill"></i> فروش
+    </a></li>
+    <li><a href="{% url 'products_manage' %}" class="nav-link {% if 'product' in request.resolver_match.url_name %}active{% endif %}">
+      <i class="bi bi-box-seam-fill"></i> محصولات
+    </a></li>
+
+    <div class="nav-section">تنظیمات</div>
+    <li><a href="{% url 'devices_manage' %}" class="nav-link {% if 'device' in request.resolver_match.url_name %}active{% endif %}">
+      <i class="bi bi-hdd-stack-fill"></i> دستگاه‌ها
+    </a></li>
+    <li><a href="{% url 'reports' %}" class="nav-link {% if request.resolver_match.url_name == 'reports' %}active{% endif %}">
+      <i class="bi bi-bar-chart-fill"></i> گزارش‌ها
+    </a></li>
+
+    <div class="border-top mt-3 pt-2" style="border-color:var(--border)!important">
+      <li><a href="{% url 'logout' %}" class="nav-link" style="color:var(--red)!important">
+        <i class="bi bi-box-arrow-left"></i> خروج
+      </a></li>
+    </div>
+  </ul>
+</nav>
+{% endif %}
+
+<div class="{% if user.is_authenticated %}main{% else %}container-fluid{% endif %}">
+  {% for message in messages %}
+  <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'success' %}success{% elif message.tags == 'info' %}info{% else %}warning{% endif %} alert-dismissible fade show" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+  {% block content %}{% endblock %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>
