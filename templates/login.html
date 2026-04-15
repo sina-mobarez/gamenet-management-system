@@ -5,241 +5,246 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ورود — GameNet</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;700;800&family=Vazirmatn:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;700;800;900&family=Vazirmatn:wght@400;600;700&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
 <style>
-*,*::before,*::after{box-sizing:border-box}
+*,*::before,*::after { box-sizing: border-box; margin: 0; }
+
 body {
-  margin: 0;
   min-height: 100vh;
-  background: #04040a;
+  background: #03020c;
   font-family: 'Vazirmatn', sans-serif;
-  color: #e8e8f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  color: #f1f5f9;
+  display: flex; align-items: center; justify-content: center;
   overflow: hidden;
 }
 
-/* Animated grid */
+/* Grid BG */
 body::before {
   content: '';
-  position: fixed;
-  inset: 0;
+  position: fixed; inset: 0;
   background-image:
-    linear-gradient(rgba(168,85,247,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(168,85,247,0.04) 1px, transparent 1px);
-  background-size: 50px 50px;
-  pointer-events: none;
+    linear-gradient(rgba(124,58,237,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124,58,237,0.05) 1px, transparent 1px);
+  background-size: 48px 48px;
   animation: gridScroll 20s linear infinite;
-}
-@keyframes gridScroll {
-  to { background-position: 50px 50px; }
-}
-
-/* Glow blobs */
-.blob { position: fixed; border-radius: 50%; filter: blur(80px); pointer-events: none; }
-.blob1 {
-  width: 500px; height: 500px;
-  background: radial-gradient(circle, rgba(124,58,237,0.2), transparent 70%);
-  top: -100px; right: -100px;
-  animation: float1 10s ease-in-out infinite;
-}
-.blob2 {
-  width: 400px; height: 400px;
-  background: radial-gradient(circle, rgba(6,182,212,0.15), transparent 70%);
-  bottom: -80px; left: -80px;
-  animation: float2 12s ease-in-out infinite;
-}
-.blob3 {
-  width: 300px; height: 300px;
-  background: radial-gradient(circle, rgba(236,72,153,0.1), transparent 70%);
-  top: 50%; left: 50%; transform: translate(-50%,-50%);
-  animation: float3 8s ease-in-out infinite;
-}
-@keyframes float1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-40px,40px)} }
-@keyframes float2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(30px,-30px)} }
-@keyframes float3 { 0%,100%{transform:translate(-50%,-50%) scale(1)} 50%{transform:translate(-50%,-50%) scale(1.3)} }
-
-/* Login card */
-.login-wrap { width: 420px; position: relative; z-index: 1; padding: 1rem; }
-
-.login-card {
-  background: rgba(10,10,25,0.85);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
-  border-radius: 20px;
-  padding: 2.5rem;
-  border: 1px solid rgba(168,85,247,0.2);
-  box-shadow: 0 30px 80px rgba(0,0,0,0.5), 0 0 60px rgba(124,58,237,0.1);
-  position: relative;
-  overflow: hidden;
-}
-.login-card::before {
-  content: '';
-  position: absolute;
-  top: 0; right: 0; left: 0;
-  height: 2px;
-  background: linear-gradient(90deg, #7c3aed, #ec4899, #06b6d4);
-}
-
-.login-icon {
-  width: 72px; height: 72px;
-  background: linear-gradient(135deg, #7c3aed, #a855f7);
-  border-radius: 20px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 2rem;
-  margin: 0 auto 1.5rem;
-  box-shadow: 0 8px 32px rgba(124,58,237,0.5);
-  animation: iconFloat 4s ease-in-out infinite;
-}
-@keyframes iconFloat {
-  0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)}
-}
-
-.brand-name {
-  font-family: 'Oxanium', sans-serif;
-  font-size: 1.8rem;
-  font-weight: 800;
-  background: linear-gradient(135deg, #a855f7, #ec4899, #06b6d4);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-align: center;
-  margin-bottom: .3rem;
-  letter-spacing: 2px;
-}
-.brand-sub {
-  text-align: center;
-  color: #5a5a80;
-  font-size: .8rem;
-  margin-bottom: 2rem;
-}
-
-.form-control {
-  background: rgba(255,255,255,0.04) !important;
-  border: 1px solid rgba(255,255,255,0.1) !important;
-  color: #e8e8f0 !important;
-  border-radius: 10px !important;
-  padding: .75rem 1rem;
-  font-family: 'Vazirmatn', sans-serif;
-  transition: all .2s;
-}
-.form-control:focus {
-  border-color: rgba(168,85,247,.6) !important;
-  box-shadow: 0 0 0 3px rgba(168,85,247,.15) !important;
-  background: rgba(168,85,247,.05) !important;
-}
-.form-control::placeholder { color: #3a3a60 !important; }
-.form-label { color: #7070a0; font-size: .8rem; font-weight: 500; margin-bottom: .4rem; }
-
-.btn-login {
-  width: 100%;
-  padding: .85rem;
-  background: linear-gradient(135deg, #7c3aed, #ec4899);
-  border: none;
-  border-radius: 10px;
-  color: #fff;
-  font-family: 'Vazirmatn', sans-serif;
-  font-size: .95rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all .2s;
-  box-shadow: 0 6px 24px rgba(124,58,237,0.4);
-  letter-spacing: .5px;
-  position: relative;
-  overflow: hidden;
-}
-.btn-login::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, #ec4899, #06b6d4);
-  opacity: 0;
-  transition: opacity .3s;
-}
-.btn-login:hover { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(124,58,237,0.55); }
-.btn-login:hover::after { opacity: 1; }
-.btn-login span { position: relative; z-index: 1; }
-
-.alert { border-radius: 10px; font-size: .83rem; margin-bottom: 1.25rem; }
-.alert-danger {
-  background: rgba(244,63,94,0.1);
-  border: 1px solid rgba(244,63,94,0.3);
-  color: #fb7185;
-}
-
-.particles {
-  position: fixed;
-  inset: 0;
   pointer-events: none;
-  overflow: hidden;
 }
+@keyframes gridScroll { to { background-position: 48px 48px; } }
+
+/* Scan lines */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.025) 3px, rgba(0,0,0,0.025) 6px);
+  pointer-events: none; z-index: 100;
+}
+
+/* Orbs */
+.orb { position: fixed; border-radius: 50%; filter: blur(100px); pointer-events: none; z-index: 0; }
+.orb1 { width: 700px; height: 700px; background: radial-gradient(circle, rgba(124,58,237,0.18), transparent 70%); top: -200px; right: -200px; animation: orbF1 18s ease-in-out infinite; }
+.orb2 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(6,182,212,0.12), transparent 70%); bottom: -100px; left: -100px; animation: orbF2 22s ease-in-out infinite; }
+.orb3 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(236,72,153,0.1), transparent 70%); top: 50%; left: 45%; transform: translate(-50%,-50%); animation: orbF3 14s ease-in-out infinite; }
+@keyframes orbF1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-60px,70px)} }
+@keyframes orbF2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(50px,-50px)} }
+@keyframes orbF3 { 0%,100%{transform:translate(-50%,-50%) scale(1)} 50%{transform:translate(-50%,-50%) scale(1.5)} }
+
+/* Floating particles */
+.particles { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
 .particle {
-  position: absolute;
-  width: 2px; height: 2px;
-  background: rgba(168,85,247,0.6);
-  border-radius: 50%;
+  position: absolute; border-radius: 50%;
   animation: particleFly linear infinite;
 }
 @keyframes particleFly {
-  0%   { transform: translateY(100vh) translateX(0); opacity: 1; }
-  100% { transform: translateY(-10vh) translateX(40px); opacity: 0; }
+  0%   { transform: translateY(105vh) translateX(0) scale(1); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(-5vh) translateX(30px) scale(0); opacity: 0; }
+}
+
+/* Main wrap */
+.login-wrap {
+  width: 100%; max-width: 440px;
+  padding: 1.5rem; position: relative; z-index: 10;
+}
+
+/* Card */
+.login-card {
+  background: rgba(8,5,22,0.92);
+  backdrop-filter: blur(50px);
+  -webkit-backdrop-filter: blur(50px);
+  border-radius: 24px;
+  padding: 2.75rem 2.5rem;
+  border: 1px solid rgba(124,58,237,0.25);
+  box-shadow:
+    0 40px 100px rgba(0,0,0,0.6),
+    0 0 80px rgba(124,58,237,0.12),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+  position: relative; overflow: hidden;
+  animation: cardIn .6s cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes cardIn { from{opacity:0;transform:translateY(30px) scale(.98)} to{opacity:1;transform:none} }
+
+/* Rainbow top border */
+.login-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, #7c3aed, #ec4899, #06b6d4, #7c3aed);
+  background-size: 200% 100%;
+  animation: borderRun 3s linear infinite;
+}
+@keyframes borderRun { from{background-position:0% 0} to{background-position:200% 0} }
+
+/* Corner accent */
+.login-card::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(6,182,212,0.3), transparent);
+}
+
+/* Icon */
+.login-icon {
+  width: 76px; height: 76px;
+  background: linear-gradient(135deg, #6d28d9, #7c3aed, #a855f7);
+  border-radius: 22px; margin: 0 auto 1.5rem;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.2rem;
+  box-shadow: 0 12px 40px rgba(124,58,237,0.55), 0 0 0 1px rgba(255,255,255,0.06);
+  animation: iconFloat 4s ease-in-out infinite;
+  position: relative;
+}
+.login-icon::before {
+  content: '';
+  position: absolute; inset: -4px;
+  border-radius: 26px;
+  background: linear-gradient(135deg, rgba(124,58,237,0.4), rgba(236,72,153,0.4));
+  filter: blur(12px); z-index: -1;
+  animation: iconGlow 4s ease-in-out infinite;
+}
+@keyframes iconFloat { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-8px) rotate(2deg)} }
+@keyframes iconGlow  { 0%,100%{opacity:.5} 50%{opacity:1} }
+
+/* Brand */
+.brand-name {
+  font-family: 'Oxanium', sans-serif;
+  font-size: 2rem; font-weight: 900;
+  background: linear-gradient(135deg, #c4b5fd, #ec4899 50%, #67e8f9);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-align: center; margin-bottom: .25rem;
+  letter-spacing: 4px;
+}
+.brand-sub {
+  text-align: center; color: #4b5563; font-size: .78rem;
+  margin-bottom: 2.25rem; letter-spacing: .5px;
+}
+
+/* Fields */
+.field-wrap { margin-bottom: 1.25rem; }
+.field-label { color: #6b7280; font-size: .78rem; font-weight: 600; margin-bottom: .5rem; letter-spacing: .5px; display: block; }
+.field-input {
+  width: 100%; padding: .8rem 1rem;
+  background: rgba(255,255,255,0.035) !important;
+  border: 1px solid rgba(124,58,237,0.2) !important;
+  color: #f1f5f9 !important;
+  border-radius: 12px !important; font-family: 'Vazirmatn', sans-serif;
+  font-size: .9rem; transition: all .25s;
+  outline: none;
+}
+.field-input:focus {
+  border-color: #7c3aed !important;
+  background: rgba(124,58,237,0.06) !important;
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.18) !important;
+}
+.field-input::placeholder { color: #2d2d50 !important; }
+
+/* Submit */
+.btn-login {
+  width: 100%; padding: .9rem 1rem; margin-top: .75rem;
+  background: linear-gradient(135deg, #6d28d9, #7c3aed, #a855f7);
+  border: none; border-radius: 12px;
+  color: #fff; font-family: 'Vazirmatn', sans-serif;
+  font-size: .95rem; font-weight: 700; cursor: pointer;
+  letter-spacing: .5px;
+  box-shadow: 0 8px 30px rgba(124,58,237,0.45);
+  position: relative; overflow: hidden;
+  transition: all .25s;
+}
+.btn-login::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0), rgba(255,255,255,0.08), rgba(255,255,255,0));
+  transform: translateX(-100%) skewX(-20deg);
+  transition: transform .5s;
+}
+.btn-login:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(124,58,237,0.6); }
+.btn-login:hover::before { transform: translateX(200%) skewX(-20deg); }
+.btn-login span { position: relative; z-index: 1; }
+
+/* Error */
+.login-error {
+  background: rgba(244,63,94,0.1); border: 1px solid rgba(244,63,94,0.3);
+  border-radius: 10px; color: #fda4af; padding: .75rem 1rem;
+  font-size: .83rem; margin-bottom: 1.25rem;
+}
+
+/* Version tag */
+.version-tag {
+  text-align: center; margin-top: 1.5rem;
+  color: rgba(75,85,99,.6); font-size: .68rem;
+  font-family: 'Oxanium', sans-serif; letter-spacing: 1px;
 }
 </style>
 </head>
 <body>
-<div class="blob blob1"></div>
-<div class="blob blob2"></div>
-<div class="blob blob3"></div>
-
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
 <div class="particles" id="particles"></div>
 
 <div class="login-wrap">
   <div class="login-card">
     <div class="login-icon">🎮</div>
     <div class="brand-name">GAMENET</div>
-    <div class="brand-sub">سیستم مدیریت مرکز بازی</div>
+    <div class="brand-sub">سیستم مدیریت مرکز بازی &nbsp;·&nbsp; MANAGEMENT SYSTEM</div>
 
     {% for message in messages %}
-    <div class="alert alert-danger">{{ message }}</div>
+    <div class="login-error"><i class="bi bi-exclamation-circle me-2"></i>{{ message }}</div>
     {% endfor %}
 
-    <form method="post">
+    <form method="post" autocomplete="off">
       {% csrf_token %}
-      <div class="mb-3">
-        <label class="form-label">نام کاربری</label>
-        <input type="text" name="username" class="form-control" autofocus required
-               placeholder="admin">
+      <div class="field-wrap">
+        <label class="field-label">نام کاربری</label>
+        <input type="text" name="username" class="field-input" autofocus required placeholder="admin">
       </div>
-      <div class="mb-4">
-        <label class="form-label">رمز عبور</label>
-        <input type="password" name="password" class="form-control" required
-               placeholder="••••••••">
+      <div class="field-wrap">
+        <label class="field-label">رمز عبور</label>
+        <input type="password" name="password" class="field-input" required placeholder="••••••••">
       </div>
-      <button type="submit" class="btn-login"><span>ورود به سیستم</span></button>
+      <button type="submit" class="btn-login"><span>ورود به سیستم ←</span></button>
     </form>
+
+    <div class="version-tag">GAMENET v2.0 &nbsp;●&nbsp; POWERED BY DJANGO</div>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
 <script>
-// Floating particles
-const container = document.getElementById('particles');
-for (let i = 0; i < 20; i++) {
+const c = document.getElementById('particles');
+for (let i = 0; i < 28; i++) {
   const p = document.createElement('div');
   p.className = 'particle';
+  const size = 1 + Math.random() * 2.5;
+  const hue = 260 + Math.random() * 100;
   p.style.cssText = `
-    left: ${Math.random()*100}%;
-    animation-duration: ${6 + Math.random()*10}s;
-    animation-delay: ${Math.random()*8}s;
-    width: ${1 + Math.random()*2}px;
-    height: ${1 + Math.random()*2}px;
-    opacity: ${0.3 + Math.random()*0.7};
-    background: hsl(${260 + Math.random()*80},80%,70%);
+    width:${size}px; height:${size}px;
+    left:${Math.random()*100}%;
+    animation-duration:${7 + Math.random()*12}s;
+    animation-delay:${-Math.random()*15}s;
+    background: hsl(${hue},80%,${60 + Math.random()*20}%);
+    box-shadow: 0 0 ${size*3}px hsl(${hue},80%,60%);
   `;
-  container.appendChild(p);
+  c.appendChild(p);
 }
 </script>
 </body>
