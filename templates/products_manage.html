@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% load shamsi %}
+{% block title %}محصولات{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+  <h2><i class="bi bi-box-seam-fill me-2 text-accent"></i>محصولات</h2>
+  <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
+    <i class="bi bi-plus-lg me-1"></i>محصول جدید
+  </button>
+</div>
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr>
+        <th>نام</th><th>دسته‌بندی</th><th>قیمت</th><th>موجودی</th><th>وضعیت</th><th>عملیات</th>
+      </tr></thead>
+      <tbody>
+      {% for p in products %}
+      <tr>
+        <td><strong>{{ p.name }}</strong></td>
+        <td class="text-muted">{{ p.category|default:"—" }}</td>
+        <td class="text-warning num">${{ p.price }}</td>
+        <td>
+          <span class="{% if p.is_low_stock %}text-danger fw-bold{% endif %} num">{{ p.stock }}</span>
+          {% if p.is_low_stock %}<span class="badge badge-busy ms-1 small">کم</span>{% endif %}
+        </td>
+        <td>
+          <span class="badge {% if p.is_active %}badge-free{% else %}bg-secondary{% endif %}">
+            {% if p.is_active %}فعال{% else %}غیرفعال{% endif %}
+          </span>
+        </td>
+        <td>
+          <button class="btn btn-sm btn-outline-secondary"
+                  data-bs-toggle="modal" data-bs-target="#stockModal"
+                  data-pid="{{ p.id }}" data-name="{{ p.name }}" data-stock="{{ p.stock }}">
+            به‌روز موجودی
+          </button>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="text-center text-muted py-4">محصولی ندارید.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add Product Modal -->
+<div class="modal fade" id="addProductModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">محصول جدید</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'product_create' %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label small">نام *</label>
+            <input type="text" name="name" class="form-control" required>
+          </div>
+          <div class="row g-2">
+            <div class="col">
+              <label class="form-label small">قیمت ($) *</label>
+              <input type="number" name="price" class="form-control ltr" step="0.01" min="0" required>
+            </div>
+            <div class="col">
+              <label class="form-label small">موجودی اولیه</label>
+              <input type="number" name="stock" class="form-control ltr" value="0" min="0">
+            </div>
+          </div>
+          <div class="row g-2 mt-1">
+            <div class="col">
+              <label class="form-label small">دسته‌بندی</label>
+              <select name="category_id" class="form-select">
+                <option value="">— بدون دسته —</option>
+                {% for cat in categories %}
+                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col">
+              <label class="form-label small">هشدار موجودی کم</label>
+              <input type="number" name="low_stock_threshold" class="form-control ltr" value="5" min="0">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+          <button type="submit" class="btn btn-primary">ایجاد</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Update Stock Modal -->
+<div class="modal fade" id="stockModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">به‌روزرسانی موجودی</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="fw-bold mb-3" id="stockModalName"></p>
+        <form method="post" id="stockForm">
+          {% csrf_token %}
+          <label class="form-label small">موجودی جدید</label>
+          <input type="number" name="stock" id="stockInput" class="form-control ltr" min="0" required>
+          <div class="mt-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-fill">ذخیره</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.getElementById('stockModal').addEventListener('show.bs.modal', e => {
+  const b = e.relatedTarget;
+  document.getElementById('stockModalName').textContent = b.dataset.name;
+  document.getElementById('stockInput').value = b.dataset.stock;
+  document.getElementById('stockForm').action = `/products/${b.dataset.pid}/stock/`;
+});
+</script>
+{% endblock %}
