@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% load shamsi %}
+{% block title %}ویرایش {{ device.name }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <a href="{% url 'devices_manage' %}" class="btn btn-sm btn-outline-secondary mb-2">← دستگاه‌ها</a>
+  <h2>ویرایش: {{ device.name }}</h2>
+</div>
+<div class="card p-4" style="max-width:500px">
+  <form method="post">
+    {% csrf_token %}
+    <div class="mb-3">
+      <label class="form-label small">نام</label>
+      <input type="text" name="name" class="form-control" value="{{ device.name }}" required>
+    </div>
+    <div class="row g-2 mb-3">
+      <div class="col">
+        <label class="form-label small">قیمت/ساعت ($)</label>
+        <input type="number" name="price_per_hour" class="form-control ltr"
+               step="0.01" value="{{ device.price_per_hour }}" required>
+      </div>
+      <div class="col">
+        <label class="form-label small">کنترلر پایه</label>
+        <input type="number" name="included_controllers" class="form-control ltr"
+               value="{{ device.included_controllers }}" min="0">
+      </div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label small">قیمت کنترلر اضافه ($)</label>
+      <input type="number" name="extra_controller_price" class="form-control ltr"
+             step="0.01" value="{{ device.extra_controller_price }}">
+    </div>
+    <div class="form-check form-switch mb-4">
+      <input class="form-check-input" type="checkbox" name="is_active" id="isActive"
+             {% if device.is_active %}checked{% endif %}>
+      <label class="form-check-label" for="isActive">دستگاه فعال است</label>
+    </div>
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-primary">ذخیره</button>
+      <a href="{% url 'devices_manage' %}" class="btn btn-secondary">انصراف</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
