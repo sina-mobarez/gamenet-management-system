@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% load shamsi %}
+{% block title %}{{ customer.name }}{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+  <div>
+    <a href="{% url 'customers_list' %}" class="btn btn-sm btn-outline-secondary mb-2">← مشتریان</a>
+    <h2>{{ customer.name }}</h2>
+    {% if customer.phone %}<p class="text-muted mb-0 ltr"><i class="bi bi-telephone me-1"></i>{{ customer.phone }}</p>{% endif %}
+  </div>
+  <div class="stat-card text-center px-4 py-3">
+    <div class="section-label">موجودی حساب</div>
+    <div class="value num {% if customer.balance < 0 %}text-danger{% elif customer.balance > 0 %}text-success{% endif %}">
+      ${{ customer.balance|floatformat:2 }}
+    </div>
+    {% if customer.balance < 0 %}
+    <div class="text-danger small">بدهی: ${{ customer.debt_amount|floatformat:2 }}</div>
+    {% endif %}
+  </div>
+</div>
+
+{% if customer.balance < 0 %}
+<div class="card p-4 mb-4" style="border-color:var(--red)">
+  <strong class="text-danger d-block mb-3"><i class="bi bi-exclamation-triangle me-1"></i>تسویه بدهی</strong>
+  <form method="post" action="{% url 'customer_settle' customer.pk %}" class="d-flex gap-2 align-items-end flex-wrap">
+    {% csrf_token %}
+    <div>
+      <label class="form-label small">مبلغ دریافتی ($)</label>
+      <input type="number" name="amount" class="form-control ltr" step="0.01" min="0.01"
+             value="{{ customer.debt_amount|floatformat:2 }}" style="width:160px" required>
+    </div>
+    <div>
+      <label class="form-label small">یادداشت</label>
+      <input type="text" name="notes" class="form-control" placeholder="نقد، کارت و…" style="width:200px">
+    </div>
+    <button type="submit" class="btn btn-success">تسویه</button>
+  </form>
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card p-4">
+      <strong class="d-block mb-3">سشن‌های اخیر</strong>
+      {% for s in sessions %}
+      <div class="d-flex justify-content-between py-2 border-bottom" style="border-color:var(--border)!important">
+        <div>
+          <div class="small">{{ s.device.name }}</div>
+          <div class="text-muted" style="font-size:.75rem">{{ s.started_at|shamsi:'short' }}</div>
+        </div>
+        <div class="num text-warning small">${{ s.total_cost|default:"فعال"|floatformat:2 }}</div>
+      </div>
+      {% empty %}<p class="text-muted small">سشنی ندارد.</p>{% endfor %}
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card p-4">
+      <strong class="d-block mb-3">خریدهای اخیر</strong>
+      {% for s in sales %}
+      <div class="d-flex justify-content-between py-2 border-bottom" style="border-color:var(--border)!important">
+        <div>
+          <div class="small">{{ s.product.name }} × {{ s.quantity }}</div>
+          <div class="text-muted" style="font-size:.75rem">{{ s.sold_at|shamsi:'short' }} · {{ s.get_payment_type_display }}</div>
+        </div>
+        <div class="text-warning small num">${{ s.total_price }}</div>
+      </div>
+      {% empty %}<p class="text-muted small">خریدی ندارد.</p>{% endfor %}
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card p-4">
+      <strong class="d-block mb-3">تاریخچه پرداخت</strong>
+      {% for p in payments %}
+      <div class="d-flex justify-content-between py-2 border-bottom" style="border-color:var(--border)!important">
+        <div>
+          <div class="small">
+            {% if p.payment_type == 'cash' %}💵 نقد
+            {% elif p.payment_type == 'account_debit' %}🏦 بدهکار
+            {% else %}✅ تسویه{% endif %}
+          </div>
+          <div class="text-muted" style="font-size:.72rem">{{ p.created_at|shamsi:'datetime' }}</div>
+          {% if p.notes %}<div class="text-muted" style="font-size:.7rem">{{ p.notes }}</div>{% endif %}
+        </div>
+        <div class="num small {% if p.payment_type == 'account_debit' %}text-danger{% else %}text-success{% endif %} fw-semibold">
+          {% if p.payment_type == 'account_debit' %}-{% else %}+{% endif %}${{ p.amount }}
+        </div>
+      </div>
+      {% empty %}<p class="text-muted small">پرداختی ندارد.</p>{% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
