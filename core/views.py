@@ -1,10 +1,12 @@
+from datetime import timedelta
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
 from django.http import JsonResponse
 from django.utils import timezone
-from django.db.models import Q, Sum
+from django.db.models import Q, Count, Sum
 from decimal import Decimal, InvalidOperation
 
 from .models import (
@@ -450,3 +452,85 @@ def device_edit(request, pk):
         messages.success(request, 'دستگاه به‌روز شد.')
         return redirect('devices_manage')
     return render(request, 'device_edit.html', {'device': device})
+
+
+# ── Reports ───────────────────────────────────────────────────────────────────
+
+@login_required
+def reports(request):
+    period = request.GET.get('period', 'today')
+    now = timezone.now()
+
+    if period == 'week':
+        start = now - timedelta(days=7)
+    elif period == 'month':
+        start = now - timedelta(days=30)
+    else:  # today
+        start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    session_payments = (
+        Payment.objects.filter(created_at__gte=start, payment_type='cash')
+        .aggregate(total=Sum('amount'))['total'] or 0
+    )
+    sales_cash = (
+        Sale.objects.filter(sold_at__gte=start, payment_type='cash')
+        .aggregate(total=Sum('total_price'))['total'] or 0
+    )
+    account_charges = (
+        Payment.objects.filter(created_at__gte=start, payment_type='account_debit')
+        .aggregate(total=Sum('amount'))['total'] or 0
+    )
+    sales_account = (
+        Sale.objects.filter(sold_at__gte=start, payment_type='account')
+        .aggregate(total=Sum('total_price'))['total'] or 0
+    )
+    settlements = (
+        Payment.objects.filter(created_at__gte=start, payment_type='account_settlement')
+        .aggregate(total=Sum('amount'))['total'] or 0
+    )
+    period_sessions = Session.objects.filter(
+        started_at__gte=start
+    ).exclude(status='active').count()
+
+    device_usage = Device.objects.filter(is_active=True).annotate(
+        session_count=Count(
+            'sessions',
+            filter=Q(sessions__started_at__gte=start)
+        )
+    ).order_by('-session_count')
+
+    top_customers = Customer.objects.annotate(
+        session_count=Count(
+            'sessionplayer__session', distinct=True,
+            filter=Q(sessionplayer__session__started_at__gte=start)
+        )
+    ).order_by('-session_count')[:10]
+
+    total_debt = abs(
+        Customer.objects.filter(balance__lt=0)
+        .aggregate(t=Sum('balance'))['t'] or 0
+    )
+
+    top_products = (
+        Sale.objects.filter(sold_at__gte=start)
+        .values('product__name')
+        .annotate(total_qty=Sum('quantity'), total_rev=Sum('total_price'))
+        .order_by('-total_qty')[:10]
+    )
+
+    return render(request, 'reports.html', {
+        'period': period,
+        'session_cash': float(session_payments),
+        'sales_cash': float(sales_cash),
+        'total_cash': float(session_payments) + float(sales_cash),
+        'account_charges': float(account_charges),
+        'sales_account': float(sales_account),
+        'total_account': float(account_charges) + float(sales_account),
+        'grand_total': float(session_payments) + float(sales_cash) + float(account_charges) + float(sales_account),
+        'period_sessions': period_sessions,
+        'device_usage': device_usage,
+        'top_customers': top_customers,
+        'total_debt': float(total_debt),
+        'top_products': top_products,
+        'settlements': float(settlements),
+    })
