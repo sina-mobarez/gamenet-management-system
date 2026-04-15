@@ -1,0 +1,305 @@
+{% extends 'base.html' %}
+{% load shamsi %}
+{% block title %}داشبورد - گیم‌نت{% endblock %}
+{% block content %}
+
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+  <div>
+    <h2><i class="bi bi-grid-1x2-fill me-2 text-accent"></i>داشبورد</h2>
+    <small class="text-muted">{% shamsi_today %} &nbsp;|&nbsp; <span id="live-clock" class="ltr"></span></small>
+  </div>
+  <div class="d-flex gap-2">
+    <div class="stat-card text-center px-3 py-2">
+      <div class="section-label">دریافتی امروز</div>
+      <div class="value text-success num">${{ today_cash|floatformat:2 }}</div>
+    </div>
+    <div class="stat-card text-center px-3 py-2">
+      <div class="section-label">بدهی کل</div>
+      <div class="value text-danger num">${{ total_debt|floatformat:2 }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Unpaid sessions alert -->
+{% if unpaid_sessions %}
+<div class="alert mb-3 d-flex align-items-center gap-2 flex-wrap"
+     style="background:rgba(245,158,11,.12);border-color:var(--yellow);color:var(--yellow)">
+  <i class="bi bi-hourglass-split fs-5"></i>
+  <strong>سشن‌های پرداخت‌نشده:</strong>
+  {% for s in unpaid_sessions %}
+  <a href="{% url 'session_pay' s.pk %}" class="btn btn-sm btn-warning fw-bold">
+    {{ s.device.name }} — ${{ s.remaining_amount|floatformat:2 }} مانده
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Device grid -->
+<div class="row g-3">
+{% for device in devices %}
+<div class="col-xl-3 col-lg-4 col-md-6">
+  {% if device.is_occupied %}
+    {% with session=device.active_session %}
+    <div class="device-card busy h-100">
+      <div class="d-flex justify-content-between align-items-start mb-2">
+        <div>
+          <div class="section-label">{{ device.get_device_type_display }}</div>
+          <div style="font-weight:700;font-size:1rem">{{ device.name }}</div>
+        </div>
+        <span class="badge badge-busy rounded-pill">● فعال</span>
+      </div>
+      <div class="timer-display"
+           id="timer-{{ session.pk }}"
+           data-started="{{ session.started_at|date:'c' }}">{{ session.duration_display }}</div>
+      <div class="cost-display mt-1">$<span id="cost-{{ session.pk }}">{{ session.calculate_cost|floatformat:2 }}</span></div>
+      <div class="mt-2" style="font-size:.8rem;color:var(--muted)">
+        {% for p in session.players.all %}
+          <span class="badge me-1" style="background:rgba(255,255,255,.12)">{{ p.display_name }}</span>
+        {% empty %}<em>بدون بازیکن</em>{% endfor %}
+      </div>
+      {% if session.extra_controllers > 0 %}
+      <div class="text-muted" style="font-size:.75rem">+ {{ session.extra_controllers }} کنترلر اضافه</div>
+      {% endif %}
+      <div class="mt-3 d-flex gap-2">
+        <a href="{% url 'session_detail' session.pk %}" class="btn btn-sm btn-outline-light flex-fill">جزئیات</a>
+        <a href="{% url 'session_end' session.pk %}"
+           class="btn btn-sm btn-danger flex-fill"
+           onclick="return confirm('سشن {{ device.name }} پایان یابد؟')">⏹ پایان</a>
+      </div>
+    </div>
+    {% endwith %}
+
+  {% elif device.unpaid_session %}
+    {% with session=device.unpaid_session %}
+    <div class="device-card unpaid h-100">
+      <div class="d-flex justify-content-between align-items-start mb-2">
+        <div>
+          <div class="section-label">{{ device.get_device_type_display }}</div>
+          <div style="font-weight:700;font-size:1rem">{{ device.name }}</div>
+        </div>
+        <span class="badge badge-unpaid rounded-pill">⏳ پرداخت‌نشده</span>
+      </div>
+      <div class="text-muted small mt-1">کل: <span class="text-warning num">${{ session.total_cost|floatformat:2 }}</span></div>
+      <div class="text-muted small">پرداخت‌شده: <span class="text-success num">${{ session.paid_amount|floatformat:2 }}</span></div>
+      <div class="fw-bold mt-1">مانده: <span class="text-danger num">${{ session.remaining_amount|floatformat:2 }}</span></div>
+      <div class="mt-3 d-flex gap-2">
+        <a href="{% url 'session_pay' session.pk %}" class="btn btn-sm btn-warning flex-fill fw-bold">
+          💳 ادامه پرداخت
+        </a>
+        <button class="btn btn-success flex-fill"
+                data-bs-toggle="modal" data-bs-target="#startModal"
+                data-device-id="{{ device.id }}"
+                data-device-name="{{ device.name }}"
+                data-device-type="{{ device.get_device_type_display }}"
+                data-price="{{ device.price_per_hour }}"
+                data-extra-price="{{ device.extra_controller_price }}"
+                data-device-type-raw="{{ device.device_type }}">
+          ▶ سشن جدید
+        </button>
+      </div>
+    </div>
+    {% endwith %}
+
+  {% else %}
+    <div class="device-card free h-100 d-flex flex-column"
+         data-bs-toggle="modal" data-bs-target="#startModal"
+         data-device-id="{{ device.id }}"
+         data-device-name="{{ device.name }}"
+         data-device-type="{{ device.get_device_type_display }}"
+         data-price="{{ device.price_per_hour }}"
+         data-extra-price="{{ device.extra_controller_price }}"
+         data-device-type-raw="{{ device.device_type }}">
+      <div class="d-flex justify-content-between align-items-start mb-2">
+        <div>
+          <div class="section-label">{{ device.get_device_type_display }}</div>
+          <div style="font-weight:700;font-size:1rem">{{ device.name }}</div>
+        </div>
+        <span class="badge badge-free rounded-pill">● آزاد</span>
+      </div>
+      <div class="text-muted" style="font-size:.85rem">${{ device.price_per_hour }}/ساعت</div>
+      {% if device.extra_controller_price > 0 %}
+      <div class="text-muted" style="font-size:.75rem">+${{ device.extra_controller_price }} کنترلر اضافه</div>
+      {% endif %}
+      <div class="mt-auto pt-3">
+        <div class="btn btn-success w-100">▶ شروع سشن</div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% empty %}
+<div class="col-12">
+  <div class="card p-4 text-center text-muted">
+    دستگاهی تنظیم نشده.
+    <a href="{% url 'devices_manage' %}" class="btn btn-primary ms-2">افزودن دستگاه</a>
+  </div>
+</div>
+{% endfor %}
+</div>
+
+{% if low_stock %}
+<div class="alert mt-3 d-flex align-items-center gap-2 flex-wrap"
+     style="background:rgba(239,68,68,.1);border-color:var(--red);color:#fca5a5">
+  <i class="bi bi-exclamation-triangle-fill"></i>
+  <strong>موجودی کم:</strong>
+  {% for p in low_stock %}
+    <span>{{ p.name }} ({{ p.stock }} عدد)</span>{% if not forloop.last %},{% endif %}
+  {% endfor %}
+  <a href="{% url 'products_manage' %}" class="btn btn-sm btn-danger ms-auto">به‌روزرسانی موجودی</a>
+</div>
+{% endif %}
+
+<!-- ── Start Session Modal ── -->
+<div class="modal fade" id="startModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-play-circle-fill me-2 text-success"></i>شروع سشن</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'session_start' %}">
+        {% csrf_token %}
+        <input type="hidden" name="device_id" id="modalDeviceId">
+        <div class="modal-body">
+          <div class="p-3 rounded mb-3 d-flex justify-content-between align-items-center"
+               style="background:var(--surface2)">
+            <div>
+              <strong id="modalDeviceName" style="font-size:1.1rem"></strong>
+              <span class="badge ms-2" style="background:var(--accent)" id="modalDeviceTypeBadge"></span>
+            </div>
+            <div class="text-success fw-bold">$<span id="modalPrice"></span>/ساعت</div>
+          </div>
+
+          <!-- Extra controllers (PS4/PS5 only) -->
+          <div id="controllerSection" class="mb-3" style="display:none">
+            <label class="form-label small fw-semibold">کنترلر اضافه</label>
+            <div class="input-group" style="max-width:220px">
+              <span class="input-group-text"><i class="bi bi-controller"></i></span>
+              <input type="number" name="extra_controllers" id="extraControllers"
+                     class="form-control ltr" value="0" min="0" max="8">
+              <span class="input-group-text text-warning">+$<span id="extraPrice"></span>/عدد</span>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">
+                <i class="bi bi-person-check me-1"></i>بازیکنان ثبت‌نام‌شده
+              </label>
+              <div id="playerSelects"></div>
+              <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-1"
+                      onclick="addPlayerSelect()">
+                <i class="bi bi-plus-circle me-1"></i>افزودن مشتری
+              </button>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">
+                <i class="bi bi-person-plus me-1"></i>بازیکنان مهمان
+              </label>
+              <div id="walkInNames"></div>
+              <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-1"
+                      onclick="addWalkIn()">
+                <i class="bi bi-plus-circle me-1"></i>افزودن مهمان
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+          <button type="submit" class="btn btn-success px-4">
+            <i class="bi bi-play-fill me-1"></i>شروع سشن
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Embedded customers for modal JS -->
+<script>
+const CUSTOMERS = [
+  {% for c in customers_for_modal %}
+  { id: {{ c.id }}, name: "{{ c.name|escapejs }}", balance: {{ c.balance }} },
+  {% endfor %}
+];
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Live clock (ltr numbers)
+function updateClock() {
+  const now = new Date();
+  document.getElementById('live-clock').textContent =
+    now.toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// Live timers
+function updateTimers() {
+  document.querySelectorAll('[data-started]').forEach(el => {
+    const elapsed = Math.floor((Date.now() - new Date(el.dataset.started).getTime()) / 1000);
+    const h = String(Math.floor(elapsed / 3600)).padStart(2, '0');
+    const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
+    const s = String(elapsed % 60).padStart(2, '0');
+    el.textContent = `${h}:${m}:${s}`;
+  });
+}
+setInterval(updateTimers, 1000);
+updateTimers();
+
+// Cost refresh every 30s
+function refreshCosts() {
+  document.querySelectorAll('[id^="cost-"]').forEach(el => {
+    const sid = el.id.replace('cost-', '');
+    fetch(`/session/${sid}/status/`)
+      .then(r => r.json())
+      .then(d => { el.textContent = d.current_cost.toFixed(2); })
+      .catch(() => {});
+  });
+}
+setInterval(refreshCosts, 30000);
+
+// Modal setup
+document.getElementById('startModal').addEventListener('show.bs.modal', e => {
+  const c = e.relatedTarget;
+  if (!c || !c.dataset.deviceId) return;
+  document.getElementById('modalDeviceId').value = c.dataset.deviceId;
+  document.getElementById('modalDeviceName').textContent = c.dataset.deviceName;
+  document.getElementById('modalDeviceTypeBadge').textContent = c.dataset.deviceType;
+  document.getElementById('modalPrice').textContent = c.dataset.price;
+  document.getElementById('extraPrice').textContent = c.dataset.extraPrice;
+  const isConsole = ['ps4', 'ps5'].includes(c.dataset.deviceTypeRaw);
+  document.getElementById('controllerSection').style.display = isConsole ? 'block' : 'none';
+  document.getElementById('playerSelects').innerHTML = '';
+  document.getElementById('walkInNames').innerHTML = '';
+});
+
+function buildCustomerOptions() {
+  let opts = '<option value="">— بدون حساب —</option>';
+  CUSTOMERS.forEach(c => {
+    const debt = c.balance < 0 ? ` ⚠ بدهی: $${Math.abs(c.balance).toFixed(2)}` : '';
+    opts += `<option value="${c.id}">${c.name}${debt}</option>`;
+  });
+  return opts;
+}
+
+function addPlayerSelect() {
+  const div = document.createElement('div');
+  div.className = 'd-flex gap-2 mb-2';
+  div.innerHTML = `
+    <select name="player_ids" class="form-select form-select-sm">${buildCustomerOptions()}</select>
+    <button type="button" class="btn btn-sm btn-outline-danger px-2" onclick="this.parentElement.remove()">✕</button>`;
+  document.getElementById('playerSelects').appendChild(div);
+}
+
+function addWalkIn() {
+  const div = document.createElement('div');
+  div.className = 'd-flex gap-2 mb-2';
+  div.innerHTML = `
+    <input type="text" name="player_names" class="form-control form-control-sm" placeholder="نام بازیکن">
+    <button type="button" class="btn btn-sm btn-outline-danger px-2" onclick="this.parentElement.remove()">✕</button>`;
+  document.getElementById('walkInNames').appendChild(div);
+}
+</script>
+{% endblock %}
