@@ -242,6 +242,16 @@
 </div>
 {% endif %}
 
+<script>
+const CUSTOMERS = [
+  {% for c in customers_for_modal %}
+  { id: {{ c.id }}, name: "{{ c.name|escapejs }}", balance: {{ c.balance }} },
+  {% endfor %}
+];
+</script>
+{% endblock %}
+
+{% block modals %}
 <!-- ── Start Session Modal ── -->
 <div class="modal fade" id="startModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
@@ -302,14 +312,6 @@
     </div>
   </div>
 </div>
-
-<script>
-const CUSTOMERS = [
-  {% for c in customers_for_modal %}
-  { id: {{ c.id }}, name: "{{ c.name|escapejs }}", balance: {{ c.balance }} },
-  {% endfor %}
-];
-</script>
 {% endblock %}
 
 {% block extra_js %}
