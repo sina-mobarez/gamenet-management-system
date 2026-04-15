@@ -534,3 +534,11 @@ def reports(request):
         'top_products': top_products,
         'settlements': float(settlements),
     })
+
+
+# ── Debts ─────────────────────────────────────────────────────────────────────
+
+@login_required
+def debts(request):
+    debtors = Customer.objects.filter(balance__lt=0).order_by('balance')
+    return render(request, 'debts.html', {'debtors': debtors})
