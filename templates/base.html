@@ -27,7 +27,6 @@
   --text:      #f1f5f9;
   --muted:     #4b5563;
   --muted-lt:  #94a3b8;
-  --muted-gt:  #2809d8;
   --border:    rgba(124,58,237,0.18);
   --border2:   rgba(124,58,237,0.35);
   --glow-v:    rgba(124,58,237,0.5);
@@ -36,14 +35,35 @@
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; }
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ BODY & BG */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ BASE TYPOGRAPHY
+   Vazirmatn covers all Persian/Arabic glyphs.
+   Oxanium is scoped to latin+numeric unicode ranges in fonts.css,
+   so font stacks that list Oxanium first still fall through to
+   Vazirmatn for every Persian character automatically.
+*/
+html, body {
+  font-family: 'Vazirmatn', sans-serif;
+}
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Vazirmatn', sans-serif;
   min-height: 100vh;
   font-size: 14px;
+  line-height: 1.6;
   overflow-x: hidden;
+  /* Improve Persian font rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Global form elements — always Vazirmatn so Persian placeholders render correctly */
+input, textarea, select, button, optgroup, option {
+  font-family: 'Vazirmatn', sans-serif;
+}
+input::placeholder, textarea::placeholder {
+  font-family: 'Vazirmatn', sans-serif;
+  color: rgba(148, 163, 184, 0.4);
 }
 
 /* Static grid (Optimized) */
@@ -57,7 +77,7 @@ body::before {
   pointer-events: none; z-index: 0;
 }
 
-/* Ambient orbs (Optimized: No blur filter, static or very cheap transform) */
+/* Ambient orbs */
 .bg-orb {
   position: fixed; border-radius: 50%;
   pointer-events: none; z-index: 0;
@@ -118,26 +138,39 @@ body::before {
   margin-bottom: .6rem;
 }
 .sidebar-logo .logo-name {
-  font-family: 'Oxanium', sans-serif;
+  font-family: 'Oxanium', 'Vazirmatn', sans-serif;
   font-weight: 800; font-size: 1.1rem;
   background: linear-gradient(135deg, var(--violet-lt), var(--pink));
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   background-clip: text; letter-spacing: 1px;
 }
-.sidebar-logo .logo-sub { color: var(--muted-lt); font-size: .72rem; margin-top: .1rem; }
+/* Persian subtitle — no letter-spacing for connected script */
+.sidebar-logo .logo-sub {
+  color: var(--muted-lt);
+  font-family: 'Vazirmatn', sans-serif;
+  font-size: .75rem;
+  margin-top: .1rem;
+}
 
 /* Nav */
 .sidebar-nav { padding: .75rem 0 2rem; flex: 1; }
 
+/* Section labels inside sidebar: small Persian labels — use Vazirmatn, no letter-spacing */
 .nav-section-label {
-  font-size: .6rem; text-transform: uppercase; letter-spacing: 2px;
-  color: var(--muted); padding: 1rem 1.25rem .3rem; font-family: 'Oxanium', sans-serif;
+  font-size: .68rem;
+  font-family: 'Vazirmatn', sans-serif;
+  font-weight: 700;
+  color: var(--muted);
+  padding: 1rem 1.25rem .3rem;
+  /* No text-transform/letter-spacing — breaks Persian cursive connections */
 }
 .nav-item-link {
   display: flex; align-items: center; gap: .6rem;
   padding: .5rem 1.25rem; margin: 1px .5rem;
   border-radius: 10px; color: var(--muted-lt);
-  text-decoration: none; font-size: .82rem; font-weight: 500;
+  text-decoration: none;
+  font-family: 'Vazirmatn', sans-serif;
+  font-size: .85rem; font-weight: 500;
   transition: all .2s; position: relative; overflow: hidden;
 }
 .nav-item-link i { font-size: .95rem; width: 1.1rem; text-align: center; flex-shrink: 0; }
@@ -159,7 +192,8 @@ body::before {
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ PAGE HEADER */
 .page-header { margin-bottom: 1.75rem; }
 .page-header h2 {
-  font-family: 'Oxanium', sans-serif; font-weight: 700; font-size: 1.5rem;
+  font-family: 'Oxanium', 'Vazirmatn', sans-serif;
+  font-weight: 700; font-size: 1.5rem;
   background: linear-gradient(135deg, #fff 0%, var(--violet-lt) 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   background-clip: text; margin: 0;
@@ -176,6 +210,19 @@ body::before {
 .card-header {
   background: var(--s3); border-bottom: 1px solid var(--border);
   border-radius: 14px 14px 0 0 !important; font-weight: 600; padding: .9rem 1.25rem;
+  font-family: 'Vazirmatn', sans-serif;
+}
+
+/* Neon card variants */
+.neon-card-red {
+  background: rgba(244,63,94,0.06) !important;
+  border: 1px solid rgba(244,63,94,0.25) !important;
+  border-radius: 14px;
+}
+.neon-card-green {
+  background: rgba(16,185,129,0.06) !important;
+  border: 1px solid rgba(16,185,129,0.25) !important;
+  border-radius: 14px;
 }
 
 /* Stat card */
@@ -183,8 +230,19 @@ body::before {
   background: var(--s2); border: 1px solid var(--border);
   border-radius: 14px; padding: 1.1rem 1.4rem; position: relative;
 }
-.stat-card .label { font-size: .65rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted-lt); margin-bottom: .3rem; font-family: 'Oxanium', sans-serif; }
-.stat-card .value { font-size: 1.8rem; font-weight: 700; font-family: 'Oxanium', sans-serif; line-height: 1.1; }
+/* Stat card labels: Persian, so Vazirmatn, no uppercase/letter-spacing */
+.stat-card .label {
+  font-size: .72rem;
+  font-family: 'Vazirmatn', sans-serif;
+  font-weight: 600;
+  color: var(--muted-lt);
+  margin-bottom: .3rem;
+}
+.stat-card .value {
+  font-size: 1.8rem; font-weight: 700;
+  font-family: 'Oxanium', 'Vazirmatn', sans-serif;
+  line-height: 1.1;
+}
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ DEVICE CARDS */
 .device-card {
@@ -199,7 +257,6 @@ body::before {
   background: rgba(16,185,129,0.07); border: 1px solid rgba(16,185,129,0.3);
   box-shadow: inset 0 1px 0 rgba(16,185,129,0.2);
 }
-/* Optimized busy state: Static strong border instead of animated shadow */
 .device-card.busy {
   background: rgba(244,63,94,0.07); border: 1px solid rgba(244,63,94,0.5);
   box-shadow: 0 4px 15px rgba(244,63,94,0.15), inset 0 1px 0 rgba(244,63,94,0.2);
@@ -208,61 +265,220 @@ body::before {
   background: rgba(245,158,11,0.07); border: 1px solid rgba(245,158,11,0.4);
 }
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ TYPOGRAPHY */
-.section-label { font-size: .65rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted-lt); margin-bottom: .3rem; font-family: 'Oxanium', sans-serif; }
-.timer-display { font-family: 'Oxanium', monospace; font-size: 1.8rem; font-weight: 800; color: var(--violet-lt); letter-spacing: 3px; direction: ltr; display: inline-block; }
-.cost-display { font-family: 'Oxanium', sans-serif; font-size: 1.15rem; font-weight: 700; color: var(--amber); }
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ TYPOGRAPHY UTILITIES */
+/*
+  .section-label — used for small Persian/English headings inside cards.
+  • Persian text must NOT have letter-spacing (breaks connected Arabic script).
+  • Oxanium in unicode-range covers only Latin, so Persian auto-falls to Vazirmatn.
+*/
+.section-label {
+  font-size: .72rem;
+  font-family: 'Vazirmatn', sans-serif;
+  font-weight: 700;
+  color: var(--muted-lt);
+  margin-bottom: .3rem;
+  /* Intentionally no text-transform or letter-spacing */
+}
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ BADGES & BUTTONS */
-.badge { font-family: 'Oxanium', sans-serif; font-size: .68rem; letter-spacing: .5px; }
+.timer-display {
+  font-family: 'Oxanium', monospace;
+  font-size: 1.8rem; font-weight: 800;
+  color: var(--violet-lt);
+  letter-spacing: 3px;
+  direction: ltr; display: inline-block;
+}
+.cost-display {
+  font-family: 'Oxanium', 'Vazirmatn', sans-serif;
+  font-size: 1.15rem; font-weight: 700;
+  color: var(--amber);
+}
+
+/* Divider */
+.glow-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1rem 0;
+  box-shadow: 0 0 8px rgba(124,58,237,0.15);
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ BADGES
+   Always Vazirmatn so Persian words inside badges display correctly.
+   Oxanium (latin-only in unicode-range) would fall back anyway,
+   but being explicit prevents any edge-case flash.
+*/
+.badge {
+  font-family: 'Vazirmatn', sans-serif;
+  font-size: .72rem;
+  font-weight: 700;
+  /* No letter-spacing — would break Persian connections */
+}
 .badge-free   { background: rgba(16,185,129,0.15) !important; color: #34d399 !important; border: 1px solid rgba(16,185,129,0.3) !important; }
 .badge-busy   { background: rgba(244,63,94,0.15) !important;  color: #fb7185 !important; border: 1px solid rgba(244,63,94,0.3) !important; }
 .badge-unpaid { background: rgba(245,158,11,0.15) !important; color: #fbbf24 !important; border: 1px solid rgba(245,158,11,0.3) !important; }
+.badge-violet { background: rgba(124,58,237,0.18) !important; color: var(--violet-lt) !important; border: 1px solid var(--border2) !important; }
+.badge-cyan   { background: rgba(6,182,212,0.15) !important;  color: var(--cyan-lt) !important;   border: 1px solid rgba(6,182,212,0.3) !important; }
 
-.btn { font-family: 'Vazirmatn', sans-serif; font-weight: 600; border-radius: 10px; transition: all .2s; }
-.btn-primary { background: linear-gradient(135deg, var(--violet), #6d28d9); border: none; }
-.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(124,58,237,0.4); }
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ FORMS & TABLES */
-.form-control, .form-select {
-  background: rgba(10,8,25,0.8) !important; border: 1px solid rgba(124,58,237,0.2) !important;
-  color: var(--text) !important; border-radius: 10px; transition: all .2s;
+/* Animated status dot (cheap opacity pulse instead of box-shadow) */
+.badge-dot::before {
+  content: '';
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  margin-left: .35rem;
+  vertical-align: middle;
+  animation: dotPulse 1.2s ease-in-out infinite alternate;
 }
-.form-control:focus { border-color: var(--violet) !important; box-shadow: 0 0 0 3px rgba(124,58,237,0.18) !important; }
+@keyframes dotPulse {
+  from { opacity: 0.35; transform: scale(0.85); }
+  to   { opacity: 1;    transform: scale(1.1); }
+}
 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ BUTTONS */
+.btn {
+  font-family: 'Vazirmatn', sans-serif;
+  font-weight: 600;
+  border-radius: 10px;
+  transition: all .2s;
+}
+.btn-primary { background: linear-gradient(135deg, var(--violet), #6d28d9); border: none; color: #fff; }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(124,58,237,0.4); color: #fff; }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ FORMS */
+.form-control, .form-select {
+  background: rgba(10,8,25,0.8) !important;
+  border: 1px solid rgba(124,58,237,0.2) !important;
+  color: var(--text) !important;
+  font-family: 'Vazirmatn', sans-serif !important;
+  border-radius: 10px;
+  transition: all .2s;
+}
+.form-control:focus, .form-select:focus {
+  border-color: var(--violet) !important;
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.18) !important;
+  outline: none;
+}
+.form-control::placeholder { color: rgba(148,163,184,0.4) !important; font-family: 'Vazirmatn', sans-serif !important; }
+.form-select option { background: #0f0b28; color: var(--text); font-family: 'Vazirmatn', sans-serif; }
+.form-label {
+  font-family: 'Vazirmatn', sans-serif;
+  font-weight: 600;
+  font-size: .83rem;
+  color: var(--muted-lt);
+  margin-bottom: .4rem;
+}
+.input-group-text {
+  background: rgba(10,8,25,0.8) !important;
+  border-color: rgba(124,58,237,0.2) !important;
+  color: var(--muted-lt) !important;
+  font-family: 'Vazirmatn', sans-serif;
+}
+
+/* Form switch */
+.form-check-label {
+  font-family: 'Vazirmatn', sans-serif;
+  font-size: .88rem;
+  color: var(--text);
+}
+.form-check-input:checked {
+  background-color: var(--violet);
+  border-color: var(--violet);
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ TABLES
+   Table headers display Persian labels — use Vazirmatn.
+   No text-transform (uppercase is meaningless for Arabic script).
+   No letter-spacing (breaks cursive connections).
+*/
 .table { color: var(--text); --bs-table-striped-bg: transparent; }
-.table > :not(caption) > * > * { background: transparent !important; color: var(--text); border-color: rgba(124,58,237,0.1) !important; }
-.table thead tr th { background: var(--s3) !important; color: var(--muted-lt); font-size: .75rem; text-transform: uppercase; font-family: 'Oxanium', sans-serif; font-weight: 600; }
+.table > :not(caption) > * > * {
+  background: transparent !important;
+  color: var(--text);
+  border-color: rgba(124,58,237,0.1) !important;
+  font-family: 'Vazirmatn', sans-serif;
+}
+.table thead tr th {
+  background: var(--s3) !important;
+  color: var(--muted-lt);
+  font-family: 'Vazirmatn', sans-serif;
+  font-size: .78rem;
+  font-weight: 700;
+  /* Removed: text-transform: uppercase — meaningless/harmful for Persian */
+  /* Removed: letter-spacing — breaks Arabic/Persian cursive connections */
+}
+.table tbody tr td { font-family: 'Vazirmatn', sans-serif; vertical-align: middle; }
+.table-hover > tbody > tr:hover > * {
+  background: rgba(124,58,237,0.05) !important;
+}
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ MODALS & ALERTS */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ MODALS */
 .modal-content {
-  background: rgba(6,4,18,0.97); backdrop-filter: blur(20px); border: 1px solid var(--border2);
-  border-radius: 18px; box-shadow: 0 20px 50px rgba(0,0,0,.5);
+  background: rgba(6,4,18,0.97);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border2);
+  border-radius: 18px;
+  box-shadow: 0 20px 50px rgba(0,0,0,.5);
+  font-family: 'Vazirmatn', sans-serif;
 }
 .modal-header { border-bottom: 1px solid var(--border); padding: 1.2rem 1.5rem; }
 .modal-footer { border-top: 1px solid var(--border); padding: 1rem 1.5rem; }
+.modal-title { font-family: 'Vazirmatn', sans-serif; font-weight: 700; font-size: 1rem; color: var(--text); }
+.modal-body { font-family: 'Vazirmatn', sans-serif; color: var(--text); }
 .btn-close { filter: invert(1) brightness(.6); }
 
-.alert { border-radius: 12px; font-size: .84rem; }
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ALERTS */
+.alert { border-radius: 12px; font-size: .84rem; font-family: 'Vazirmatn', sans-serif; }
 .alert-success { background: rgba(16,185,129,0.1) !important; border-color: rgba(16,185,129,0.3) !important; color: #6ee7b7 !important; }
-.alert-danger  { background: rgba(244,63,94,0.1) !important; border-color: rgba(244,63,94,0.3) !important; color: #fda4af !important; }
+.alert-danger  { background: rgba(244,63,94,0.1) !important;  border-color: rgba(244,63,94,0.3) !important;  color: #fda4af !important; }
+.alert-warning { background: rgba(245,158,11,0.1) !important; border-color: rgba(245,158,11,0.3) !important; color: #fcd34d !important; }
+.alert-info    { background: rgba(6,182,212,0.1) !important;  border-color: rgba(6,182,212,0.3) !important;  color: var(--cyan-lt) !important; }
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ MISC */
-div , strong {color: (var(--muted-gt)) !important;}
-a { color: var(--violet-lt); }
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ COLOUR UTILITIES */
+a { color: var(--violet-lt); text-decoration: none; }
+a:hover { color: var(--violet-lt); opacity: .85; }
 .text-accent  { color: var(--violet-lt) !important; }
 .text-danger  { color: #fb7185 !important; }
+.text-success { color: #34d399 !important; }
+.text-warning { color: #fbbf24 !important; }
 .text-muted   { color: var(--muted-lt) !important; }
-.ltr { direction: ltr; display: inline-block; }
-.num { font-family: 'Oxanium', monospace; direction: ltr; display: inline-block; }
+.text-cyan    { color: var(--cyan-lt) !important; }
 
-/* Optimized pulsing dot: Animates opacity instead of box-shadow */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ DIRECTION HELPERS */
+/*
+  .ltr  — LTR content (phone numbers, codes)
+  .num  — Numeric/LTR display; Oxanium for gaming look, Vazirmatn fallback for any mixed Persian
+*/
+.ltr { direction: ltr !important; display: inline-block; }
+.num {
+  font-family: 'Oxanium', 'Vazirmatn', monospace;
+  direction: ltr;
+  display: inline-block;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ PROGRESS */
+.progress {
+  background: rgba(124,58,237,0.1);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.progress-bar {
+  transition: width .4s ease;
+  border-radius: 10px;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ PULSING DOT */
 .pulse-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
 .pulse-dot.green { background: var(--green); animation: cheapPulse 1.5s infinite alternate; }
 .pulse-dot.red   { background: var(--red);   animation: cheapPulse 1s infinite alternate; }
 @keyframes cheapPulse { from { opacity: 0.4; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
 
-/* Responsive */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ SCROLLBAR */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--violet); }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ RESPONSIVE */
 @media (max-width: 768px) {
   .sidebar { transform: translateX(100%); transition: transform .3s; }
   .sidebar.open { transform: translateX(0); }

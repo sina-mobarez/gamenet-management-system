@@ -13,8 +13,9 @@
 .pay-stat.ps-neutral::before  { background: var(--muted); }
 .pay-stat.ps-green::before    { background: var(--green);  box-shadow: 0 0 10px var(--green); }
 .pay-stat.ps-amber::before    { background: var(--amber);  box-shadow: 0 0 10px var(--amber); }
-.pay-stat .ps-label { font-size: .62rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted-lt); font-family: 'Oxanium', sans-serif; }
-.pay-stat .ps-value { font-family: 'Oxanium', sans-serif; font-size: 1.7rem; font-weight: 800; margin-top: .2rem; }
+/* Pay stat labels contain Persian — use Vazirmatn, no letter-spacing */
+.pay-stat .ps-label { font-size: .72rem; font-family: 'Vazirmatn', sans-serif; font-weight: 700; color: var(--muted-lt); }
+.pay-stat .ps-value { font-family: 'Oxanium', 'Vazirmatn', sans-serif; font-size: 1.7rem; font-weight: 800; margin-top: .2rem; }
 
 .payment-entry {
   background: var(--s3); border: 1px solid var(--border);

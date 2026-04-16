@@ -28,9 +28,18 @@
 .product-card.selected::before { opacity: 1; }
 .product-card.disabled { opacity: .35; cursor: not-allowed; }
 .product-emoji { font-size: 2rem; margin-bottom: .4rem; }
-.product-name { font-size: .82rem; font-weight: 600; margin-bottom: .2rem; color: var(--text); }
-.product-price { font-family: 'Oxanium', sans-serif; font-size: .9rem; color: var(--amber); font-weight: 700; }
-.product-stock { font-size: .7rem; margin-top: .2rem; }
+/* Product name — Persian, Vazirmatn */
+.product-name {
+  font-size: .83rem; font-weight: 700;
+  font-family: 'Vazirmatn', sans-serif;
+  margin-bottom: .2rem; color: var(--text);
+}
+/* Price — numeric, Oxanium */
+.product-price {
+  font-family: 'Oxanium', 'Vazirmatn', sans-serif;
+  font-size: .9rem; color: var(--amber); font-weight: 700;
+}
+.product-stock { font-size: .72rem; margin-top: .2rem; font-family: 'Vazirmatn', sans-serif; }
 
 /* Sell panel */
 .sell-panel {
@@ -47,19 +56,35 @@
   background: rgba(0,0,0,0.3); border: 1px solid var(--border2);
   border-radius: 12px; padding: .9rem; text-align: center; margin: 1rem 0;
 }
-.total-box .total-label { font-size: .62rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted-lt); font-family: 'Oxanium', sans-serif; }
-.total-box .total-val { font-family: 'Oxanium', sans-serif; font-size: 2.2rem; font-weight: 800; color: var(--amber); text-shadow: 0 0 20px rgba(245,158,11,0.4); }
+/* Total box label: Persian — Vazirmatn */
+.total-box .total-label {
+  font-size: .72rem;
+  font-family: 'Vazirmatn', sans-serif;
+  font-weight: 700;
+  color: var(--muted-lt);
+}
+.total-box .total-val {
+  font-family: 'Oxanium', 'Vazirmatn', sans-serif;
+  font-size: 2.2rem; font-weight: 800;
+  color: var(--amber);
+  text-shadow: 0 0 20px rgba(245,158,11,0.4);
+}
 
 .selected-info {
   background: rgba(124,58,237,0.08); border: 1px solid var(--border);
   border-radius: 10px; padding: .75rem 1rem; margin-bottom: 1rem;
+  font-family: 'Vazirmatn', sans-serif;
 }
 
+/* Category header — Persian labels */
 .category-header {
-  font-family: 'Oxanium', sans-serif;
-  font-size: .65rem; text-transform: uppercase; letter-spacing: 2px;
-  color: var(--muted-lt); margin-bottom: .75rem;
+  font-family: 'Vazirmatn', sans-serif;
+  font-size: .75rem;
+  font-weight: 700;
+  color: var(--muted-lt);
+  margin-bottom: .75rem;
   display: flex; align-items: center; gap: .5rem;
+  /* No text-transform/letter-spacing for Persian */
 }
 .category-header::after {
   content: ''; flex: 1; height: 1px;

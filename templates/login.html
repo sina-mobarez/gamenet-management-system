@@ -4,23 +4,32 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ورود — GameNet</title>
+<title>ورود — گیم‌نت</title>
 <link href="{% static 'css/fonts.css' %}" rel="stylesheet">
 <link href="{% static 'css/bootstrap.rtl.min.css' %}" rel="stylesheet">
 <link href="{% static 'css/bootstrap-icons.css' %}" rel="stylesheet">
 <style>
-*,*::before,*::after { box-sizing: border-box; margin: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; }
 
 body {
   min-height: 100vh;
   background: #03020c;
+  /* Vazirmatn covers all Persian glyphs; Oxanium (latin-only) handles the logo */
   font-family: 'Vazirmatn', sans-serif;
   color: #f1f5f9;
   display: flex; align-items: center; justify-content: center;
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-/* Static Grid BG (Optimized: Removed animation) */
+/* Form elements inherit Vazirmatn */
+input, textarea, select, button {
+  font-family: 'Vazirmatn', sans-serif;
+}
+
+/* Static Grid BG */
 body::before {
   content: '';
   position: fixed; inset: 0;
@@ -35,11 +44,14 @@ body::before {
 body::after {
   content: '';
   position: fixed; inset: 0;
-  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.025) 3px, rgba(0,0,0,0.025) 6px);
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 3px,
+    rgba(0,0,0,0.025) 3px, rgba(0,0,0,0.025) 6px
+  );
   pointer-events: none; z-index: 100;
 }
 
-/* Orbs (Optimized: Removed blur filter, replaced with native gradients) */
+/* Orbs */
 .orb { position: fixed; border-radius: 50%; pointer-events: none; z-index: 0; }
 .orb1 { width: 900px; height: 900px; background: radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 60%); top: -300px; right: -300px; }
 .orb2 { width: 700px; height: 700px; background: radial-gradient(circle, rgba(6,182,212,0.08) 0%, transparent 60%); bottom: -200px; left: -200px; }
@@ -65,7 +77,7 @@ body::after {
 }
 @keyframes cardIn { from{opacity:0;transform:translateY(20px) scale(.98)} to{opacity:1;transform:none} }
 
-/* Rainbow top border (Kept, as background-position is relatively cheap) */
+/* Animated top border */
 .login-card::before {
   content: '';
   position: absolute; top: 0; left: 0; right: 0; height: 2px;
@@ -75,7 +87,7 @@ body::after {
 }
 @keyframes borderRun { from{background-position:0% 0} to{background-position:200% 0} }
 
-/* Icon (Optimized: Removed blur animation) */
+/* Icon */
 .login-icon {
   width: 76px; height: 76px;
   background: linear-gradient(135deg, #6d28d9, #7c3aed, #a855f7);
@@ -83,12 +95,11 @@ body::after {
   display: flex; align-items: center; justify-content: center;
   font-size: 2.2rem;
   box-shadow: 0 8px 25px rgba(124,58,237,0.4);
-  position: relative;
 }
 
-/* Brand */
+/* Brand name — Latin/gaming display font */
 .brand-name {
-  font-family: 'Oxanium', sans-serif;
+  font-family: 'Oxanium', 'Vazirmatn', sans-serif;
   font-size: 2rem; font-weight: 900;
   background: linear-gradient(135deg, #c4b5fd, #ec4899 50%, #67e8f9);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
@@ -96,20 +107,34 @@ body::after {
   text-align: center; margin-bottom: .25rem;
   letter-spacing: 4px;
 }
+/* Persian subtitle — Vazirmatn, NO letter-spacing (breaks Persian cursive joins) */
 .brand-sub {
-  text-align: center; color: #4b5563; font-size: .78rem;
-  margin-bottom: 2.25rem; letter-spacing: .5px;
+  text-align: center;
+  font-family: 'Vazirmatn', sans-serif;
+  color: #94a3b8;
+  font-size: .8rem;
+  margin-bottom: 2.25rem;
+  /* No letter-spacing for Persian portion */
 }
 
 /* Fields */
 .field-wrap { margin-bottom: 1.25rem; }
-.field-label { color: #6b7280; font-size: .78rem; font-weight: 600; margin-bottom: .5rem; letter-spacing: .5px; display: block; }
+/* Labels — Persian, so Vazirmatn, no letter-spacing */
+.field-label {
+  font-family: 'Vazirmatn', sans-serif;
+  color: #94a3b8;
+  font-size: .82rem;
+  font-weight: 600;
+  margin-bottom: .5rem;
+  display: block;
+}
 .field-input {
   width: 100%; padding: .8rem 1rem;
   background: rgba(255,255,255,0.035) !important;
   border: 1px solid rgba(124,58,237,0.2) !important;
   color: #f1f5f9 !important;
-  border-radius: 12px !important; font-family: 'Vazirmatn', sans-serif;
+  border-radius: 12px !important;
+  font-family: 'Vazirmatn', sans-serif;
   font-size: .9rem; transition: all .2s; outline: none;
 }
 .field-input:focus {
@@ -117,33 +142,38 @@ body::after {
   background: rgba(124,58,237,0.06) !important;
   box-shadow: 0 0 0 3px rgba(124,58,237,0.18) !important;
 }
-.field-input::placeholder { color: #2d2d50 !important; }
+.field-input::placeholder {
+  font-family: 'Vazirmatn', sans-serif;
+  color: rgba(148,163,184,0.4) !important;
+}
 
 /* Submit */
 .btn-login {
   width: 100%; padding: .9rem 1rem; margin-top: .75rem;
   background: linear-gradient(135deg, #6d28d9, #7c3aed);
   border: none; border-radius: 12px;
-  color: #fff; font-family: 'Vazirmatn', sans-serif;
+  color: #fff;
+  font-family: 'Vazirmatn', sans-serif;
   font-size: .95rem; font-weight: 700; cursor: pointer;
-  letter-spacing: .5px;
   box-shadow: 0 4px 15px rgba(124,58,237,0.3);
   transition: all .2s;
 }
 .btn-login:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124,58,237,0.4); }
 
-/* Error */
+/* Error messages — Persian text */
 .login-error {
   background: rgba(244,63,94,0.1); border: 1px solid rgba(244,63,94,0.3);
   border-radius: 10px; color: #fda4af; padding: .75rem 1rem;
-  font-size: .83rem; margin-bottom: 1.25rem;
+  font-family: 'Vazirmatn', sans-serif;
+  font-size: .85rem; margin-bottom: 1.25rem;
 }
 
-/* Version tag */
+/* Version tag — Latin, so Oxanium is fine */
 .version-tag {
   text-align: center; margin-top: 1.5rem;
   color: rgba(75,85,99,.6); font-size: .68rem;
-  font-family: 'Oxanium', sans-serif; letter-spacing: 1px;
+  font-family: 'Oxanium', 'Vazirmatn', sans-serif;
+  letter-spacing: 1px;
 }
 </style>
 </head>
@@ -172,10 +202,10 @@ body::after {
         <label class="field-label">رمز عبور</label>
         <input type="password" name="password" class="field-input" required placeholder="••••••••">
       </div>
-      <button type="submit" class="btn-login"><span>ورود به سیستم ←</span></button>
+      <button type="submit" class="btn-login">ورود به سیستم ←</button>
     </form>
 
-    <div class="version-tag">GAMENET Manager &nbsp;●&nbsp; Developed BY Sina Mobarez</div>
+    <div class="version-tag">GAMENET Manager &nbsp;●&nbsp; Developed by Sina Mobarez</div>
   </div>
 </div>
 

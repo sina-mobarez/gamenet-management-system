@@ -5,22 +5,27 @@
 {% block extra_css %}
 <style>
 .device-name-display {
-  font-family: 'Oxanium', sans-serif;
+  font-family: 'Oxanium', 'Vazirmatn', sans-serif;
   font-weight: 700; font-size: 1.05rem;
 }
+/* Device type sub-label: pure LTR/Latin acronym like "PS5" — Oxanium fine */
 .device-type-label {
-  font-size: .65rem; text-transform: uppercase; letter-spacing: 1.5px;
-  font-family: 'Oxanium', sans-serif; opacity: .7; margin-bottom: .2rem;
+  font-size: .68rem;
+  font-family: 'Vazirmatn', sans-serif;
+  font-weight: 600;
+  color: rgba(255,255,255,.5);
+  margin-bottom: .2rem;
 }
-.device-players { font-size: .78rem; color: rgba(255,255,255,.55); margin-top: .5rem; }
+.device-players { font-size: .8rem; color: rgba(255,255,255,.55); margin-top: .5rem; }
 .player-chip {
   display: inline-block; padding: .2rem .6rem;
   background: rgba(255,255,255,.07); border-radius: 6px;
-  font-size: .72rem; margin: 2px 2px 0 0;
+  font-family: 'Vazirmatn', sans-serif;
+  font-size: .75rem; margin: 2px 2px 0 0;
   border: 1px solid rgba(255,255,255,.1);
 }
 .free-rate {
-  font-family: 'Oxanium', sans-serif;
+  font-family: 'Oxanium', 'Vazirmatn', sans-serif;
   font-size: .9rem; color: rgba(16,185,129,.8);
   margin-top: .25rem;
 }
@@ -39,39 +44,52 @@
 }
 .dash-stat.stat-green::before { background: var(--green); box-shadow: 0 0 10px var(--green); }
 .dash-stat.stat-red::before   { background: var(--red);   box-shadow: 0 0 10px var(--red);   }
-.dash-stat .ds-label { font-size: .62rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted-lt); font-family: 'Oxanium', sans-serif; }
-.dash-stat .ds-value { font-family: 'Oxanium', sans-serif; font-size: 1.6rem; font-weight: 800; margin-top: .1rem; line-height: 1; }
+/* Stat labels: Persian — Vazirmatn, no letter-spacing */
+.dash-stat .ds-label {
+  font-size: .72rem;
+  font-family: 'Vazirmatn', sans-serif;
+  font-weight: 700;
+  color: var(--muted-lt);
+}
+.dash-stat .ds-value {
+  font-family: 'Oxanium', 'Vazirmatn', sans-serif;
+  font-size: 1.6rem; font-weight: 800;
+  margin-top: .1rem; line-height: 1;
+}
 
-/* Unpaid alert */
+/* Unpaid alert — Persian text */
 .unpaid-alert {
   background: rgba(245,158,11,0.08);
   border: 1px solid rgba(245,158,11,0.25);
   border-radius: 14px; padding: .9rem 1.2rem;
   margin-bottom: 1.5rem;
+  font-family: 'Vazirmatn', sans-serif;
   display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
 }
 .unpaid-alert .ua-icon { font-size: 1.4rem; opacity: .8; }
-.unpaid-alert .ua-label { color: #fbbf24; font-weight: 600; font-size: .9rem; }
+.unpaid-alert .ua-label { color: #fbbf24; font-weight: 700; font-size: .9rem; }
 
-/* Low stock */
+/* Low stock alert */
 .low-stock-alert {
   background: rgba(244,63,94,0.07);
   border: 1px solid rgba(244,63,94,0.2);
   border-radius: 14px; padding: .9rem 1.2rem;
   margin-top: 1.25rem;
+  font-family: 'Vazirmatn', sans-serif;
   display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
 }
-.low-stock-alert .ls-label { color: #fca5a5; font-weight: 600; font-size: .88rem; }
+.low-stock-alert .ls-label { color: #fca5a5; font-weight: 700; font-size: .88rem; }
 
-/* Live clock */
+/* Live clock — numeric/LTR */
 #live-clock {
   font-family: 'Oxanium', monospace;
   font-size: .9rem;
   color: var(--cyan-lt);
   letter-spacing: 1px;
+  direction: ltr;
+  display: inline-block;
 }
 
-/* Device grid spacing */
 .devices-grid { margin-top: 0; }
 
 /* Remaining cost badge */
@@ -79,7 +97,7 @@
   background: rgba(244,63,94,0.15);
   border: 1px solid rgba(244,63,94,0.3);
   border-radius: 8px; padding: .3rem .7rem;
-  font-family: 'Oxanium', sans-serif;
+  font-family: 'Oxanium', 'Vazirmatn', sans-serif;
   font-size: .85rem; font-weight: 700; color: #fb7185;
 }
 </style>
@@ -91,7 +109,7 @@
   <div>
     <h2><i class="bi bi-grid-1x2-fill me-2" style="-webkit-text-fill-color:var(--violet-lt);color:var(--violet-lt)"></i>داشبورد</h2>
     <div class="d-flex align-items-center gap-2 mt-1">
-      <span class="text-muted" style="font-size:.82rem">{% shamsi_today %}</span>
+      <span class="text-muted" style="font-size:.82rem;font-family:'Vazirmatn',sans-serif">{% shamsi_today %}</span>
       <span class="text-muted" style="font-size:.75rem">·</span>
       <span id="live-clock"></span>
     </div>
@@ -144,7 +162,7 @@
       <div class="device-players">
         {% for p in session.players.all %}
           <span class="player-chip">{{ p.display_name }}</span>
-        {% empty %}<em style="opacity:.5">بدون بازیکن</em>{% endfor %}
+        {% empty %}<em style="opacity:.5;font-family:'Vazirmatn',sans-serif">بدون بازیکن</em>{% endfor %}
         {% if session.extra_controllers > 0 %}
         <span class="player-chip" style="border-color:rgba(245,158,11,.3);color:rgba(245,158,11,.8)">
           +{{ session.extra_controllers }} کنترلر
@@ -172,9 +190,9 @@
       </div>
       <div class="d-flex flex-column gap-1 small mb-2">
         <div class="text-muted">کل: <span class="text-warning num fw-bold"> تومان {{ session.total_cost|intcomma }}</span></div>
-        <div class="text-muted">پرداخت‌شده: <span class="text-success num"> تومان {{ session.paid_amount|intcomma  }}</span></div>
+        <div class="text-muted">پرداخت‌شده: <span class="text-success num"> تومان {{ session.paid_amount|intcomma }}</span></div>
       </div>
-      <div class="remaining-badge d-inline-block mb-3">مانده:  تومان {{ session.remaining_amount|intcomma }}</div>
+      <div class="remaining-badge d-inline-block mb-3">مانده: تومان {{ session.remaining_amount|intcomma }}</div>
       <div class="d-flex gap-2 mt-auto">
         <a href="{% url 'session_pay' session.pk %}" class="btn btn-sm btn-warning flex-fill fw-bold">💳 پرداخت</a>
         <button class="btn btn-sm btn-success flex-fill"
@@ -207,7 +225,9 @@
       </div>
       <div class="free-rate"> تومان {{ device.price_per_hour|intcomma }}<span style="opacity:.5;font-size:.8em">/ساعت</span></div>
       {% if device.extra_controller_price > 0 %}
-      <div style="font-size:.75rem;color:rgba(255,255,255,.35);margin-top:.2rem">+ تومان {{ device.extra_controller_price }} کنترلر اضافه</div>
+      <div style="font-size:.75rem;color:rgba(255,255,255,.35);margin-top:.2rem;font-family:'Vazirmatn',sans-serif">
+        + تومان {{ device.extra_controller_price }} کنترلر اضافه
+      </div>
       {% endif %}
       <div class="start-btn-area mt-auto">
         <div class="btn btn-success w-100 fw-bold"
@@ -223,7 +243,7 @@
 <div class="col-12">
   <div class="card p-5 text-center text-muted">
     <i class="bi bi-hdd-stack d-block mb-2" style="font-size:2.5rem;opacity:.3"></i>
-    دستگاهی تنظیم نشده.
+    <span style="font-family:'Vazirmatn',sans-serif">دستگاهی تنظیم نشده.</span>
     <a href="{% url 'devices_manage' %}" class="btn btn-primary ms-2 mt-2">افزودن دستگاه</a>
   </div>
 </div>
@@ -267,16 +287,16 @@ const CUSTOMERS = [
           <div class="p-3 rounded-3 mb-3 d-flex justify-content-between align-items-center"
                style="background:rgba(124,58,237,0.08);border:1px solid var(--border)">
             <div>
-              <strong id="modalDeviceName" style="font-size:1.1rem;font-family:'Oxanium',sans-serif"></strong>
+              <strong id="modalDeviceName" style="font-size:1.1rem;font-family:'Oxanium','Vazirmatn',sans-serif"></strong>
               <span class="badge badge-violet ms-2" id="modalDeviceTypeBadge"></span>
             </div>
-            <div style="font-family:'Oxanium',sans-serif;font-weight:700;color:var(--green)">
-               تومان <span id="modalPrice"></span>/ساعت
+            <div style="font-family:'Oxanium','Vazirmatn',sans-serif;font-weight:700;color:var(--green)">
+              تومان <span id="modalPrice"></span>/ساعت
             </div>
           </div>
 
           <div id="controllerSection" class="mb-3" style="display:none">
-            <label class="form-label small fw-semibold">کنترلر اضافه</label>
+            <label class="form-label">کنترلر اضافه</label>
             <div class="input-group" style="max-width:230px">
               <span class="input-group-text"><i class="bi bi-controller"></i></span>
               <input type="number" name="extra_controllers" id="extraControllers"
@@ -287,14 +307,14 @@ const CUSTOMERS = [
 
           <div class="row g-3">
             <div class="col-md-6">
-              <label class="form-label small fw-semibold"><i class="bi bi-person-check me-1"></i>بازیکنان ثبت‌نام‌شده</label>
+              <label class="form-label"><i class="bi bi-person-check me-1"></i>بازیکنان ثبت‌نام‌شده</label>
               <div id="playerSelects"></div>
               <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-1" onclick="addPlayerSelect()">
                 <i class="bi bi-plus-circle me-1"></i>افزودن مشتری
               </button>
             </div>
             <div class="col-md-6">
-              <label class="form-label small fw-semibold"><i class="bi bi-person-plus me-1"></i>بازیکنان مهمان</label>
+              <label class="form-label"><i class="bi bi-person-plus me-1"></i>بازیکنان مهمان</label>
               <div id="walkInNames"></div>
               <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-1" onclick="addWalkIn()">
                 <i class="bi bi-plus-circle me-1"></i>افزودن مهمان
@@ -363,10 +383,9 @@ document.getElementById('startModal').addEventListener('show.bs.modal', e => {
 function buildCustomerOptions() {
   let opts = '<option value="">— بدون حساب —</option>';
   CUSTOMERS.forEach(c => {
-    const debt = c.balance < 0 
-      ? ` ⚠ بدهی: تومان ${Math.abs(c.balance).toLocaleString()}`
+    const debt = c.balance < 0
+      ? ` ⚠ بدهی: تومان ${Math.abs(c.balance).toLocaleString('fa-IR')}`
       : '';
-      
     opts += `<option value="${c.id}">${c.name}${debt}</option>`;
   });
   return opts;
