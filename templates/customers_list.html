@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load shamsi %}
+{% load shamsi humanize %}
 {% block title %}مشتریان{% endblock %}
 {% block content %}
 <div class="page-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
@@ -43,12 +43,12 @@
         <td class="text-muted ltr" style="font-family:'Oxanium',monospace">{{ c.phone|default:"—" }}</td>
         <td>
           <span class="num fw-bold {% if c.balance < 0 %}text-danger{% elif c.balance > 0 %}text-success{% else %}text-muted{% endif %}">
-             تومان {{ c.balance }}
+             تومان {{ c.balance|intcomma }}
           </span>
         </td>
         <td>
           {% if c.balance < 0 %}
-          <span class="badge badge-busy">بدهی  تومان {{ c.debt_amount }}</span>
+          <span class="badge badge-busy">بدهی  تومان {{ c.debt_amount|intcomma }}</span>
           {% elif c.balance > 0 %}
           <span class="badge badge-free">اعتبار</span>
           {% else %}

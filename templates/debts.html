@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load shamsi %}
+{% load shamsi humanize %}
 {% block title %}بدهی‌ها{% endblock %}
 {% block content %}
 <div class="page-header">
@@ -27,12 +27,12 @@
         </td>
         <td class="text-muted ltr" style="font-family:'Oxanium',monospace">{{ c.phone|default:"—" }}</td>
         <td>
-          <span class="badge badge-busy px-3 py-2 num" style="font-size:.85rem"> تومان {{ c.debt_amount }}</span>
+          <span class="badge badge-busy px-3 py-2 num" style="font-size:.85rem"> تومان {{ c.debt_amount|intcomma }}</span>
         </td>
         <td class="d-flex gap-2">
           <button class="btn btn-sm btn-success"
                   data-bs-toggle="modal" data-bs-target="#settleModal"
-                  data-cid="{{ c.id }}" data-name="{{ c.name }}" data-debt="{{ c.debt_amount }}">
+                  data-cid="{{ c.id }}" data-name="{{ c.name }}" data-debt="{{ c.debt_amount|intcomma }}">
             ✓ تسویه
           </button>
           <a href="{% url 'customer_detail' c.pk %}" class="btn btn-sm btn-outline-secondary">مشاهده</a>

@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load shamsi %}
+{% load shamsi humanize %}
 {% block title %}پرداخت سشن{% endblock %}
 
 {% block extra_css %}
@@ -51,21 +51,21 @@
   <div class="col-sm-4">
     <div class="pay-stat ps-neutral">
       <div class="ps-label">مبلغ کل</div>
-      <div class="ps-value num"> تومان {{ session.total_cost }}</div>
+      <div class="ps-value num"> تومان {{ session.total_cost|intcomma }}</div>
       <div style="font-size:.75rem;color:var(--muted);margin-top:.2rem">مدت: {{ session.duration_display }}</div>
     </div>
   </div>
   <div class="col-sm-4">
     <div class="pay-stat ps-green">
       <div class="ps-label">پرداخت‌شده</div>
-      <div class="ps-value text-success num"> تومان {{ session.paid_amount }}</div>
+      <div class="ps-value text-success num"> تومان {{ session.paid_amount|intcomma }}</div>
     </div>
   </div>
   <div class="col-sm-4">
     <div class="pay-stat {% if session.is_fully_paid %}ps-green{% else %}ps-amber{% endif %}">
       <div class="ps-label">مانده</div>
       <div class="ps-value {% if session.is_fully_paid %}text-success{% else %}text-warning{% endif %} num">
-         تومان {{ session.remaining_amount }}
+         تومان {{ session.remaining_amount|intcomma }}
       </div>
       {% if session.is_fully_paid %}
       <div style="font-size:.72rem;color:var(--green);margin-top:.2rem"><i class="bi bi-check-circle-fill me-1"></i>تسویه کامل</div>
@@ -79,7 +79,7 @@
 <div class="mb-4">
   <div class="d-flex justify-content-between text-muted mb-1" style="font-size:.78rem">
     <span>پیشرفت پرداخت</span>
-    <span class="num">{{ session.paid_amount }} / {{ session.total_cost }}</span>
+    <span class="num">{{ session.paid_amount|intcomma }} / {{ session.total_cost|intcomma }}</span>
   </div>
   <div class="progress" style="height:8px">
     <div class="progress-bar bg-success"
@@ -108,7 +108,7 @@
               <input type="number" name="amount" id="amountInput"
                      class="form-control ltr text-center fw-bold"
                      step="0.01" min="0.01"
-                     value="{{ session.remaining_amount }}" required>
+                     value="{{ session.remaining_amount|intcomma }}" required>
             </div>
           </div>
           <div class="col-sm-4">
@@ -123,8 +123,8 @@
             <select name="customer_id" id="customerSelect" class="form-select">
               <option value="">— انتخاب —</option>
               {% for c in customers %}
-              <option value="{{ c.id }}" data-balance="{{ c.balance }}">
-                {{ c.name }}{% if c.balance < 0 %} ⚠  تومان {{ c.debt_amount }}{% endif %}
+              <option value="{{ c.id }}" data-balance="{{ c.balance|intcomma }}">
+                {{ c.name }}{% if c.balance < 0 %} ⚠  تومان {{ c.debt_amount|intcomma }}{% endif %}
               </option>
               {% endfor %}
             </select>
@@ -136,7 +136,7 @@
         <div class="d-flex gap-2 mt-3 flex-wrap">
           <button type="button" class="btn btn-sm btn-outline-secondary"
                   onclick="setAmount({{ session.remaining_amount }})">
-            همه باقیمانده ( تومان {{ session.remaining_amount }})
+            همه باقیمانده ( تومان {{ session.remaining_amount|intcomma }})
           </button>
           {% if session.players.count > 1 %}
           <button type="button" class="btn btn-sm btn-outline-secondary"
@@ -161,7 +161,7 @@
           {% csrf_token %}
           <button name="action" value="pay_remaining_cash" type="submit" class="btn btn-success btn-sm fw-bold"
                   onclick="return confirm('همه نقد؟')">
-            <i class="bi bi-cash me-1"></i>همه نقد ( تومان {{ session.remaining_amount }})
+            <i class="bi bi-cash me-1"></i>همه نقد ( تومان {{ session.remaining_amount|intcomma }})
           </button>
         </form>
         <button type="button" class="btn btn-outline-secondary btn-sm"
@@ -188,7 +188,7 @@
         <span class="badge badge-violet py-2 px-3" style="font-size:.82rem">
           <i class="bi bi-person me-1"></i>{{ p.display_name }}
           {% if p.customer and p.customer.balance < 0 %}
-          <span class="badge badge-busy ms-1" style="font-size:.68rem">بدهی:  تومان {{ p.customer.debt_amount }}</span>
+          <span class="badge badge-busy ms-1" style="font-size:.68rem">بدهی:  تومان {{ p.customer.debt_amount|intcomma }}</span>
           {% endif %}
         </span>
         {% endfor %}
@@ -218,7 +218,7 @@
               {% else %}
               <span class="badge badge-cyan">🏦 حساب</span>
               {% endif %}
-              <span class="text-warning fw-bold num"> تومان {{ pay.amount }}</span>
+              <span class="text-warning fw-bold num"> تومان {{ pay.amount|intcomma }}</span>
             </div>
             {% if pay.customer %}
             <div class="text-muted small mt-1"><i class="bi bi-person me-1"></i>{{ pay.customer.name }}</div>
@@ -242,7 +242,7 @@
       </div>
       <div class="mt-3 pt-3 d-flex justify-content-between" style="border-top:1px solid rgba(124,58,237,0.1)">
         <span class="text-muted small">جمع پرداخت‌شده</span>
-        <span class="fw-bold text-success num"> تومان {{ session.paid_amount }}</span>
+        <span class="fw-bold text-success num"> تومان {{ session.paid_amount|intcomma }}</span>
       </div>
       {% else %}
       <div class="text-center text-muted py-5">
@@ -271,7 +271,7 @@
         <div class="modal-body">
           <div class="p-3 rounded-3 mb-3" style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2)">
             <div class="text-muted small">مبلغ</div>
-            <div class="fw-bold text-warning num" style="font-size:1.1rem"> تومان {{ session.remaining_amount }}</div>
+            <div class="fw-bold text-warning num" style="font-size:1.1rem"> تومان {{ session.remaining_amount|intcomma }}</div>
           </div>
           <label class="form-label">حساب مشتری</label>
           <select name="customer_id" class="form-select" required>

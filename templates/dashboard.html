@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load shamsi %}
+{% load shamsi humanize %}
 {% block title %}داشبورد — گیم‌نت{% endblock %}
 
 {% block extra_css %}
@@ -99,11 +99,11 @@
   <div class="d-flex gap-2">
     <div class="dash-stat stat-green">
       <div class="ds-label">دریافتی امروز</div>
-      <div class="ds-value text-success"> تومان {{ today_cash }}</div>
+      <div class="ds-value text-success"> تومان {{ today_cash|intcomma }}</div>
     </div>
     <div class="dash-stat stat-red">
       <div class="ds-label">بدهی کل</div>
-      <div class="ds-value text-danger"> تومان {{ total_debt }}</div>
+      <div class="ds-value text-danger"> تومان {{ total_debt|intcomma }}</div>
     </div>
   </div>
 </div>
@@ -115,7 +115,7 @@
   <span class="ua-label">سشن‌های پرداخت‌نشده:</span>
   {% for s in unpaid_sessions %}
   <a href="{% url 'session_pay' s.pk %}" class="btn btn-warning btn-sm fw-bold">
-    {{ s.device.name }} &nbsp;—&nbsp; <span class="num"> تومان {{ s.remaining_amount }}</span> مانده
+    {{ s.device.name }} &nbsp;—&nbsp; <span class="num"> تومان {{ s.remaining_amount|intcomma }}</span> مانده
   </a>
   {% endfor %}
 </div>
@@ -139,7 +139,7 @@
 
       <div class="timer-display" id="timer-{{ session.pk }}"
            data-started="{{ session.started_at|date:'c' }}">{{ session.duration_display }}</div>
-      <div class="cost-display mt-1"> تومان <span id="cost-{{ session.pk }}">{{ session.calculate_cost }}</span></div>
+      <div class="cost-display mt-1"> تومان <span id="cost-{{ session.pk }}">{{ session.calculate_cost|intcomma }}</span></div>
 
       <div class="device-players">
         {% for p in session.players.all %}
@@ -171,10 +171,10 @@
         <span class="badge badge-unpaid">⏳ پرداخت‌نشده</span>
       </div>
       <div class="d-flex flex-column gap-1 small mb-2">
-        <div class="text-muted">کل: <span class="text-warning num fw-bold"> تومان {{ session.total_cost }}</span></div>
-        <div class="text-muted">پرداخت‌شده: <span class="text-success num"> تومان {{ session.paid_amount  }}</span></div>
+        <div class="text-muted">کل: <span class="text-warning num fw-bold"> تومان {{ session.total_cost|intcomma }}</span></div>
+        <div class="text-muted">پرداخت‌شده: <span class="text-success num"> تومان {{ session.paid_amount|intcomma  }}</span></div>
       </div>
-      <div class="remaining-badge d-inline-block mb-3">مانده:  تومان {{ session.remaining_amount  }}</div>
+      <div class="remaining-badge d-inline-block mb-3">مانده:  تومان {{ session.remaining_amount|intcomma }}</div>
       <div class="d-flex gap-2 mt-auto">
         <a href="{% url 'session_pay' session.pk %}" class="btn btn-sm btn-warning flex-fill fw-bold">💳 پرداخت</a>
         <button class="btn btn-sm btn-success flex-fill"
@@ -182,7 +182,7 @@
                 data-device-id="{{ device.id }}"
                 data-device-name="{{ device.name }}"
                 data-device-type="{{ device.get_device_type_display }}"
-                data-price="{{ device.price_per_hour }}"
+                data-price="{{ device.price_per_hour|intcomma }}"
                 data-extra-price="{{ device.extra_controller_price }}"
                 data-device-type-raw="{{ device.device_type }}">▶ سشن جدید</button>
       </div>
@@ -195,7 +195,7 @@
          data-device-id="{{ device.id }}"
          data-device-name="{{ device.name }}"
          data-device-type="{{ device.get_device_type_display }}"
-         data-price="{{ device.price_per_hour }}"
+         data-price="{{ device.price_per_hour|intcomma }}"
          data-extra-price="{{ device.extra_controller_price }}"
          data-device-type-raw="{{ device.device_type }}">
       <div class="d-flex justify-content-between align-items-start mb-3">
@@ -205,7 +205,7 @@
         </div>
         <span class="badge badge-free badge-dot">آزاد</span>
       </div>
-      <div class="free-rate"> تومان {{ device.price_per_hour }}<span style="opacity:.5;font-size:.8em">/ساعت</span></div>
+      <div class="free-rate"> تومان {{ device.price_per_hour|intcomma }}<span style="opacity:.5;font-size:.8em">/ساعت</span></div>
       {% if device.extra_controller_price > 0 %}
       <div style="font-size:.75rem;color:rgba(255,255,255,.35);margin-top:.2rem">+ تومان {{ device.extra_controller_price }} کنترلر اضافه</div>
       {% endif %}
@@ -363,7 +363,10 @@ document.getElementById('startModal').addEventListener('show.bs.modal', e => {
 function buildCustomerOptions() {
   let opts = '<option value="">— بدون حساب —</option>';
   CUSTOMERS.forEach(c => {
-    const debt = c.balance < 0 ? ` ⚠ بدهی: تومانMath.abs(c.balance).toFixed(2)}` : '';
+    const debt = c.balance < 0 
+      ? ` ⚠ بدهی: تومان ${Math.abs(c.balance).toLocaleString()}`
+      : '';
+      
     opts += `<option value="${c.id}">${c.name}${debt}</option>`;
   });
   return opts;

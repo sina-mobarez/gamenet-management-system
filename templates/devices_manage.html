@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load shamsi %}
+{% load shamsi humanize %}
 {% block title %}دستگاه‌ها{% endblock %}
 
 {% block extra_css %}
@@ -58,9 +58,9 @@
       </span>
     </div>
     <div class="device-stat-row">
-      <div class="device-stat-chip">نرخ: <span> تومان {{ d.price_per_hour }}/ساعت</span></div>
+      <div class="device-stat-chip">نرخ: <span> تومان {{ d.price_per_hour|intcomma }}/ساعت</span></div>
       {% if d.extra_controller_price > 0 %}
-      <div class="device-stat-chip">کنترلر: <span>+ تومان {{ d.extra_controller_price }}</span></div>
+      <div class="device-stat-chip">کنترلر: <span>+ تومان {{ d.extra_controller_price|intcomma }}</span></div>
       {% endif %}
       <div class="device-stat-chip">پایه: <span>{{ d.included_controllers }} کنترلر</span></div>
     </div>

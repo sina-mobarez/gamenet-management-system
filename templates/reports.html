@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load shamsi %}
+{% load shamsi humanize %}
 {% block title %}گزارش‌ها{% endblock %}
 
 {% block extra_css %}
@@ -57,28 +57,28 @@
   <div class="col-sm-6 col-lg-3">
     <div class="top-stat ts-green">
       <div class="ts-label">درآمد کل</div>
-      <div class="ts-value text-success"> تومان {{ grand_total }}</div>
+      <div class="ts-value text-success"> تومان {{ grand_total|intcomma }}</div>
       <div class="ts-sub">نقد + حساب</div>
     </div>
   </div>
   <div class="col-sm-6 col-lg-3">
     <div class="top-stat ts-amber">
       <div class="ts-label">دریافت نقد</div>
-      <div class="ts-value text-warning"> تومان {{ total_cash }}</div>
+      <div class="ts-value text-warning"> تومان {{ total_cash|intcomma }}</div>
       <div class="ts-sub">سشن + فروش</div>
     </div>
   </div>
   <div class="col-sm-6 col-lg-3">
     <div class="top-stat ts-cyan">
       <div class="ts-label">ثبت به حساب</div>
-      <div class="ts-value text-cyan"> تومان {{ total_account }}</div>
+      <div class="ts-value text-cyan"> تومان {{ total_account|intcomma }}</div>
       <div class="ts-sub">سشن + فروش</div>
     </div>
   </div>
   <div class="col-sm-6 col-lg-3">
     <div class="top-stat ts-violet">
       <div class="ts-label">تسویه بدهی</div>
-      <div class="ts-value" style="color:var(--violet-lt)"> تومان {{ settlements }}</div>
+      <div class="ts-value" style="color:var(--violet-lt)"> تومان {{ settlements|intcomma }}</div>
       <div class="ts-sub">دریافتی از بدهکاران</div>
     </div>
   </div>
@@ -95,13 +95,13 @@
   <div class="col-sm-4">
     <div class="top-stat neon-card-red">
       <div class="ts-label">بدهی جاری</div>
-      <div class="ts-value text-danger"> تومان {{ total_debt }}</div>
+      <div class="ts-value text-danger"> تومان {{ total_debt|intcomma }}</div>
     </div>
   </div>
   <div class="col-sm-4">
     <div class="top-stat">
       <div class="ts-label">درآمد سشن نقد</div>
-      <div class="ts-value text-warning"> تومان {{ session_cash }}</div>
+      <div class="ts-value text-warning"> تومان {{ session_cash|intcomma }}</div>
     </div>
   </div>
 </div>
@@ -135,9 +135,9 @@
       <div class="rank-item">
         <div>
           <div class="ri-name">{{ p.product__name }}</div>
-          <div class="ri-sub">{{ p.total_qty }} عدد فروخته‌شده</div>
+          <div class="ri-sub">{{ p.total_qty|intcomma }} عدد فروخته‌شده</div>
         </div>
-        <span class="text-warning small num fw-bold"> تومان {{ p.total_rev }}</span>
+        <span class="text-warning small num fw-bold"> تومان {{ p.total_rev|intcomma }}</span>
       </div>
       {% empty %}<p class="text-muted small mt-2">فروشی ندارد.</p>{% endfor %}
     </div>
@@ -156,7 +156,7 @@
             <a href="{% url 'customer_detail' c.pk %}" class="text-decoration-none" style="color:var(--text)">{{ c.name }}</a>
           </div>
           {% if c.balance < 0 %}
-          <div class="ri-sub text-danger">بدهی:  تومان {{ c.debt_amount }}</div>
+          <div class="ri-sub text-danger">بدهی:  تومان {{ c.debt_amount|intcomma }}</div>
           {% endif %}
         </div>
         <span class="badge" style="background:rgba(255,255,255,.06);color:var(--muted-lt);border:1px solid var(--border)">{{ c.session_count }} سشن</span>

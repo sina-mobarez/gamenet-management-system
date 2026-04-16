@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load shamsi %}
+{% load shamsi humanize %}
 {% block title %}محصولات{% endblock %}
 {% block content %}
 <div class="page-header d-flex justify-content-between align-items-center">
@@ -24,7 +24,7 @@
         <td>
           <span class="badge badge-violet" style="font-size:.72rem">{{ p.category|default:"سایر" }}</span>
         </td>
-        <td class="text-warning num fw-bold"> تومان {{ p.price }}</td>
+        <td class="text-warning num fw-bold"> تومان {{ p.price|intcomma }}</td>
         <td>
           <span class="num fw-bold {% if p.is_low_stock %}text-danger{% else %}text-success{% endif %}">{{ p.stock }}</span>
           {% if p.is_low_stock %}

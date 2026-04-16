@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load shamsi %}
+{% load shamsi humanize %}
 {% block title %}تاریخچه سشن‌ها{% endblock %}
 {% block content %}
 <div class="page-header">
@@ -31,10 +31,10 @@
         <td class="small text-muted">{{ s.started_at|shamsi }}</td>
         <td class="num" style="font-family:'Oxanium',monospace">{{ s.duration_display }}</td>
         <td class="text-warning fw-bold num"> تومان {{ s.total_cost|default:"—" }}</td>
-        <td class="text-success num"> تومان {{ s.paid_amount }}</td>
+        <td class="text-success num"> تومان {{ s.paid_amount|intcomma }}</td>
         <td>
           {% if s.remaining_amount > 0 %}
-          <span class="text-danger fw-bold num"> تومان {{ s.remaining_amount }}</span>
+          <span class="text-danger fw-bold num"> تومان {{ s.remaining_amount|intcomma }}</span>
           {% else %}
           <i class="bi bi-check-circle-fill text-success"></i>
           {% endif %}

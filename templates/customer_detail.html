@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load shamsi %}
+{% load shamsi humanize %}
 {% block title %}{{ customer.name }}{% endblock %}
 
 {% block extra_css %}
@@ -53,10 +53,10 @@
   <div class="balance-card {% if customer.balance < 0 %}negative{% elif customer.balance > 0 %}positive{% else %}neutral{% endif %}">
     <div class="section-label">موجودی حساب</div>
     <div class="balance-value {% if customer.balance < 0 %}text-danger{% elif customer.balance > 0 %}text-success{% else %}text-muted{% endif %}">
-       تومان {{ customer.balance }}
+       تومان {{ customer.balance|intcomma }}
     </div>
     {% if customer.balance < 0 %}
-    <div class="text-danger" style="font-size:.78rem;margin-top:.25rem">بدهی:  تومان {{ customer.debt_amount }}</div>
+    <div class="text-danger" style="font-size:.78rem;margin-top:.25rem">بدهی:  تومان {{ customer.debt_amount|intcomma }}</div>
     {% endif %}
   </div>
 </div>
@@ -71,7 +71,7 @@
     <div>
       <label class="form-label">مبلغ دریافتی ( تومان )</label>
       <input type="number" name="amount" class="form-control ltr" step="0.01" min="0.01"
-             value="{{ customer.debt_amount }}" style="width:160px" required>
+             value="{{ customer.debt_amount|intcomma }}" style="width:160px" required>
     </div>
     <div>
       <label class="form-label">یادداشت</label>
@@ -96,7 +96,7 @@
           <div class="small fw-semibold">{{ s.device.name }}</div>
           <div class="hi-sub">{{ s.started_at|shamsi:'short' }}</div>
         </div>
-        <div class="num text-warning small fw-bold"> تومان {{ s.total_cost|default:"فعال" }}</div>
+        <div class="num text-warning small fw-bold"> تومان {{ s.total_cost|intcomma|default:"فعال" }}</div>
       </div>
       {% empty %}<p class="text-muted small mt-2">سشنی ندارد.</p>{% endfor %}
     </div>
@@ -112,10 +112,10 @@
       {% for s in sales %}
       <div class="history-item">
         <div>
-          <div class="small fw-semibold">{{ s.product.name }} × {{ s.quantity }}</div>
+          <div class="small fw-semibold">{{ s.product.name }} × {{ s.quantity|intcomma }}</div>
           <div class="hi-sub">{{ s.sold_at|shamsi:'short' }} · {{ s.get_payment_type_display }}</div>
         </div>
-        <div class="text-warning small num fw-bold"> تومان {{ s.total_price }}</div>
+        <div class="text-warning small num fw-bold"> تومان {{ s.total_price|intcomma }}</div>
       </div>
       {% empty %}<p class="text-muted small mt-2">خریدی ندارد.</p>{% endfor %}
     </div>
@@ -140,7 +140,7 @@
           {% if p.notes %}<div class="hi-sub" style="color:var(--muted)">{{ p.notes }}</div>{% endif %}
         </div>
         <div class="num small fw-bold {% if p.payment_type == 'account_debit' %}text-danger{% else %}text-success{% endif %}">
-          {% if p.payment_type == 'account_debit' %}−{% else %}+{% endif %} تومان {{ p.amount }}
+          {% if p.payment_type == 'account_debit' %} − {% else %} + {% endif %} تومان {{ p.amount|intcomma }}
         </div>
       </div>
       {% empty %}<p class="text-muted small mt-2">پرداختی ندارد.</p>{% endfor %}

@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load shamsi %}
+{% load shamsi humanize %}
 {% block title %}فروش کافه{% endblock %}
 
 {% block extra_css %}
@@ -94,7 +94,7 @@
               {% else %}🛍️{% endif %}
             </div>
             <div class="product-name">{{ p.name }}</div>
-            <div class="product-price"> تومان {{ p.price }}</div>
+            <div class="product-price"> تومان {{ p.price|intcomma }}</div>
             <div class="product-stock {% if p.is_low_stock %}text-danger fw-bold{% else %}text-muted{% endif %}">
               {{ p.stock }} موجود
             </div>
