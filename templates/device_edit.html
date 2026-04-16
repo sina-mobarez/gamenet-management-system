@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load shamsi humanize %}
+{% load shamsi %}
 {% block title %}ویرایش {{ device.name }}{% endblock %}
 {% block content %}
 <div class="page-header">
@@ -17,7 +17,7 @@
       <div class="col">
         <label class="form-label">قیمت / ساعت ( تومان )</label>
         <input type="number" name="price_per_hour" class="form-control ltr"
-               step="0.01" value="{{ device.price_per_hour|intcomma }}" required>
+               step="0.01" value="{{ device.price_per_hour }}" required>
       </div>
       <div class="col">
         <label class="form-label">کنترلر پایه</label>
@@ -28,7 +28,7 @@
     <div class="mb-4">
       <label class="form-label">قیمت کنترلر اضافه ( تومان )</label>
       <input type="number" name="extra_controller_price" class="form-control ltr"
-             step="0.01" value="{{ device.extra_controller_price|intcomma }}">
+             step="0.01" value="{{ device.extra_controller_price }}">
     </div>
     <div class="p-3 rounded-3 mb-4" style="background:rgba(124,58,237,0.07);border:1px solid var(--border)">
       <div class="form-check form-switch">

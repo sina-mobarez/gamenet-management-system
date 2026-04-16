@@ -81,7 +81,7 @@ class Session(models.Model):
         duration_hours = Decimal(str(duration_seconds / 3600))
         base_cost = duration_hours * self.device.price_per_hour
         extra_cost = self.extra_controllers * self.device.extra_controller_price
-        return round(base_cost + extra_cost, 2)
+        return round(base_cost + extra_cost, 0)
 
     @property
     def duration_display(self):
