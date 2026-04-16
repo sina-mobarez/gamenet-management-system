@@ -20,7 +20,7 @@ body {
   overflow: hidden;
 }
 
-/* Grid BG */
+/* Static Grid BG (Optimized: Removed animation) */
 body::before {
   content: '';
   position: fixed; inset: 0;
@@ -28,10 +28,8 @@ body::before {
     linear-gradient(rgba(124,58,237,0.05) 1px, transparent 1px),
     linear-gradient(90deg, rgba(124,58,237,0.05) 1px, transparent 1px);
   background-size: 48px 48px;
-  animation: gridScroll 20s linear infinite;
   pointer-events: none;
 }
-@keyframes gridScroll { to { background-position: 48px 48px; } }
 
 /* Scan lines */
 body::after {
@@ -41,27 +39,11 @@ body::after {
   pointer-events: none; z-index: 100;
 }
 
-/* Orbs */
-.orb { position: fixed; border-radius: 50%; filter: blur(100px); pointer-events: none; z-index: 0; }
-.orb1 { width: 700px; height: 700px; background: radial-gradient(circle, rgba(124,58,237,0.18), transparent 70%); top: -200px; right: -200px; animation: orbF1 18s ease-in-out infinite; }
-.orb2 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(6,182,212,0.12), transparent 70%); bottom: -100px; left: -100px; animation: orbF2 22s ease-in-out infinite; }
-.orb3 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(236,72,153,0.1), transparent 70%); top: 50%; left: 45%; transform: translate(-50%,-50%); animation: orbF3 14s ease-in-out infinite; }
-@keyframes orbF1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-60px,70px)} }
-@keyframes orbF2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(50px,-50px)} }
-@keyframes orbF3 { 0%,100%{transform:translate(-50%,-50%) scale(1)} 50%{transform:translate(-50%,-50%) scale(1.5)} }
-
-/* Floating particles */
-.particles { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
-.particle {
-  position: absolute; border-radius: 50%;
-  animation: particleFly linear infinite;
-}
-@keyframes particleFly {
-  0%   { transform: translateY(105vh) translateX(0) scale(1); opacity: 0; }
-  10%  { opacity: 1; }
-  90%  { opacity: 1; }
-  100% { transform: translateY(-5vh) translateX(30px) scale(0); opacity: 0; }
-}
+/* Orbs (Optimized: Removed blur filter, replaced with native gradients) */
+.orb { position: fixed; border-radius: 50%; pointer-events: none; z-index: 0; }
+.orb1 { width: 900px; height: 900px; background: radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 60%); top: -300px; right: -300px; }
+.orb2 { width: 700px; height: 700px; background: radial-gradient(circle, rgba(6,182,212,0.08) 0%, transparent 60%); bottom: -200px; left: -200px; }
+.orb3 { width: 600px; height: 600px; background: radial-gradient(circle, rgba(236,72,153,0.06) 0%, transparent 60%); top: 50%; left: 45%; transform: translate(-50%,-50%); }
 
 /* Main wrap */
 .login-wrap {
@@ -72,58 +54,37 @@ body::after {
 /* Card */
 .login-card {
   background: rgba(8,5,22,0.92);
-  backdrop-filter: blur(50px);
-  -webkit-backdrop-filter: blur(50px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-radius: 24px;
   padding: 2.75rem 2.5rem;
   border: 1px solid rgba(124,58,237,0.25);
-  box-shadow:
-    0 40px 100px rgba(0,0,0,0.6),
-    0 0 80px rgba(124,58,237,0.12),
-    inset 0 1px 0 rgba(255,255,255,0.05);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(124,58,237,0.1);
   position: relative; overflow: hidden;
   animation: cardIn .6s cubic-bezier(.16,1,.3,1) both;
 }
-@keyframes cardIn { from{opacity:0;transform:translateY(30px) scale(.98)} to{opacity:1;transform:none} }
+@keyframes cardIn { from{opacity:0;transform:translateY(20px) scale(.98)} to{opacity:1;transform:none} }
 
-/* Rainbow top border */
+/* Rainbow top border (Kept, as background-position is relatively cheap) */
 .login-card::before {
   content: '';
   position: absolute; top: 0; left: 0; right: 0; height: 2px;
   background: linear-gradient(90deg, #7c3aed, #ec4899, #06b6d4, #7c3aed);
   background-size: 200% 100%;
-  animation: borderRun 3s linear infinite;
+  animation: borderRun 4s linear infinite;
 }
 @keyframes borderRun { from{background-position:0% 0} to{background-position:200% 0} }
 
-/* Corner accent */
-.login-card::after {
-  content: '';
-  position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(6,182,212,0.3), transparent);
-}
-
-/* Icon */
+/* Icon (Optimized: Removed blur animation) */
 .login-icon {
   width: 76px; height: 76px;
   background: linear-gradient(135deg, #6d28d9, #7c3aed, #a855f7);
   border-radius: 22px; margin: 0 auto 1.5rem;
   display: flex; align-items: center; justify-content: center;
   font-size: 2.2rem;
-  box-shadow: 0 12px 40px rgba(124,58,237,0.55), 0 0 0 1px rgba(255,255,255,0.06);
-  animation: iconFloat 4s ease-in-out infinite;
+  box-shadow: 0 8px 25px rgba(124,58,237,0.4);
   position: relative;
 }
-.login-icon::before {
-  content: '';
-  position: absolute; inset: -4px;
-  border-radius: 26px;
-  background: linear-gradient(135deg, rgba(124,58,237,0.4), rgba(236,72,153,0.4));
-  filter: blur(12px); z-index: -1;
-  animation: iconGlow 4s ease-in-out infinite;
-}
-@keyframes iconFloat { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-8px) rotate(2deg)} }
-@keyframes iconGlow  { 0%,100%{opacity:.5} 50%{opacity:1} }
 
 /* Brand */
 .brand-name {
@@ -149,8 +110,7 @@ body::after {
   border: 1px solid rgba(124,58,237,0.2) !important;
   color: #f1f5f9 !important;
   border-radius: 12px !important; font-family: 'Vazirmatn', sans-serif;
-  font-size: .9rem; transition: all .25s;
-  outline: none;
+  font-size: .9rem; transition: all .2s; outline: none;
 }
 .field-input:focus {
   border-color: #7c3aed !important;
@@ -162,24 +122,15 @@ body::after {
 /* Submit */
 .btn-login {
   width: 100%; padding: .9rem 1rem; margin-top: .75rem;
-  background: linear-gradient(135deg, #6d28d9, #7c3aed, #a855f7);
+  background: linear-gradient(135deg, #6d28d9, #7c3aed);
   border: none; border-radius: 12px;
   color: #fff; font-family: 'Vazirmatn', sans-serif;
   font-size: .95rem; font-weight: 700; cursor: pointer;
   letter-spacing: .5px;
-  box-shadow: 0 8px 30px rgba(124,58,237,0.45);
-  position: relative; overflow: hidden;
-  transition: all .25s;
+  box-shadow: 0 4px 15px rgba(124,58,237,0.3);
+  transition: all .2s;
 }
-.btn-login::before {
-  content: ''; position: absolute; inset: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,0), rgba(255,255,255,0.08), rgba(255,255,255,0));
-  transform: translateX(-100%) skewX(-20deg);
-  transition: transform .5s;
-}
-.btn-login:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(124,58,237,0.6); }
-.btn-login:hover::before { transform: translateX(200%) skewX(-20deg); }
-.btn-login span { position: relative; z-index: 1; }
+.btn-login:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124,58,237,0.4); }
 
 /* Error */
 .login-error {
@@ -200,7 +151,6 @@ body::after {
 <div class="orb orb1"></div>
 <div class="orb orb2"></div>
 <div class="orb orb3"></div>
-<div class="particles" id="particles"></div>
 
 <div class="login-wrap">
   <div class="login-card">
@@ -230,23 +180,5 @@ body::after {
 </div>
 
 <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
-<script>
-const c = document.getElementById('particles');
-for (let i = 0; i < 28; i++) {
-  const p = document.createElement('div');
-  p.className = 'particle';
-  const size = 1 + Math.random() * 2.5;
-  const hue = 260 + Math.random() * 100;
-  p.style.cssText = `
-    width:${size}px; height:${size}px;
-    left:${Math.random()*100}%;
-    animation-duration:${7 + Math.random()*12}s;
-    animation-delay:${-Math.random()*15}s;
-    background: hsl(${hue},80%,${60 + Math.random()*20}%);
-    box-shadow: 0 0 ${size*3}px hsl(${hue},80%,60%);
-  `;
-  c.appendChild(p);
-}
-</script>
 </body>
 </html>
