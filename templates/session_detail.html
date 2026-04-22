@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load shamsi %}
+{% load shamsi humanize %}
 {% block title %}سشن {{ session.device.name }}{% endblock %}
 {% block content %}
 <div class="page-header">
@@ -19,7 +19,7 @@
       {% else %}
       <div class="timer-display mb-1">{{ session.duration_display }}</div>
       {% endif %}
-      <div class="cost-display mb-3">${{ current_cost|floatformat:2 }}</div>
+      <div class="cost-display mb-3">{{ current_cost|intcomma }}</div>
       <div class="neon-sep"></div>
       <div class="d-flex flex-column gap-2 small">
         <div><span style="color:var(--text-3)">دستگاه:</span> {{ session.device.name }}</div>
@@ -32,7 +32,7 @@
          onclick="return confirm('سشن پایان یابد؟')">⏹ پایان سشن</a>
       {% elif not session.is_fully_paid %}
       <a href="{% url 'session_pay' session.pk %}" class="btn btn-warning w-100 mt-3 fw-bold">
-        💳 ادامه پرداخت (${{ session.remaining_amount|floatformat:2 }} مانده)
+        💳 ادامه پرداخت ({{ session.remaining_amount|intcomma }} مانده)
       </a>
       {% else %}
       <div class="mt-3 text-center" style="color:var(--neon-green)">
@@ -49,7 +49,7 @@
       <div class="d-flex justify-content-between py-2" style="border-bottom:1px solid var(--glass-border)">
         <strong>{{ p.display_name }}</strong>
         {% if p.customer and p.customer.balance < 0 %}
-        <span class="badge-busy" style="font-size:.65rem">بدهی: ${{ p.customer.debt_amount|floatformat:2 }}</span>
+        <span class="badge-busy" style="font-size:.65rem">بدهی: {{ p.customer.debt_amount|intcomma }}</span>
         {% endif %}
       </div>
       {% empty %}<p style="color:var(--text-3)">بازیکنی ثبت نشده.</p>{% endfor %}

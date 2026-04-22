@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load humanize %}
 {% block title %}دستگاه‌ها{% endblock %}
 {% block content %}
 <div class="page-header d-flex justify-content-between align-items-center">
@@ -22,9 +23,9 @@
       {% if d.is_active %}<span class="badge-free">فعال</span>{% else %}<span class="badge-ghost">غیرفعال</span>{% endif %}
     </div>
     <div class="d-flex flex-column gap-1 small mb-4">
-      <div style="color:var(--text-3)">نرخ پایه: <span class="num fw-bold" style="color:var(--neon-gold)">{{ d.price_per_hour|floatformat:0 }}</span> تومان/ساعت</div>
+      <div style="color:var(--text-3)">نرخ پایه: <span class="num fw-bold" style="color:var(--neon-gold)">{{ d.price_per_hour|intcomma }}</span> تومان/ساعت</div>
       {% if d.extra_controller_price > 0 %}
-      <div style="color:var(--text-3)">کنترلر اضافه: <span class="num" style="color:var(--neon-cyan)">+{{ d.extra_controller_price|floatformat:0 }}</span> تومان/ساعت/کنترلر</div>
+      <div style="color:var(--text-3)">کنترلر اضافه: <span class="num" style="color:var(--neon-cyan)">+{{ d.extra_controller_price|intcomma }}</span> تومان/ساعت/کنترلر</div>
       {% endif %}
       <div style="color:var(--text-3)">کنترلر پایه: {{ d.included_controllers }} عدد</div>
     </div>

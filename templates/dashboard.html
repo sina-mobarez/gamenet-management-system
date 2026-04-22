@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load shamsi static %}
+{% load shamsi humanize static %}
 {% block title %}داشبورد — GameNet{% endblock %}
 
 {% block extra_css %}
@@ -48,11 +48,11 @@
   <div class="d-flex gap-3">
     <div class="stat-card" style="min-width:160px">
       <div class="label">دریافتی امروز</div>
-      <div class="value grad-text-green num">{{ today_cash|floatformat:0 }}</div>
+      <div class="value grad-text-green num">{{ today_cash|intcomma }}</div>
     </div>
     <div class="stat-card" style="min-width:160px">
       <div class="label">بدهی کل</div>
-      <div class="value num" style="background:var(--grad-pink);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">{{ total_debt|floatformat:0 }}</div>
+      <div class="value num" style="background:var(--grad-pink);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">{{ total_debt|intcomma}}</div>
     </div>
   </div>
 </div>
@@ -63,7 +63,7 @@
   <strong>پرداخت‌نشده:</strong>
   {% for s in unpaid_sessions %}
   <a href="{% url 'session_pay' s.pk %}" class="btn btn-warning btn-sm fw-bold">
-    {{ s.device.name }} — {{ s.remaining_amount|floatformat:0 }} تومان
+    {{ s.device.name }} — {{ s.remaining_amount|intcomma }} تومان
   </a>
   {% endfor %}
 </div>
@@ -111,7 +111,7 @@
           {{ session.duration_display }}
         </div>
         <div class="cost-display" style="font-size:.95rem">
-          {{ session.calculate_cost|floatformat:0 }} <span style="font-size:.7rem;font-family:'Vazirmatn',sans-serif;color:var(--text-3)">تومان</span>
+          {{ session.calculate_cost|intcomma }} <span style="font-size:.7rem;font-family:'Vazirmatn',sans-serif;color:var(--text-3)">تومان</span>
         </div>
       </div>
     </div>
@@ -124,7 +124,7 @@
       {{ session.duration_display }}
     </div>
     <div class="cost-display mb-2">
-      {{ session.calculate_cost|floatformat:0 }}
+      {{ session.calculate_cost|intcomma }}
       <span style="font-size:.72rem;font-family:'Vazirmatn',sans-serif;color:var(--text-3)">تومان</span>
     </div>
     {% endif %}
@@ -163,15 +163,15 @@
     </div>
     <div class="d-flex justify-content-between mb-1 small">
       <span style="color:var(--text-3)">کل</span>
-      <span class="num" style="color:var(--neon-gold)">{{ session.total_cost|floatformat:0 }}</span>
+      <span class="num" style="color:var(--neon-gold)">{{ session.total_cost|intcomma }}</span>
     </div>
     <div class="d-flex justify-content-between mb-1 small">
       <span style="color:var(--text-3)">پرداخت‌شده</span>
-      <span class="num" style="color:var(--neon-green)">{{ session.paid_amount|floatformat:0 }}</span>
+      <span class="num" style="color:var(--neon-green)">{{ session.paid_amount|intcomma }}</span>
     </div>
     <div class="d-flex justify-content-between mb-3 fw-bold">
       <span style="color:var(--text-2)">مانده</span>
-      <span class="num" style="color:var(--neon-red);font-size:1.1rem">{{ session.remaining_amount|floatformat:0 }}</span>
+      <span class="num" style="color:var(--neon-red);font-size:1.1rem">{{ session.remaining_amount|intcomma }}</span>
     </div>
     {% if session.total_cost %}
     <div class="progress mb-3" style="height:5px">
@@ -209,12 +209,12 @@
       <span class="badge-free">● آزاد</span>
     </div>
     <div style="color:var(--text-3);font-size:.85rem;margin-bottom:.4rem">
-      <span class="num" style="color:var(--neon-green);font-size:1.15rem;font-family:'Oxanium',sans-serif;font-weight:800">{{ device.price_per_hour|floatformat:0 }}</span>
+      <span class="num" style="color:var(--neon-green);font-size:1.15rem;font-family:'Oxanium',sans-serif;font-weight:800">{{ device.price_per_hour|intcomma }}</span>
       <span style="font-size:.72rem"> تومان/ساعت</span>
     </div>
     {% if device.extra_controller_price > 0 %}
     <div style="color:var(--text-3);font-size:.75rem">
-      <i class="bi bi-controller me-1"></i>+{{ device.extra_controller_price|floatformat:0 }} تومان/کنترلر/ساعت
+      <i class="bi bi-controller me-1"></i>+{{ device.extra_controller_price|intcomma }} تومان/کنترلر/ساعت
     </div>
     {% endif %}
     <div class="mt-auto pt-2">

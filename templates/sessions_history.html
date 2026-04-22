@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load shamsi %}
+{% load shamsi humanize %}
 {% block title %}تاریخچه سشن‌ها{% endblock %}
 {% block content %}
 <div class="page-header">
@@ -20,11 +20,11 @@
         </td>
         <td style="font-size:.8rem;color:var(--text-2)">{{ s.started_at|shamsi }}</td>
         <td class="num" style="color:var(--neon-purple)">{{ s.duration_display }}</td>
-        <td class="num" style="color:var(--neon-gold);font-weight:700">${{ s.total_cost|default:"—"|floatformat:2 }}</td>
-        <td class="num" style="color:var(--neon-green)">${{ s.paid_amount|floatformat:2 }}</td>
+        <td class="num" style="color:var(--neon-gold);font-weight:700">${{ s.total_cost|default:"—"|intcomma }}</td>
+        <td class="num" style="color:var(--neon-green)">${{ s.paid_amount|intcomma }}</td>
         <td>
           {% if s.remaining_amount > 0 %}
-          <span class="num" style="color:var(--neon-red);font-weight:700">${{ s.remaining_amount|floatformat:2 }}</span>
+          <span class="num" style="color:var(--neon-red);font-weight:700">${{ s.remaining_amount|intcomma }}</span>
           {% else %}
           <span style="color:var(--neon-green)"><i class="bi bi-check-circle-fill"></i></span>
           {% endif %}

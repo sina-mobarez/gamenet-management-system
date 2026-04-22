@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load humanize %}
 {% block title %}محصولات{% endblock %}
 {% block content %}
 <div class="page-header d-flex justify-content-between align-items-center">
@@ -18,7 +19,7 @@
       <tr>
         <td><strong>{{ p.name }}</strong></td>
         <td style="color:var(--text-3)">{{ p.category|default:"—" }}</td>
-        <td class="num fw-bold" style="color:var(--neon-gold)">{{ p.price|floatformat:0 }}</td>
+        <td class="num fw-bold" style="color:var(--neon-gold)">{{ p.price|intcomma }}</td>
         <td>
           <span class="num {% if p.is_low_stock %}fw-bold{% endif %}"
                 style="color:{% if p.is_low_stock %}var(--neon-red){% else %}var(--text-2){% endif %}">{{ p.stock }}</span>

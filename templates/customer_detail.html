@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load shamsi %}
+{% load shamsi humanize %}
 {% block title %}{{ customer.name }}{% endblock %}
 {% block content %}
 <div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-3">
@@ -9,7 +9,7 @@
     {% if customer.phone %}<div class="subtitle ltr"><i class="bi bi-telephone me-1"></i>{{ customer.phone }}</div>{% endif %}
     {% if customer.debt_limit > 0 %}
     <div class="subtitle">
-      سقف بدهی: <span class="num" style="color:var(--neon-gold)">{{ customer.debt_limit|floatformat:0 }}</span> تومان
+      سقف بدهی: <span class="num" style="color:var(--neon-gold)">{{ customer.debt_limit|intcomma }}</span> تومان
       {% if customer.is_suspended %}
       <span class="badge-busy me-2" style="font-size:.7rem">🔒 مسدود</span>
       {% endif %}
@@ -21,7 +21,7 @@
          style="{% if customer.balance < 0 %}border-color:rgba(244,63,94,.4){% elif customer.balance > 0 %}border-color:rgba(16,185,129,.4){% endif %}">
       <div class="label">موجودی</div>
       <div class="value num" style="color:{% if customer.balance < 0 %}var(--neon-red){% elif customer.balance > 0 %}var(--neon-green){% else %}var(--text-2){% endif %}">
-        {{ customer.balance|floatformat:0 }}
+        {{ customer.balance|intcomma }}
       </div>
       <div class="sub">تومان</div>
     </div>
@@ -45,7 +45,7 @@
     <div>
       <label class="form-label">مبلغ دریافتی (تومان)</label>
       <input type="number" name="amount" class="form-control ltr" step="1000" min="1000"
-             value="{{ customer.debt_amount|floatformat:0 }}" style="width:180px" required>
+             value="{{ customer.debt_amount|intcomma }}" style="width:180px" required>
     </div>
     <div>
       <label class="form-label">یادداشت</label>
@@ -65,7 +65,7 @@
       <div class="d-flex justify-content-between py-2" style="border-bottom:1px solid var(--glass-border)">
         <div><div style="font-size:.875rem;font-weight:500">{{ s.device.name }}</div>
           <div style="font-size:.72rem;color:var(--text-3)">{{ s.started_at|shamsi:'short' }}</div></div>
-        <span class="num" style="color:var(--neon-gold);font-size:.875rem">{{ s.total_cost|default:"فعال"|floatformat:0 }}</span>
+        <span class="num" style="color:var(--neon-gold);font-size:.875rem">{{ s.total_cost|default:"فعال"|intcomma }}</span>
       </div>
       {% empty %}<p style="color:var(--text-3);font-size:.8rem">سشنی ندارد.</p>{% endfor %}
     </div>
@@ -78,7 +78,7 @@
       <div class="d-flex justify-content-between py-2" style="border-bottom:1px solid var(--glass-border)">
         <div><div style="font-size:.875rem">{{ s.product.name }} × {{ s.quantity }}</div>
           <div style="font-size:.72rem;color:var(--text-3)">{{ s.sold_at|shamsi:'short' }}</div></div>
-        <span class="num" style="color:var(--neon-gold);font-size:.875rem">{{ s.total_price|floatformat:0 }}</span>
+        <span class="num" style="color:var(--neon-gold);font-size:.875rem">{{ s.total_price|intcomma }}</span>
       </div>
       {% empty %}<p style="color:var(--text-3);font-size:.8rem">خریدی ندارد.</p>{% endfor %}
     </div>
@@ -92,7 +92,7 @@
         <div><div style="font-size:.8rem">{% if p.payment_type == 'cash' %}💵 نقد{% elif p.payment_type == 'account_debit' %}🏦 بدهکار{% else %}✅ تسویه{% endif %}</div>
           <div style="font-size:.7rem;color:var(--text-3)">{{ p.created_at|shamsi:'datetime' }}</div></div>
         <span class="num fw-bold" style="font-size:.875rem;color:{% if p.payment_type == 'account_debit' %}var(--neon-red){% else %}var(--neon-green){% endif %}">
-          {% if p.payment_type == 'account_debit' %}−{% else %}+{% endif %}{{ p.amount|floatformat:0 }}
+          {% if p.payment_type == 'account_debit' %}−{% else %}+{% endif %}{{ p.amount|intcomma}
         </span>
       </div>
       {% empty %}<p style="color:var(--text-3);font-size:.8rem">پرداختی ندارد.</p>{% endfor %}
