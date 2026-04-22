@@ -101,7 +101,7 @@
                      class="form-control ltr text-center fw-bold"
                      style="font-family:'Oxanium',sans-serif;font-size:1rem"
                      step="1000" min="1000"
-                     value="{{ session.remaining_amount|intcomma }}" required>
+                     value="{{ session.remaining_amount }}" required>
             </div>
           </div>
 
@@ -325,7 +325,7 @@ function toggleCustomer() {
 }
 function setAmount(val) {
   try {
-    document.getElementById('amountInput').value = parseFloat(eval(val)).toFixed(2);
+    document.getElementById('amountInput').value = parseFloat(eval(val)).toFixed(0);
   } catch(e) { document.getElementById('amountInput').value = val; }
 }
 </script>

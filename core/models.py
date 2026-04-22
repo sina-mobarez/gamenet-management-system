@@ -108,7 +108,8 @@ class Session(models.Model):
         duration_seconds = (end - self.started_at).total_seconds()
         duration_hours = duration_seconds / 3600
         rate = self.device.effective_hourly_rate(self.extra_controllers)
-        return int(round(duration_hours * rate))
+        raw_cost = duration_hours * rate
+        return int(round(raw_cost, -3))
 
     @property
     def duration_display(self):
