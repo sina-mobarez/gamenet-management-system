@@ -1,63 +1,51 @@
 {% extends 'base.html' %}
-{% load shamsi humanize %}
+{% load shamsi %}
 {% block title %}تاریخچه سشن‌ها{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h2><i class="bi bi-clock-history me-2" style="-webkit-text-fill-color:var(--cyan-lt);color:var(--cyan-lt)"></i>تاریخچه سشن‌ها</h2>
+  <h2><i class="bi bi-clock-history me-2" style="font-size:1.2rem;vertical-align:middle"></i>تاریخچه سشن‌ها</h2>
 </div>
-
 <div class="card">
   <div class="table-responsive">
-    <table class="table table-hover mb-0">
-      <thead>
-        <tr>
-          <th>دستگاه</th>
-          <th>شروع</th>
-          <th>مدت</th>
-          <th>مبلغ کل</th>
-          <th>پرداخت‌شده</th>
-          <th>مانده</th>
-          <th>وضعیت</th>
-          <th></th>
-        </tr>
-      </thead>
+    <table class="table mb-0">
+      <thead><tr>
+        <th>دستگاه</th><th>شروع</th><th>مدت</th><th>کل</th><th>پرداخت‌شده</th><th>مانده</th><th>وضعیت</th><th></th>
+      </tr></thead>
       <tbody>
       {% for s in sessions %}
       <tr>
         <td>
-          <div class="fw-semibold" style="font-size:.9rem">{{ s.device.name }}</div>
-          <div class="text-muted" style="font-size:.72rem">{{ s.device.get_device_type_display }}</div>
+          <div style="font-weight:600">{{ s.device.name }}</div>
+          <div style="font-size:.75rem;color:var(--text-3)">{{ s.device.get_device_type_display }}</div>
         </td>
-        <td class="small text-muted">{{ s.started_at|shamsi }}</td>
-        <td class="num" style="font-family:'Oxanium',monospace">{{ s.duration_display }}</td>
-        <td class="text-warning fw-bold num"> تومان {{ s.total_cost|default:"—" }}</td>
-        <td class="text-success num"> تومان {{ s.paid_amount|intcomma }}</td>
+        <td style="font-size:.8rem;color:var(--text-2)">{{ s.started_at|shamsi }}</td>
+        <td class="num" style="color:var(--neon-purple)">{{ s.duration_display }}</td>
+        <td class="num" style="color:var(--neon-gold);font-weight:700">${{ s.total_cost|default:"—"|floatformat:2 }}</td>
+        <td class="num" style="color:var(--neon-green)">${{ s.paid_amount|floatformat:2 }}</td>
         <td>
           {% if s.remaining_amount > 0 %}
-          <span class="text-danger fw-bold num"> تومان {{ s.remaining_amount|intcomma }}</span>
+          <span class="num" style="color:var(--neon-red);font-weight:700">${{ s.remaining_amount|floatformat:2 }}</span>
           {% else %}
-          <i class="bi bi-check-circle-fill text-success"></i>
+          <span style="color:var(--neon-green)"><i class="bi bi-check-circle-fill"></i></span>
           {% endif %}
         </td>
         <td>
-          <span class="badge {% if s.status == 'finished' %}badge-free{% else %}badge-busy badge-dot{% endif %}">
-            {% if s.status == 'finished' %}پایان{% else %}{{ s.get_status_display }}{% endif %}
-          </span>
+          {% if s.status == 'finished' %}<span class="badge-free">پایان</span>
+          {% else %}<span class="badge-ghost">{{ s.get_status_display }}</span>{% endif %}
         </td>
-        <td class="d-flex gap-1">
-          <a href="{% url 'session_detail' s.pk %}" class="btn btn-sm btn-outline-secondary">جزئیات</a>
-          {% if s.status == 'finished' and not s.is_fully_paid %}
-          <a href="{% url 'session_pay' s.pk %}" class="btn btn-sm btn-warning">پرداخت</a>
-          {% endif %}
+        <td>
+          <div class="d-flex gap-1">
+            <a href="{% url 'session_detail' s.pk %}" class="btn btn-outline-secondary btn-sm">جزئیات</a>
+            {% if not s.is_fully_paid %}
+            <a href="{% url 'session_pay' s.pk %}" class="btn btn-warning btn-sm">پرداخت</a>
+            {% endif %}
+          </div>
         </td>
       </tr>
       {% empty %}
-      <tr>
-        <td colspan="8" class="text-center py-5">
-          <i class="bi bi-clock-history d-block mb-2" style="font-size:2rem;opacity:.25"></i>
-          <span class="text-muted">سشنی وجود ندارد.</span>
-        </td>
-      </tr>
+      <tr><td colspan="8" class="text-center py-5" style="color:var(--text-3)">
+        <i class="bi bi-inbox" style="font-size:2rem;display:block;margin-bottom:.5rem"></i>سشنی ثبت نشده.
+      </td></tr>
       {% endfor %}
       </tbody>
     </table>
