@@ -1,91 +1,74 @@
 {% extends 'base.html' %}
-{% load shamsi humanize %}
+{% load shamsi %}
 {% block title %}بدهی‌ها{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h2><i class="bi bi-exclamation-triangle-fill me-2" style="-webkit-text-fill-color:var(--red);color:var(--red)"></i>بدهی‌های معوق</h2>
+  <h2>بدهی‌های معوق</h2>
 </div>
-
 <div class="card">
   <div class="table-responsive">
-    <table class="table table-hover mb-0">
-      <thead>
-        <tr>
-          <th>مشتری</th>
-          <th>تلفن</th>
-          <th>مبلغ بدهی</th>
-          <th>عملیات</th>
-        </tr>
-      </thead>
+    <table class="table mb-0">
+      <thead><tr>
+        <th>مشتری</th><th>تلفن</th><th>مبلغ بدهی</th><th>عملیات</th>
+      </tr></thead>
       <tbody>
       {% for c in debtors %}
       <tr>
+        <td><a href="{% url 'customer_detail' c.pk %}" class="fw-bold" style="text-decoration:none;color:var(--text)">{{ c.name }}</a></td>
+        <td class="ltr" style="color:var(--text-3)">{{ c.phone|default:"—" }}</td>
         <td>
-          <a href="{% url 'customer_detail' c.pk %}" class="fw-bold text-decoration-none" style="color:var(--text)">
-            {{ c.name }}
-          </a>
+          <span class="num fw-bold" style="font-size:1.05rem;color:var(--neon-red)">${{ c.debt_amount|floatformat:0 }}</span>
         </td>
-        <td class="text-muted ltr" style="font-family:'Oxanium',monospace">{{ c.phone|default:"—" }}</td>
         <td>
-          <span class="badge badge-busy px-3 py-2 num" style="font-size:.85rem"> تومان {{ c.debt_amount|intcomma }}</span>
-        </td>
-        <td class="d-flex gap-2">
-          <button class="btn btn-sm btn-success"
-                  data-bs-toggle="modal" data-bs-target="#settleModal"
-                  data-cid="{{ c.id }}" data-name="{{ c.name }}" data-debt="{{ c.debt_amount|intcomma }}">
-            ✓ تسویه
-          </button>
-          <a href="{% url 'customer_detail' c.pk %}" class="btn btn-sm btn-outline-secondary">مشاهده</a>
+          <div class="d-flex gap-2">
+            <button class="btn btn-success btn-sm"
+                    data-bs-toggle="modal" data-bs-target="#settleModal"
+                    data-cid="{{ c.id }}" data-name="{{ c.name }}" data-debt="{{ c.debt_amount|floatformat:0 }}">
+              تسویه
+            </button>
+            <a href="{% url 'customer_detail' c.pk %}" class="btn btn-outline-secondary btn-sm">مشاهده</a>
+          </div>
         </td>
       </tr>
       {% empty %}
-      <tr>
-        <td colspan="4" class="text-center py-5">
-          <i class="bi bi-check-circle-fill d-block mb-2" style="font-size:2rem;color:var(--green);opacity:.6"></i>
-          <span class="text-success">هیچ بدهی معوقی وجود ندارد!</span>
-        </td>
-      </tr>
+      <tr><td colspan="4" class="text-center py-5" style="color:var(--neon-green)">
+        <i class="bi bi-check-circle-fill" style="font-size:2rem;display:block;margin-bottom:.5rem;filter:drop-shadow(0 0 12px rgba(16,185,129,0.5))"></i>
+        هیچ بدهی معوقی وجود ندارد!
+      </td></tr>
       {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
 
-
-{% endblock %}
-
-{% block modals %}
-<!-- Settle Modal -->
 <div class="modal fade" id="settleModal" tabindex="-1">
   <div class="modal-dialog modal-sm">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">✓ تسویه بدهی</h5>
+        <h5 class="modal-title">تسویه بدهی</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <form id="settleForm" method="post" action="">
+      <form id="settleForm" method="post">
         {% csrf_token %}
         <div class="modal-body">
-          <div class="p-3 rounded-3 mb-3" style="background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.2)">
-            <div class="text-muted small mb-1">مشتری</div>
-            <div class="fw-bold" id="settleName"></div>
-            <div class="text-danger small mt-1">جمع بدهی:  تومان <span id="settleDebt" class="num fw-bold"></span></div>
+          <p style="font-size:.85rem;color:var(--text-2)">مشتری: <strong id="settleName"></strong></p>
+          <p style="color:var(--neon-red)">جمع بدهی: $<span id="settleDebt" class="num fw-bold"></span></p>
+          <label class="form-label">مبلغ دریافتی ($)</label>
+          <input type="number" name="amount" id="settleAmount" class="form-control ltr" step="0.01" min="0.01" required>
+          <div class="mt-2">
+            <label class="form-label">یادداشت</label>
+            <input type="text" name="notes" class="form-control form-control-sm" placeholder="نقد، کارت…">
           </div>
-          <label class="form-label">مبلغ دریافتی ( تومان )</label>
-          <input type="number" name="amount" id="settleAmount" class="form-control ltr mb-2" step="0.01" min="0.01" required>
-          <label class="form-label">یادداشت</label>
-          <input type="text" name="notes" class="form-control form-control-sm" placeholder="نقد، کارت و…">
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">انصراف</button>
-          <button type="submit" class="btn btn-success fw-bold">✓ تسویه</button>
+          <button type="submit" class="btn btn-success fw-bold">تسویه</button>
         </div>
       </form>
     </div>
   </div>
 </div>
 {% endblock %}
-
 {% block extra_js %}
 <script>
 document.getElementById('settleModal').addEventListener('show.bs.modal', e => {
