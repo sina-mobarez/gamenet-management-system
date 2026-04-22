@@ -5,7 +5,6 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.utils import timezone
 from django.db.models import Sum, Count, Q
-from decimal import Decimal, InvalidOperation
 from datetime import timedelta
 
 from .models import (
@@ -20,8 +19,7 @@ def login_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
     if request.method == 'POST':
-        user = authenticate(request,
-                            username=request.POST['username'],
+        user = authenticate(request, username=request.POST['username'],
                             password=request.POST['password'])
         if user:
             login(request, user)
@@ -39,12 +37,12 @@ def logout_view(request):
 
 @login_required
 def dashboard(request):
-    devices = Device.objects.filter(is_active=True)
+    devices   = Device.objects.filter(is_active=True)
     low_stock = Product.objects.filter(is_active=True).extra(
         where=["stock <= low_stock_threshold"]
     )
 
-    today = timezone.localdate()
+    today      = timezone.localdate()
     today_start = timezone.make_aware(
         timezone.datetime.combine(today, timezone.datetime.min.time())
     )
@@ -57,8 +55,7 @@ def dashboard(request):
         .aggregate(t=Sum('total_price'))['t'] or 0
     )
     total_debt = abs(
-        Customer.objects.filter(balance__lt=0)
-        .aggregate(t=Sum('balance'))['t'] or 0
+        Customer.objects.filter(balance__lt=0).aggregate(t=Sum('balance'))['t'] or 0
     )
 
     unpaid_sessions = [
@@ -68,12 +65,12 @@ def dashboard(request):
     ]
 
     return render(request, 'dashboard.html', {
-        'devices': devices,
-        'low_stock': low_stock,
-        'today_cash': int(today_cash + today_sales_cash),
-        'total_debt': int(total_debt),
-        'customers_for_modal': Customer.objects.all().order_by('name'),
-        'unpaid_sessions': unpaid_sessions,
+        'devices':              devices,
+        'low_stock':            low_stock,
+        'today_cash':           today_cash + today_sales_cash,
+        'total_debt':           total_debt,
+        'customers_for_modal':  Customer.objects.all().order_by('name'),
+        'unpaid_sessions':      unpaid_sessions,
     })
 
 
@@ -83,15 +80,29 @@ def dashboard(request):
 def session_start(request):
     if request.method != 'POST':
         return redirect('dashboard')
+
     device = get_object_or_404(Device, id=request.POST.get('device_id'))
     if device.is_occupied:
         messages.error(request, 'این دستگاه در حال استفاده است.')
         return redirect('dashboard')
 
+    session_type     = request.POST.get('session_type', 'free')
+    duration_minutes = None
+    if session_type == 'timed':
+        try:
+            duration_minutes = int(request.POST.get('duration_minutes', 60))
+            if duration_minutes <= 0:
+                duration_minutes = 60
+        except (ValueError, TypeError):
+            duration_minutes = 60
+
     session = Session.objects.create(
-        device=device,
-        extra_controllers=int(request.POST.get('extra_controllers', 0))
+        device           = device,
+        extra_controllers= int(request.POST.get('extra_controllers', 0)),
+        session_type     = session_type,
+        duration_minutes = duration_minutes,
     )
+
     for cid in request.POST.getlist('player_ids'):
         if cid:
             SessionPlayer.objects.create(session=session, customer_id=cid)
@@ -104,86 +115,86 @@ def session_start(request):
 
 
 @login_required
+def session_cancel(request, pk):
+    """Delete an active session with no payments — for wrong starts."""
+    session = get_object_or_404(Session, pk=pk, status='active')
+    if request.method == 'POST':
+        device_name = session.device.name
+        session.delete()
+        messages.success(request, f'سشن {device_name} لغو و حذف شد.')
+    return redirect('dashboard')
+
+
+@login_required
 def session_detail(request, pk):
-    session = get_object_or_404(Session, pk=pk)
+    session      = get_object_or_404(Session, pk=pk)
     current_cost = session.calculate_cost()
     return render(request, 'session_detail.html', {
-        'session': session,
+        'session':      session,
         'current_cost': current_cost,
     })
 
 
 @login_required
 def session_end(request, pk):
-    session = get_object_or_404(Session, pk=pk, status='active')
-    session.ended_at = timezone.now()
+    session           = get_object_or_404(Session, pk=pk, status='active')
+    session.ended_at  = timezone.now()
     session.total_cost = session.calculate_cost()
-    session.status = 'finished'
+    session.status    = 'finished'
     session.save()
-    messages.success(request, f'سشن پایان یافت. مبلغ کل:  تومان {session.total_cost}')
+    messages.success(request, f'سشن پایان یافت. مبلغ: {session.total_cost:,} تومان')
     return redirect('session_pay', pk=session.pk)
 
 
 @login_required
 def session_pay(request, pk):
-    """
-    Flexible payment page:
-    - Shows total cost, already-paid, remaining
-    - Add payment lines: any amount, cash or account (select customer)
-    - Can leave and come back later (session stays 'finished')
-    """
-    session = get_object_or_404(Session, pk=pk, status='finished')
-    customers = Customer.objects.all().order_by('name')
-    existing_payments = session.payments.all().order_by('created_at')
-    players = session.players.select_related('customer')
+    session            = get_object_or_404(Session, pk=pk, status='finished')
+    customers          = Customer.objects.all().order_by('name')
+    existing_payments  = session.payments.all().order_by('created_at')
+    players            = session.players.select_related('customer')
 
     if request.method == 'POST':
         action = request.POST.get('action')
 
         if action == 'add_payment':
-            # Add one payment line
-            raw_amount = request.POST.get('amount', '').strip()
-            pay_type = request.POST.get('pay_type', 'cash')  # 'cash' or 'account'
-            customer_id = request.POST.get('customer_id') or None
+            raw       = request.POST.get('amount', '').strip()
+            pay_type  = request.POST.get('pay_type', 'cash')
+            cust_id   = request.POST.get('customer_id') or None
 
             try:
-                amount = Decimal(raw_amount)
+                amount = int(raw)
                 if amount <= 0:
                     raise ValueError
-            except (InvalidOperation, ValueError):
+            except (ValueError, TypeError):
                 messages.error(request, 'مبلغ نامعتبر است.')
                 return redirect('session_pay', pk=pk)
 
             if pay_type == 'cash':
-                Payment.objects.create(
-                    session=session,
-                    customer_id=customer_id,
-                    amount=amount,
-                    payment_type='cash',
-                    notes=request.POST.get('notes', ''),
-                )
+                Payment.objects.create(session=session, customer_id=cust_id,
+                                       amount=amount, payment_type='cash',
+                                       notes=request.POST.get('notes', ''))
+
             elif pay_type == 'account':
-                if not customer_id:
-                    messages.error(request, 'برای پرداخت حسابی، مشتری را انتخاب کنید.')
+                if not cust_id:
+                    messages.error(request, 'مشتری را انتخاب کنید.')
                     return redirect('session_pay', pk=pk)
-                customer = Customer.objects.get(pk=customer_id)
+                customer = Customer.objects.get(pk=cust_id)
+                ok, reason = customer.can_add_debt(amount)
+                if not ok:
+                    messages.error(request, f'حساب {customer.name} مسدود است: {reason}')
+                    return redirect('session_pay', pk=pk)
                 customer.balance -= amount
                 customer.save()
-                Payment.objects.create(
-                    session=session,
-                    customer=customer,
-                    amount=amount,
-                    payment_type='account_debit',
-                    notes=request.POST.get('notes', ''),
-                )
-            messages.success(request, f'پرداخت  تومان {amount} ثبت شد.')
+                Payment.objects.create(session=session, customer=customer,
+                                       amount=amount, payment_type='account_debit',
+                                       notes=request.POST.get('notes', ''))
+
+            messages.success(request, f'{amount:,} تومان ثبت شد.')
             return redirect('session_pay', pk=pk)
 
         elif action == 'delete_payment':
-            pay_id = request.POST.get('payment_id')
             try:
-                pay = Payment.objects.get(pk=pay_id, session=session)
-                # Reverse account_debit
+                pay = Payment.objects.get(pk=request.POST.get('payment_id'), session=session)
                 if pay.payment_type == 'account_debit' and pay.customer:
                     pay.customer.balance += pay.amount
                     pay.customer.save()
@@ -196,33 +207,29 @@ def session_pay(request, pk):
         elif action == 'pay_remaining_cash':
             remaining = session.remaining_amount
             if remaining > 0:
-                Payment.objects.create(
-                    session=session,
-                    amount=remaining,
-                    payment_type='cash',
-                    notes='باقیمانده نقد',
-                )
-                messages.success(request, f'باقیمانده  تومان {remaining} نقد دریافت شد.')
+                Payment.objects.create(session=session, amount=remaining,
+                                       payment_type='cash', notes='باقیمانده نقد')
+                messages.success(request, f'{remaining:,} تومان نقد دریافت شد.')
             return redirect('session_pay', pk=pk)
 
         elif action == 'pay_remaining_account':
             remaining = session.remaining_amount
-            customer_id = request.POST.get('customer_id')
-            if not customer_id:
+            cust_id   = request.POST.get('customer_id')
+            if not cust_id:
                 messages.error(request, 'مشتری را انتخاب کنید.')
                 return redirect('session_pay', pk=pk)
             if remaining > 0:
-                customer = Customer.objects.get(pk=customer_id)
+                customer = Customer.objects.get(pk=cust_id)
+                ok, reason = customer.can_add_debt(remaining)
+                if not ok:
+                    messages.error(request, f'حساب مسدود است: {reason}')
+                    return redirect('session_pay', pk=pk)
                 customer.balance -= remaining
                 customer.save()
-                Payment.objects.create(
-                    session=session,
-                    customer=customer,
-                    amount=remaining,
-                    payment_type='account_debit',
-                    notes='باقیمانده به حساب',
-                )
-                messages.success(request, f'باقیمانده  تومان {remaining} به حساب {customer.name} افزوده شد.')
+                Payment.objects.create(session=session, customer=customer,
+                                       amount=remaining, payment_type='account_debit',
+                                       notes='باقیمانده به حساب')
+                messages.success(request, f'{remaining:,} تومان به حساب {customer.name} افزوده شد.')
             return redirect('session_pay', pk=pk)
 
         elif action == 'leave':
@@ -230,28 +237,30 @@ def session_pay(request, pk):
             return redirect('dashboard')
 
     return render(request, 'session_pay.html', {
-        'session': session,
-        'customers': customers,
+        'session':           session,
+        'customers':         customers,
         'existing_payments': existing_payments,
-        'players': players,
+        'players':           players,
     })
 
 
 @login_required
 def session_status(request, pk):
     session = get_object_or_404(Session, pk=pk)
-    return JsonResponse({
-        'elapsed_seconds': session.elapsed_seconds,
-        'current_cost': int(session.calculate_cost()),
-        'duration_display': session.duration_display,
-    })
+    data = {
+        'elapsed_seconds':   session.elapsed_seconds,
+        'current_cost':      session.calculate_cost(),
+        'duration_display':  session.duration_display,
+        'remaining_seconds': session.remaining_seconds,
+        'status':            session.status,
+    }
+    return JsonResponse(data)
 
 
 @login_required
 def sessions_history(request):
     sessions = (Session.objects.exclude(status='active')
-                .order_by('-started_at')
-                .select_related('device')[:100])
+                .order_by('-started_at').select_related('device')[:100])
     return render(request, 'sessions_history.html', {'sessions': sessions})
 
 
@@ -260,12 +269,11 @@ def sessions_history(request):
 @login_required
 def customers_list(request):
     q = request.GET.get('q', '')
-    customers = Customer.objects.all()
+    qs = Customer.objects.all()
     if q:
-        customers = customers.filter(Q(name__icontains=q) | Q(phone__icontains=q))
+        qs = qs.filter(Q(name__icontains=q) | Q(phone__icontains=q))
     return render(request, 'customers_list.html', {
-        'customers': customers.order_by('balance', 'name'),
-        'q': q,
+        'customers': qs.order_by('balance', 'name'), 'q': q,
     })
 
 
@@ -277,12 +285,44 @@ def customer_create(request):
             messages.error(request, 'نام الزامی است.')
         else:
             c = Customer.objects.create(
-                name=name,
-                phone=request.POST.get('phone', '').strip()
+                name       = name,
+                phone      = request.POST.get('phone', '').strip(),
+                debt_limit = int(request.POST.get('debt_limit', 0) or 0),
             )
             messages.success(request, f'مشتری "{c.name}" ساخته شد.')
             return redirect('customers_list')
-    return render(request, 'customer_form.html', {'action': 'ایجاد'})
+    return render(request, 'customer_form.html', {'action': 'ایجاد', 'customer': None})
+
+
+@login_required
+def customer_edit(request, pk):
+    customer = get_object_or_404(Customer, pk=pk)
+    if request.method == 'POST':
+        customer.name       = request.POST.get('name', customer.name).strip()
+        customer.phone      = request.POST.get('phone', '').strip()
+        customer.debt_limit = int(request.POST.get('debt_limit', 0) or 0)
+        customer.notes      = request.POST.get('notes', '')
+        customer.save()
+        messages.success(request, 'مشتری به‌روز شد.')
+        return redirect('customer_detail', pk=pk)
+    return render(request, 'customer_form.html', {'action': 'ویرایش', 'customer': customer})
+
+
+@login_required
+def customer_delete(request, pk):
+    customer = get_object_or_404(Customer, pk=pk)
+    if request.method == 'POST':
+        if customer.balance != 0:
+            messages.error(request, 'امکان حذف مشتری با موجودی غیرصفر وجود ندارد.')
+            return redirect('customer_detail', pk=pk)
+        name = customer.name
+        customer.delete()
+        messages.success(request, f'مشتری "{name}" حذف شد.')
+        return redirect('customers_list')
+    return render(request, 'confirm_delete.html', {
+        'object_name': customer.name,
+        'cancel_url':  f'/customers/{pk}/',
+    })
 
 
 @login_required
@@ -290,12 +330,12 @@ def customer_detail(request, pk):
     customer = get_object_or_404(Customer, pk=pk)
     sessions = (Session.objects.filter(players__customer=customer)
                 .distinct().order_by('-started_at')[:20])
-    sales = Sale.objects.filter(customer=customer).order_by('-sold_at')[:20]
+    sales    = Sale.objects.filter(customer=customer).order_by('-sold_at')[:20]
     payments = Payment.objects.filter(customer=customer).order_by('-created_at')[:20]
     return render(request, 'customer_detail.html', {
         'customer': customer,
         'sessions': sessions,
-        'sales': sales,
+        'sales':    sales,
         'payments': payments,
     })
 
@@ -305,22 +345,18 @@ def customer_settle(request, pk):
     customer = get_object_or_404(Customer, pk=pk)
     if request.method == 'POST':
         try:
-            amount = Decimal(request.POST.get('amount', '0'))
+            amount = int(request.POST.get('amount', 0))
             if amount <= 0:
                 raise ValueError
-        except (InvalidOperation, ValueError):
+        except (ValueError, TypeError):
             messages.error(request, 'مبلغ نامعتبر.')
             return redirect('customer_detail', pk=pk)
-
         customer.balance += amount
         customer.save()
-        Payment.objects.create(
-            customer=customer,
-            amount=amount,
-            payment_type='account_settlement',
-            notes=request.POST.get('notes', ''),
-        )
-        messages.success(request, f' تومان {amount} برای {customer.name} تسویه شد.')
+        Payment.objects.create(customer=customer, amount=amount,
+                                payment_type='account_settlement',
+                                notes=request.POST.get('notes', ''))
+        messages.success(request, f'{amount:,} تومان برای {customer.name} تسویه شد.')
     return redirect('customer_detail', pk=pk)
 
 
@@ -328,14 +364,14 @@ def customer_settle(request, pk):
 
 @login_required
 def shop(request):
-    products = (Product.objects.filter(is_active=True)
-                .select_related('category').order_by('category__name', 'name'))
+    products       = (Product.objects.filter(is_active=True)
+                      .select_related('category').order_by('category__name', 'name'))
     active_sessions = Session.objects.filter(status='active').select_related('device')
-    customers = Customer.objects.all().order_by('name')
+    customers      = Customer.objects.all().order_by('name')
     return render(request, 'shop.html', {
-        'products': products,
+        'products':       products,
         'active_sessions': active_sessions,
-        'customers': customers,
+        'customers':      customers,
     })
 
 
@@ -343,48 +379,46 @@ def shop(request):
 def shop_sell(request):
     if request.method != 'POST':
         return redirect('shop')
-
-    product = get_object_or_404(Product, pk=request.POST.get('product_id'))
-    qty = int(request.POST.get('quantity', 1))
-    payment_type = request.POST.get('payment_type', 'cash')
-    session_id = request.POST.get('session_id') or None
+    product     = get_object_or_404(Product, pk=request.POST.get('product_id'))
+    qty         = int(request.POST.get('quantity', 1))
+    pay_type    = request.POST.get('payment_type', 'cash')
+    session_id  = request.POST.get('session_id') or None
     customer_id = request.POST.get('customer_id') or None
 
     if product.stock < qty:
-        messages.error(request, f'موجودی کافی نیست برای {product.name}.')
+        messages.error(request, f'موجودی کافی نیست.')
         return redirect('shop')
 
     sale = Sale.objects.create(
-        product=product,
-        quantity=qty,
-        unit_price=product.price,
-        payment_type=payment_type,
-        session_id=session_id,
-        customer_id=customer_id,
+        product=product, quantity=qty, unit_price=product.price,
+        payment_type=pay_type, session_id=session_id, customer_id=customer_id,
     )
     product.stock -= qty
     product.save()
 
-    if payment_type == 'account' and customer_id:
+    if pay_type == 'account' and customer_id:
         customer = Customer.objects.get(pk=customer_id)
+        ok, reason = customer.can_add_debt(sale.total_price)
+        if not ok:
+            sale.delete(); product.stock += qty; product.save()
+            messages.error(request, f'حساب مسدود: {reason}')
+            return redirect('shop')
         customer.balance -= sale.total_price
         customer.save()
-    elif payment_type == 'cash':
-        Payment.objects.create(
-            amount=sale.total_price,
-            payment_type='cash',
-            customer_id=customer_id,
-            notes=f'فروش: {product.name} ×{qty}',
-        )
+    elif pay_type == 'cash':
+        Payment.objects.create(amount=sale.total_price, payment_type='cash',
+                                customer_id=customer_id,
+                                notes=f'فروش: {product.name} ×{qty}')
 
-    messages.success(request, f'{product.name} ×{qty} به مبلغ  تومان {sale.total_price} فروخته شد.')
+    messages.success(request, f'{product.name} ×{qty} به مبلغ {sale.total_price:,} تومان فروخته شد.')
     return redirect('shop')
 
 
+# ── Products ──────────────────────────────────────────────────────────────────
+
 @login_required
 def products_manage(request):
-    products = (Product.objects.all()
-                .select_related('category').order_by('category__name', 'name'))
+    products   = Product.objects.all().select_related('category').order_by('category__name', 'name')
     categories = ProductCategory.objects.all()
     return render(request, 'products_manage.html', {
         'products': products, 'categories': categories
@@ -396,13 +430,44 @@ def product_create(request):
     if request.method == 'POST':
         Product.objects.create(
             name=request.POST['name'],
-            price=request.POST['price'],
-            stock=request.POST.get('stock', 0),
+            price=int(request.POST.get('price', 0) or 0),
+            stock=int(request.POST.get('stock', 0) or 0),
             category_id=request.POST.get('category_id') or None,
-            low_stock_threshold=request.POST.get('low_stock_threshold', 5),
+            low_stock_threshold=int(request.POST.get('low_stock_threshold', 5) or 5),
         )
         messages.success(request, 'محصول اضافه شد.')
     return redirect('products_manage')
+
+
+@login_required
+def product_edit(request, pk):
+    product    = get_object_or_404(Product, pk=pk)
+    categories = ProductCategory.objects.all()
+    if request.method == 'POST':
+        product.name                = request.POST.get('name', product.name)
+        product.price               = int(request.POST.get('price', 0) or 0)
+        product.stock               = int(request.POST.get('stock', 0) or 0)
+        product.category_id         = request.POST.get('category_id') or None
+        product.low_stock_threshold = int(request.POST.get('low_stock_threshold', 5) or 5)
+        product.is_active           = 'is_active' in request.POST
+        product.save()
+        messages.success(request, 'محصول به‌روز شد.')
+        return redirect('products_manage')
+    return render(request, 'product_edit.html', {'product': product, 'categories': categories})
+
+
+@login_required
+def product_delete(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    if request.method == 'POST':
+        name = product.name
+        product.delete()
+        messages.success(request, f'محصول "{name}" حذف شد.')
+        return redirect('products_manage')
+    return render(request, 'confirm_delete.html', {
+        'object_name': product.name,
+        'cancel_url':  '/products/',
+    })
 
 
 @login_required
@@ -419,20 +484,18 @@ def product_update_stock(request, pk):
 
 @login_required
 def devices_manage(request):
-    return render(request, 'devices_manage.html', {
-        'devices': Device.objects.all()
-    })
+    return render(request, 'devices_manage.html', {'devices': Device.objects.all()})
 
 
 @login_required
 def device_create(request):
     if request.method == 'POST':
         Device.objects.create(
-            name=request.POST['name'],
-            device_type=request.POST['device_type'],
-            price_per_hour=request.POST['price_per_hour'],
-            extra_controller_price=request.POST.get('extra_controller_price', 0),
-            included_controllers=request.POST.get('included_controllers', 2),
+            name                   = request.POST['name'],
+            device_type            = request.POST['device_type'],
+            price_per_hour         = int(request.POST.get('price_per_hour', 0) or 0),
+            extra_controller_price = int(request.POST.get('extra_controller_price', 0) or 0),
+            included_controllers   = int(request.POST.get('included_controllers', 2) or 2),
         )
         messages.success(request, 'دستگاه اضافه شد.')
     return redirect('devices_manage')
@@ -442,15 +505,32 @@ def device_create(request):
 def device_edit(request, pk):
     device = get_object_or_404(Device, pk=pk)
     if request.method == 'POST':
-        device.name = request.POST['name']
-        device.price_per_hour = request.POST['price_per_hour']
-        device.extra_controller_price = request.POST.get('extra_controller_price', 0)
-        device.included_controllers = request.POST.get('included_controllers', 2)
-        device.is_active = 'is_active' in request.POST
+        device.name                   = request.POST['name']
+        device.price_per_hour         = int(request.POST.get('price_per_hour', 0) or 0)
+        device.extra_controller_price = int(request.POST.get('extra_controller_price', 0) or 0)
+        device.included_controllers   = int(request.POST.get('included_controllers', 2) or 2)
+        device.is_active              = 'is_active' in request.POST
         device.save()
         messages.success(request, 'دستگاه به‌روز شد.')
         return redirect('devices_manage')
     return render(request, 'device_edit.html', {'device': device})
+
+
+@login_required
+def device_delete(request, pk):
+    device = get_object_or_404(Device, pk=pk)
+    if request.method == 'POST':
+        if device.sessions.filter(status='active').exists():
+            messages.error(request, 'دستگاه در حال استفاده است.')
+            return redirect('devices_manage')
+        name = device.name
+        device.delete()
+        messages.success(request, f'دستگاه "{name}" حذف شد.')
+        return redirect('devices_manage')
+    return render(request, 'confirm_delete.html', {
+        'object_name': device.name,
+        'cancel_url':  '/devices/',
+    })
 
 
 # ── Reports ───────────────────────────────────────────────────────────────────
@@ -458,80 +538,50 @@ def device_edit(request, pk):
 @login_required
 def reports(request):
     period = request.GET.get('period', 'today')
-    now = timezone.now()
-
+    now    = timezone.now()
     if period == 'week':
         start = now - timedelta(days=7)
     elif period == 'month':
         start = now - timedelta(days=30)
-    else:  # today
+    else:
         start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
-    session_payments = (
-        Payment.objects.filter(created_at__gte=start, payment_type='cash')
-        .aggregate(total=Sum('amount'))['total'] or 0
-    )
-    sales_cash = (
-        Sale.objects.filter(sold_at__gte=start, payment_type='cash')
-        .aggregate(total=Sum('total_price'))['total'] or 0
-    )
-    account_charges = (
-        Payment.objects.filter(created_at__gte=start, payment_type='account_debit')
-        .aggregate(total=Sum('amount'))['total'] or 0
-    )
-    sales_account = (
-        Sale.objects.filter(sold_at__gte=start, payment_type='account')
-        .aggregate(total=Sum('total_price'))['total'] or 0
-    )
-    settlements = (
-        Payment.objects.filter(created_at__gte=start, payment_type='account_settlement')
-        .aggregate(total=Sum('amount'))['total'] or 0
-    )
-    period_sessions = Session.objects.filter(
-        started_at__gte=start
-    ).exclude(status='active').count()
+    session_cash  = Payment.objects.filter(created_at__gte=start, payment_type='cash').aggregate(t=Sum('amount'))['t'] or 0
+    sales_cash    = Sale.objects.filter(sold_at__gte=start, payment_type='cash').aggregate(t=Sum('total_price'))['t'] or 0
+    acct_charges  = Payment.objects.filter(created_at__gte=start, payment_type='account_debit').aggregate(t=Sum('amount'))['t'] or 0
+    sales_account = Sale.objects.filter(sold_at__gte=start, payment_type='account').aggregate(t=Sum('total_price'))['t'] or 0
+    settlements   = Payment.objects.filter(created_at__gte=start, payment_type='account_settlement').aggregate(t=Sum('amount'))['t'] or 0
+    total_debt    = abs(Customer.objects.filter(balance__lt=0).aggregate(t=Sum('balance'))['t'] or 0)
 
     device_usage = Device.objects.filter(is_active=True).annotate(
-        session_count=Count(
-            'sessions',
-            filter=Q(sessions__started_at__gte=start)
-        )
+        session_count=Count('sessions', filter=Q(sessions__started_at__gte=start))
     ).order_by('-session_count')
 
     top_customers = Customer.objects.annotate(
-        session_count=Count(
-            'sessionplayer__session', distinct=True,
-            filter=Q(sessionplayer__session__started_at__gte=start)
-        )
+        session_count=Count('sessionplayer__session', distinct=True,
+                            filter=Q(sessionplayer__session__started_at__gte=start))
     ).order_by('-session_count')[:10]
 
-    total_debt = abs(
-        Customer.objects.filter(balance__lt=0)
-        .aggregate(t=Sum('balance'))['t'] or 0
-    )
-
-    top_products = (
-        Sale.objects.filter(sold_at__gte=start)
-        .values('product__name')
-        .annotate(total_qty=Sum('quantity'), total_rev=Sum('total_price'))
-        .order_by('-total_qty')[:10]
-    )
+    top_products = (Sale.objects.filter(sold_at__gte=start)
+                    .values('product__name')
+                    .annotate(total_qty=Sum('quantity'), total_rev=Sum('total_price'))
+                    .order_by('-total_qty')[:10])
 
     return render(request, 'reports.html', {
-        'period': period,
-        'session_cash': int(session_payments),
-        'sales_cash': int(sales_cash),
-        'total_cash': int(session_payments) + int(sales_cash),
-        'account_charges': int(account_charges),
-        'sales_account': int(sales_account),
-        'total_account': int(account_charges) + int(sales_account),
-        'grand_total': int(session_payments) + int(sales_cash) + int(account_charges) + int(sales_account),
-        'period_sessions': period_sessions,
-        'device_usage': device_usage,
-        'top_customers': top_customers,
-        'total_debt': int(total_debt),
-        'top_products': top_products,
-        'settlements': int(settlements),
+        'period':         period,
+        'session_cash':   session_cash,
+        'sales_cash':     sales_cash,
+        'total_cash':     session_cash + sales_cash,
+        'acct_charges':   acct_charges,
+        'sales_account':  sales_account,
+        'total_account':  acct_charges + sales_account,
+        'grand_total':    session_cash + sales_cash + acct_charges + sales_account,
+        'period_sessions': Session.objects.filter(started_at__gte=start).exclude(status='active').count(),
+        'device_usage':   device_usage,
+        'top_customers':  top_customers,
+        'total_debt':     total_debt,
+        'top_products':   top_products,
+        'settlements':    settlements,
     })
 
 
@@ -539,5 +589,6 @@ def reports(request):
 
 @login_required
 def debts(request):
-    debtors = Customer.objects.filter(balance__lt=0).order_by('balance')
-    return render(request, 'debts.html', {'debtors': debtors})
+    return render(request, 'debts.html', {
+        'debtors': Customer.objects.filter(balance__lt=0).order_by('balance')
+    })
