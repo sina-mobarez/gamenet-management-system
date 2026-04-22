@@ -1,141 +1,102 @@
 {% extends 'base.html' %}
-{% load shamsi humanize %}
 {% block title %}محصولات{% endblock %}
 {% block content %}
 <div class="page-header d-flex justify-content-between align-items-center">
-  <h2><i class="bi bi-box-seam-fill me-2" style="-webkit-text-fill-color:var(--violet-lt);color:var(--violet-lt)"></i>محصولات</h2>
+  <h2>محصولات</h2>
   <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
     <i class="bi bi-plus-lg me-1"></i>محصول جدید
   </button>
 </div>
-
 <div class="card">
   <div class="table-responsive">
-    <table class="table table-hover mb-0">
-      <thead>
-        <tr>
-          <th>نام</th><th>دسته‌بندی</th><th>قیمت</th><th>موجودی</th><th>وضعیت</th><th>عملیات</th>
-        </tr>
-      </thead>
+    <table class="table mb-0">
+      <thead><tr>
+        <th>نام</th><th>دسته</th><th>قیمت (تومان)</th><th>موجودی</th><th>وضعیت</th><th>عملیات</th>
+      </tr></thead>
       <tbody>
       {% for p in products %}
       <tr>
-        <td><strong style="font-size:.9rem">{{ p.name }}</strong></td>
+        <td><strong>{{ p.name }}</strong></td>
+        <td style="color:var(--text-3)">{{ p.category|default:"—" }}</td>
+        <td class="num fw-bold" style="color:var(--neon-gold)">{{ p.price|floatformat:0 }}</td>
         <td>
-          <span class="badge badge-violet" style="font-size:.72rem">{{ p.category|default:"سایر" }}</span>
+          <span class="num {% if p.is_low_stock %}fw-bold{% endif %}"
+                style="color:{% if p.is_low_stock %}var(--neon-red){% else %}var(--text-2){% endif %}">{{ p.stock }}</span>
+          {% if p.is_low_stock %}<span class="badge-busy ms-1" style="font-size:.6rem">کم</span>{% endif %}
         </td>
-        <td class="text-warning num fw-bold"> تومان {{ p.price|intcomma }}</td>
+        <td>{% if p.is_active %}<span class="badge-free">فعال</span>{% else %}<span class="badge-ghost">غیرفعال</span>{% endif %}</td>
         <td>
-          <span class="num fw-bold {% if p.is_low_stock %}text-danger{% else %}text-success{% endif %}">{{ p.stock }}</span>
-          {% if p.is_low_stock %}
-          <span class="badge badge-busy ms-1" style="font-size:.65rem">کم</span>
-          {% endif %}
-        </td>
-        <td>
-          <span class="badge {% if p.is_active %}badge-free{% else %}" style="background:rgba(255,255,255,.06);color:var(--muted-lt);border:1px solid var(--border){% endif %}">
-            {% if p.is_active %}فعال{% else %}غیرفعال{% endif %}
-          </span>
-        </td>
-        <td>
-          <button class="btn btn-sm btn-outline-secondary"
-                  data-bs-toggle="modal" data-bs-target="#stockModal"
-                  data-pid="{{ p.id }}" data-name="{{ p.name }}" data-stock="{{ p.stock }}">
-            به‌روز موجودی
-          </button>
+          <div class="d-flex gap-1">
+            <button class="btn btn-outline-secondary btn-sm"
+                    data-bs-toggle="modal" data-bs-target="#stockModal"
+                    data-pid="{{ p.id }}" data-name="{{ p.name }}" data-stock="{{ p.stock }}">
+              موجودی
+            </button>
+            <a href="{% url 'product_edit' p.pk %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i></a>
+            <a href="{% url 'product_delete' p.pk %}" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash3"></i></a>
+          </div>
         </td>
       </tr>
       {% empty %}
-      <tr>
-        <td colspan="6" class="text-center py-5">
-          <i class="bi bi-box-seam d-block mb-2" style="font-size:2rem;opacity:.25"></i>
-          <span class="text-muted">محصولی ندارید.</span>
-        </td>
-      </tr>
+      <tr><td colspan="6" class="text-center py-5" style="color:var(--text-3)">محصولی ندارید.</td></tr>
       {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
 
-{% endblock %}
-
-{% block modals %}
-<!-- Add Product Modal -->
 <div class="modal fade" id="addProductModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-plus-circle me-2" style="color:var(--violet-lt)"></i>محصول جدید</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
+      <div class="modal-header"><h5 class="modal-title">محصول جدید</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
       <form method="post" action="{% url 'product_create' %}">
         {% csrf_token %}
         <div class="modal-body">
-          <div class="mb-3">
-            <label class="form-label">نام *</label>
-            <input type="text" name="name" class="form-control" required>
-          </div>
+          <div class="mb-3"><label class="form-label">نام *</label>
+            <input type="text" name="name" class="form-control" required></div>
           <div class="row g-2">
-            <div class="col">
-              <label class="form-label">قیمت ( تومان ) *</label>
-              <input type="number" name="price" class="form-control ltr" step="0.01" min="0" required>
-            </div>
-            <div class="col">
-              <label class="form-label">موجودی اولیه</label>
-              <input type="number" name="stock" class="form-control ltr" value="0" min="0">
-            </div>
+            <div class="col"><label class="form-label">قیمت (تومان)</label>
+              <input type="number" name="price" class="form-control ltr" step="1000" min="0" required></div>
+            <div class="col"><label class="form-label">موجودی</label>
+              <input type="number" name="stock" class="form-control ltr" value="0" min="0"></div>
           </div>
           <div class="row g-2 mt-1">
-            <div class="col">
-              <label class="form-label">دسته‌بندی</label>
-              <select name="category_id" class="form-select">
-                <option value="">— بدون دسته —</option>
-                {% for cat in categories %}
-                <option value="{{ cat.id }}">{{ cat.name }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col">
-              <label class="form-label">هشدار موجودی کم</label>
-              <input type="number" name="low_stock_threshold" class="form-control ltr" value="5" min="0">
-            </div>
+            <div class="col"><label class="form-label">دسته‌بندی</label>
+              <select name="category_id" class="form-select"><option value="">— بدون دسته —</option>
+                {% for cat in categories %}<option value="{{ cat.id }}">{{ cat.name }}</option>{% endfor %}
+              </select></div>
+            <div class="col"><label class="form-label">هشدار موجودی</label>
+              <input type="number" name="low_stock_threshold" class="form-control ltr" value="5" min="0"></div>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">انصراف</button>
-          <button type="submit" class="btn btn-primary">ایجاد محصول</button>
+          <button type="submit" class="btn btn-primary">ایجاد</button>
         </div>
       </form>
     </div>
   </div>
 </div>
 
-<!-- Stock Modal -->
 <div class="modal fade" id="stockModal" tabindex="-1">
-  <div class="modal-dialog modal-sm">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">به‌روزرسانی موجودی</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div class="fw-bold mb-3" id="stockModalName" style="font-family:'Oxanium',sans-serif"></div>
-        <form method="post" id="stockForm">
-          {% csrf_token %}
-          <label class="form-label">موجودی جدید</label>
-          <input type="number" name="stock" id="stockInput" class="form-control ltr mb-3" min="0" required>
-          <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-primary flex-fill">ذخیره</button>
-            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">انصراف</button>
-          </div>
-        </form>
-      </div>
+  <div class="modal-dialog modal-sm"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">به‌روز موجودی</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <p class="fw-bold mb-3" id="stockModalName" style="color:var(--neon-purple)"></p>
+      <form method="post" id="stockForm">{% csrf_token %}
+        <label class="form-label">موجودی جدید</label>
+        <input type="number" name="stock" id="stockInput" class="form-control ltr" min="0" required>
+        <div class="mt-3 d-flex gap-2">
+          <button type="submit" class="btn btn-primary flex-fill">ذخیره</button>
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">انصراف</button>
+        </div>
+      </form>
     </div>
-  </div>
+  </div></div>
 </div>
 {% endblock %}
-
-
 {% block extra_js %}
 <script>
 document.getElementById('stockModal').addEventListener('show.bs.modal', e => {
