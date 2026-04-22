@@ -1,184 +1,136 @@
 {% extends 'base.html' %}
-{% load shamsi humanize %}
+{% load shamsi %}
 {% block title %}گزارش‌ها{% endblock %}
-
-{% block extra_css %}
-<style>
-/* Period filter buttons — contain Persian text */
-.period-btn {
-  padding: .4rem 1.1rem; border-radius: 8px; font-size: .83rem; font-weight: 700;
-  border: 1px solid var(--border2); background: transparent; color: var(--muted-lt);
-  cursor: pointer; text-decoration: none; transition: all .2s;
-  font-family: 'Vazirmatn', sans-serif;
-  /* No letter-spacing — Persian */
-}
-.period-btn:hover { background: rgba(124,58,237,0.15); color: var(--violet-lt); border-color: var(--violet); }
-.period-btn.active { background: var(--violet); color: #fff; border-color: var(--violet); box-shadow: 0 4px 20px rgba(124,58,237,0.4); }
-
-.top-stat {
-  background: var(--s2); border: 1px solid var(--border);
-  border-radius: 16px; padding: 1.25rem 1.5rem; text-align: center;
-  position: relative; overflow: hidden; height: 100%;
-  transition: all .2s;
-}
-.top-stat:hover { border-color: var(--border2); transform: translateY(-2px); }
-.top-stat::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
-.top-stat.ts-green::before  { background: var(--green);  box-shadow: 0 0 12px var(--green); }
-.top-stat.ts-amber::before  { background: var(--amber);  box-shadow: 0 0 12px var(--amber); }
-.top-stat.ts-cyan::before   { background: var(--cyan);   box-shadow: 0 0 12px var(--cyan);  }
-.top-stat.ts-violet::before { background: var(--violet); box-shadow: 0 0 12px var(--violet);}
-
-/* Stat labels: Persian — Vazirmatn, NO letter-spacing/uppercase */
-.top-stat .ts-label {
-  font-size: .72rem;
-  font-family: 'Vazirmatn', sans-serif;
-  font-weight: 700;
-  color: var(--muted-lt);
-}
-/* Stat values: numbers — Oxanium */
-.top-stat .ts-value {
-  font-family: 'Oxanium', 'Vazirmatn', sans-serif;
-  font-size: 1.9rem; font-weight: 800;
-  margin: .2rem 0; line-height: 1;
-}
-/* Stat subs: Persian text */
-.top-stat .ts-sub {
-  font-size: .75rem;
-  font-family: 'Vazirmatn', sans-serif;
-  color: var(--muted);
-}
-
-.rank-item {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: .65rem 0; border-bottom: 1px solid rgba(124,58,237,0.07);
-}
-.rank-item:last-child { border-bottom: none; padding-bottom: 0; }
-.rank-item .ri-name { font-size: .87rem; font-weight: 600; font-family: 'Vazirmatn', sans-serif; }
-.rank-item .ri-sub  { font-size: .73rem; color: var(--muted-lt); margin-top: .1rem; font-family: 'Vazirmatn', sans-serif; }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-3">
-  <h2><i class="bi bi-bar-chart-fill me-2" style="-webkit-text-fill-color:var(--violet-lt);color:var(--violet-lt)"></i>گزارش مالی</h2>
-  <div class="d-flex gap-2">
-    <a href="?period=today"  class="period-btn {% if period == 'today' %}active{% endif %}">امروز</a>
-    <a href="?period=week"   class="period-btn {% if period == 'week' %}active{% endif %}">۷ روز</a>
-    <a href="?period=month"  class="period-btn {% if period == 'month' %}active{% endif %}">۳۰ روز</a>
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <h2>گزارش مالی</h2>
+  <div style="background:rgba(255,255,255,0.04);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:.3rem;display:flex;gap:.25rem">
+    <a href="?period=today" class="btn btn-sm {% if period == 'today' %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="border-radius:6px">امروز</a>
+    <a href="?period=week"  class="btn btn-sm {% if period == 'week'  %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="border-radius:6px">۷ روز</a>
+    <a href="?period=month" class="btn btn-sm {% if period == 'month' %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="border-radius:6px">۳۰ روز</a>
   </div>
 </div>
 
-<!-- Top stats -->
+<!-- Stat cards -->
 <div class="row g-3 mb-4">
-  <div class="col-sm-6 col-lg-3">
-    <div class="top-stat ts-green">
-      <div class="ts-label">درآمد کل</div>
-      <div class="ts-value text-success"> تومان {{ grand_total|intcomma }}</div>
-      <div class="ts-sub">نقد + حساب</div>
+  <div class="col-sm-6 col-lg-3 fade-in">
+    <div class="stat-card" style="border-color:rgba(16,185,129,0.3);background:rgba(16,185,129,0.05)">
+      <div style="position:absolute;top:0;right:0;left:0;height:2px;background:var(--grad-green);border-radius:var(--radius) var(--radius) 0 0"></div>
+      <div class="label">درآمد کل</div>
+      <div class="value num grad-text-green">${{ grand_total|floatformat:2 }}</div>
+      <div class="sub">نقد + حساب</div>
+      <i class="bi bi-graph-up-arrow icon-bg"></i>
     </div>
   </div>
-  <div class="col-sm-6 col-lg-3">
-    <div class="top-stat ts-amber">
-      <div class="ts-label">دریافت نقد</div>
-      <div class="ts-value text-warning"> تومان {{ total_cash|intcomma }}</div>
-      <div class="ts-sub">سشن + فروش</div>
+  <div class="col-sm-6 col-lg-3 fade-in">
+    <div class="stat-card" style="border-color:rgba(245,158,11,0.3)">
+      <div style="position:absolute;top:0;right:0;left:0;height:2px;background:var(--grad-gold);border-radius:var(--radius) var(--radius) 0 0"></div>
+      <div class="label">دریافت نقد</div>
+      <div class="value num grad-text-gold">${{ total_cash|floatformat:2 }}</div>
+      <div class="sub">سشن + فروش</div>
+      <i class="bi bi-cash-stack icon-bg"></i>
     </div>
   </div>
-  <div class="col-sm-6 col-lg-3">
-    <div class="top-stat ts-cyan">
-      <div class="ts-label">ثبت به حساب</div>
-      <div class="ts-value text-cyan"> تومان {{ total_account|intcomma }}</div>
-      <div class="ts-sub">سشن + فروش</div>
+  <div class="col-sm-6 col-lg-3 fade-in">
+    <div class="stat-card" style="border-color:rgba(6,182,212,0.3)">
+      <div style="position:absolute;top:0;right:0;left:0;height:2px;background:var(--grad-cyan);border-radius:var(--radius) var(--radius) 0 0"></div>
+      <div class="label">ثبت حساب</div>
+      <div class="value num" style="background:var(--grad-cyan);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">${{ total_account|floatformat:2 }}</div>
+      <div class="sub">سشن + فروش</div>
+      <i class="bi bi-person-lines-fill icon-bg"></i>
     </div>
   </div>
-  <div class="col-sm-6 col-lg-3">
-    <div class="top-stat ts-violet">
-      <div class="ts-label">تسویه بدهی</div>
-      <div class="ts-value" style="color:var(--violet-lt)"> تومان {{ settlements|intcomma }}</div>
-      <div class="ts-sub">دریافتی از بدهکاران</div>
+  <div class="col-sm-6 col-lg-3 fade-in">
+    <div class="stat-card" style="border-color:rgba(244,63,94,0.3)">
+      <div style="position:absolute;top:0;right:0;left:0;height:2px;background:var(--grad-pink);border-radius:var(--radius) var(--radius) 0 0"></div>
+      <div class="label">بدهی کل (جاری)</div>
+      <div class="value num" style="background:var(--grad-pink);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">${{ total_debt|floatformat:2 }}</div>
+      <div class="sub">تسویه: ${{ settlements|floatformat:2 }}</div>
+      <i class="bi bi-exclamation-diamond icon-bg"></i>
     </div>
   </div>
 </div>
 
 <!-- Second row -->
 <div class="row g-3 mb-4">
-  <div class="col-sm-4">
-    <div class="top-stat">
-      <div class="ts-label">تعداد سشن</div>
-      <div class="ts-value" style="color:var(--text)">{{ period_sessions }}</div>
+  <div class="col-sm-4 fade-in">
+    <div class="stat-card text-center">
+      <div class="label">تعداد سشن</div>
+      <div class="value num" style="background:var(--grad-main);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">{{ period_sessions }}</div>
     </div>
   </div>
-  <div class="col-sm-4">
-    <div class="top-stat neon-card-red">
-      <div class="ts-label">بدهی جاری</div>
-      <div class="ts-value text-danger"> تومان {{ total_debt|intcomma }}</div>
+  <div class="col-sm-4 fade-in">
+    <div class="stat-card text-center">
+      <div class="label">درآمد سشن نقد</div>
+      <div class="value num grad-text-gold">${{ session_cash|floatformat:2 }}</div>
     </div>
   </div>
-  <div class="col-sm-4">
-    <div class="top-stat">
-      <div class="ts-label">درآمد سشن نقد</div>
-      <div class="ts-value text-warning"> تومان {{ session_cash|intcomma }}</div>
+  <div class="col-sm-4 fade-in">
+    <div class="stat-card text-center">
+      <div class="label">درآمد فروش نقد</div>
+      <div class="value num grad-text-gold">${{ sales_cash|floatformat:2 }}</div>
     </div>
   </div>
 </div>
 
-<!-- Detail tables -->
 <div class="row g-3">
-  <div class="col-md-4">
+  <!-- Device usage -->
+  <div class="col-md-4 fade-in">
     <div class="card p-4 h-100">
+      <div style="position:absolute;top:0;right:0;left:0;height:2px;background:var(--grad-purple);border-radius:var(--radius) var(--radius) 0 0"></div>
       <div class="d-flex align-items-center gap-2 mb-3">
-        <i class="bi bi-hdd-stack text-accent"></i>
-        <strong>استفاده از دستگاه‌ها</strong>
+        <i class="bi bi-hdd-stack" style="color:var(--neon-purple)"></i>
+        <strong>استفاده دستگاه‌ها</strong>
       </div>
       {% for d in device_usage %}
-      <div class="rank-item">
+      <div class="d-flex justify-content-between align-items-center py-2" style="border-bottom:1px solid var(--glass-border)">
         <div>
-          <div class="ri-name">{{ d.name }}</div>
-          <div class="ri-sub">{{ d.get_device_type_display }}</div>
+          <div style="font-size:.875rem;font-weight:500">{{ d.name }}</div>
+          <div style="font-size:.72rem;color:var(--text-3)">{{ d.get_device_type_display }}</div>
         </div>
-        <span class="badge badge-violet num">{{ d.session_count }} سشن</span>
+        <span class="num fw-bold" style="background:var(--grad-purple);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">{{ d.session_count }} سشن</span>
       </div>
-      {% empty %}<p class="text-muted small mt-2">اطلاعاتی ندارد.</p>{% endfor %}
+      {% empty %}<p style="color:var(--text-3);font-size:.8rem">داده‌ای ندارد.</p>{% endfor %}
     </div>
   </div>
-  <div class="col-md-4">
+
+  <!-- Top products -->
+  <div class="col-md-4 fade-in">
     <div class="card p-4 h-100">
+      <div style="position:absolute;top:0;right:0;left:0;height:2px;background:var(--grad-cyan);border-radius:var(--radius) var(--radius) 0 0"></div>
       <div class="d-flex align-items-center gap-2 mb-3">
-        <i class="bi bi-bag text-accent"></i>
-        <strong>پرفروش‌ترین محصولات</strong>
+        <i class="bi bi-bag" style="color:var(--neon-cyan)"></i>
+        <strong>پرفروش‌ترین‌ها</strong>
       </div>
       {% for p in top_products %}
-      <div class="rank-item">
+      <div class="d-flex justify-content-between align-items-center py-2" style="border-bottom:1px solid var(--glass-border)">
         <div>
-          <div class="ri-name">{{ p.product__name }}</div>
-          <div class="ri-sub">{{ p.total_qty|intcomma }} عدد فروخته‌شده</div>
+          <div style="font-size:.875rem;font-weight:500">{{ p.product__name }}</div>
+          <div style="font-size:.72rem;color:var(--text-3)">{{ p.total_qty }} عدد</div>
         </div>
-        <span class="text-warning small num fw-bold"> تومان {{ p.total_rev|intcomma }}</span>
+        <span class="num" style="color:var(--neon-gold);font-weight:700">${{ p.total_rev|floatformat:2 }}</span>
       </div>
-      {% empty %}<p class="text-muted small mt-2">فروشی ندارد.</p>{% endfor %}
+      {% empty %}<p style="color:var(--text-3);font-size:.8rem">فروشی ندارد.</p>{% endfor %}
     </div>
   </div>
-  <div class="col-md-4">
+
+  <!-- Top customers -->
+  <div class="col-md-4 fade-in">
     <div class="card p-4 h-100">
+      <div style="position:absolute;top:0;right:0;left:0;height:2px;background:var(--grad-green);border-radius:var(--radius) var(--radius) 0 0"></div>
       <div class="d-flex align-items-center gap-2 mb-3">
-        <i class="bi bi-people text-accent"></i>
+        <i class="bi bi-people" style="color:var(--neon-green)"></i>
         <strong>فعال‌ترین مشتریان</strong>
       </div>
-      {% for c in top_customers %}
-      {% if c.session_count > 0 %}
-      <div class="rank-item">
+      {% for c in top_customers %}{% if c.session_count > 0 %}
+      <div class="d-flex justify-content-between align-items-center py-2" style="border-bottom:1px solid var(--glass-border)">
         <div>
-          <div class="ri-name">
-            <a href="{% url 'customer_detail' c.pk %}" class="text-decoration-none" style="color:var(--text)">{{ c.name }}</a>
-          </div>
-          {% if c.balance < 0 %}
-          <div class="ri-sub text-danger">بدهی: تومان {{ c.debt_amount|intcomma }}</div>
-          {% endif %}
+          <a href="{% url 'customer_detail' c.pk %}" style="text-decoration:none;color:var(--text);font-size:.875rem;font-weight:500">{{ c.name }}</a>
+          {% if c.balance < 0 %}<div style="font-size:.7rem;color:var(--neon-red)">بدهی: ${{ c.debt_amount|floatformat:2 }}</div>{% endif %}
         </div>
-        <span class="badge badge-violet">{{ c.session_count }} سشن</span>
+        <span class="badge-ghost num">{{ c.session_count }} سشن</span>
       </div>
-      {% endif %}
-      {% empty %}<p class="text-muted small mt-2">اطلاعاتی ندارد.</p>{% endfor %}
+      {% endif %}{% empty %}<p style="color:var(--text-3);font-size:.8rem">داده‌ای ندارد.</p>{% endfor %}
     </div>
   </div>
 </div>
