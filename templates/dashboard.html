@@ -243,6 +243,16 @@
 </div>
 {% endif %}
 
+<!-- Alarm audio (Web Audio API — no file needed) -->
+<script>
+const CUSTOMERS = [
+  {% for c in customers_for_modal %}
+  {id:{{ c.id }},name:"{{ c.name|escapejs }}",balance:{{ c.balance }}},
+  {% endfor %}
+];
+</script>
+{% endblock %}
+
 <!-- ══════════════════════════════════════════
      START SESSION MODAL
 ══════════════════════════════════════════ -->
@@ -375,15 +385,8 @@
     </div>
   </div>
 </div>
+{% block modals %}
 
-<!-- Alarm audio (Web Audio API — no file needed) -->
-<script>
-const CUSTOMERS = [
-  {% for c in customers_for_modal %}
-  {id:{{ c.id }},name:"{{ c.name|escapejs }}",balance:{{ c.balance }}},
-  {% endfor %}
-];
-</script>
 {% endblock %}
 
 {% block extra_js %}
