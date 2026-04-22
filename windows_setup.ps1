@@ -19,26 +19,43 @@ if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 Write-Host "Deploying $TaskName..." -ForegroundColor Cyan
 
 # ==========================================
-# 1. Task Scheduler Setup (Idempotent)
+# 1. Task Scheduler Setup (Windows 7 compatible via schtasks.exe)
 # ==========================================
-# Remove existing task if it exists
-$existingTask = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
-if ($existingTask) {
-    Write-Host "Removing existing scheduled task..."
-    Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
+# Remove existing task if it exists (suppress errors)
+Write-Host "Removing any existing scheduled task..."
+schtasks /delete /tn $TaskName /f 2>$null
+
+# Build the full command line for the task
+$TaskCommand = "`"$PythonExe`" manage.py runserver 0.0.0.0:$Port"
+
+# Create the scheduled task using schtasks.exe
+# /sc ONLOGON  - trigger at user logon
+# /it          - run only when user is logged on (interactive task)
+# /ru          - run as the current user
+# /rl HIGHEST  - run with highest privileges (admin)
+# /f           - force creation (overwrite if exists)
+Write-Host "Creating scheduled task..."
+$createArgs = @(
+    "/create",
+    "/tn", "`"$TaskName`"",
+    "/tr", "`"$TaskCommand`"",
+    "/sc", "ONLOGON",
+    "/it",
+    "/ru", "$env:USERDOMAIN\$env:USERNAME",
+    "/rl", "HIGHEST",
+    "/f"
+)
+$createResult = schtasks @createArgs 2>&1
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Failed to create scheduled task. Error: $createResult"
+    Exit 1
 }
 
-# Create new task triggers and actions
-$Action = New-ScheduledTaskAction -Execute $PythonExe -Argument "manage.py runserver 0.0.0.0:$Port" -WorkingDirectory $ProjectDir
-$Trigger = New-ScheduledTaskTrigger -AtLogOn
-$Principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive
-
-# Register the task
-Register-ScheduledTask -TaskName $TaskName -Action $Action -Trigger $Trigger -Principal $Principal -Force | Out-Null
 Write-Host "Task Scheduler configured. Starting the service now..."
 
-# Start it immediately so you don't have to reboot
-Start-ScheduledTask -TaskName $TaskName
+# Start the task immediately (run once now)
+schtasks /run /tn $TaskName
 
 # ==========================================
 # 2. Desktop Shortcut Setup (Idempotent)
