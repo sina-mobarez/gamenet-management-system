@@ -1,150 +1,101 @@
 {% extends 'base.html' %}
-{% load shamsi humanize %}
+{% load shamsi %}
 {% block title %}{{ customer.name }}{% endblock %}
-
-{% block extra_css %}
-<style>
-.customer-avatar {
-  width: 64px; height: 64px; border-radius: 18px;
-  background: linear-gradient(135deg, rgba(124,58,237,0.4), rgba(236,72,153,0.3));
-  border: 1px solid var(--border2);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.6rem; font-family: 'Oxanium', sans-serif; font-weight: 800;
-}
-.balance-card {
-  background: var(--s2); border: 1px solid var(--border);
-  border-radius: 16px; padding: 1.25rem 1.75rem;
-  text-align: center; min-width: 180px;
-  position: relative; overflow: hidden;
-}
-.balance-card::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-}
-.balance-card.positive::before { background: var(--green); box-shadow: 0 0 12px var(--green); }
-.balance-card.negative::before { background: var(--red);   box-shadow: 0 0 12px var(--red);   }
-.balance-card.neutral::before  { background: var(--muted); }
-.balance-value { font-family: 'Oxanium', 'Vazirmatn', sans-serif; font-size: 2rem; font-weight: 800; }
-
-.history-item {
-  display: flex; justify-content: space-between; align-items: flex-start;
-  padding: .75rem 0; border-bottom: 1px solid rgba(124,58,237,0.08);
-}
-.history-item:last-child { border-bottom: none; padding-bottom: 0; }
-/* hi-sub: Persian date/info — Vazirmatn, no letter-spacing */
-.history-item .hi-sub { font-size: .73rem; font-family: 'Vazirmatn', sans-serif; color: var(--muted-lt); margin-top: .15rem; }
-</style>
-{% endblock %}
-
 {% block content %}
 <div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-3">
-  <div class="d-flex align-items-center gap-3">
-    <a href="{% url 'customers_list' %}" class="btn btn-sm btn-outline-secondary">← مشتریان</a>
-    <div class="d-flex align-items-center gap-3">
-      <div class="customer-avatar">{{ customer.name|slice:":1" }}</div>
-      <div>
-        <h2 style="margin-bottom:.2rem">{{ customer.name }}</h2>
-        {% if customer.phone %}
-        <div class="text-muted ltr" style="font-family:'Oxanium',monospace;font-size:.85rem">
-          <i class="bi bi-telephone me-1"></i>{{ customer.phone }}
-        </div>
-        {% endif %}
-      </div>
+  <div>
+    <a href="{% url 'customers_list' %}" class="btn btn-outline-secondary btn-sm mb-2">← مشتریان</a>
+    <h2>{{ customer.name }}</h2>
+    {% if customer.phone %}<div class="subtitle ltr"><i class="bi bi-telephone me-1"></i>{{ customer.phone }}</div>{% endif %}
+    {% if customer.debt_limit > 0 %}
+    <div class="subtitle">
+      سقف بدهی: <span class="num" style="color:var(--neon-gold)">{{ customer.debt_limit|floatformat:0 }}</span> تومان
+      {% if customer.is_suspended %}
+      <span class="badge-busy me-2" style="font-size:.7rem">🔒 مسدود</span>
+      {% endif %}
     </div>
-  </div>
-  <div class="balance-card {% if customer.balance < 0 %}negative{% elif customer.balance > 0 %}positive{% else %}neutral{% endif %}">
-    <div class="section-label">موجودی حساب</div>
-    <div class="balance-value {% if customer.balance < 0 %}text-danger{% elif customer.balance > 0 %}text-success{% else %}text-muted{% endif %}">
-       تومان {{ customer.balance|intcomma }}
-    </div>
-    {% if customer.balance < 0 %}
-    <div class="text-danger" style="font-size:.78rem;margin-top:.25rem">بدهی:  تومان {{ customer.debt_amount|intcomma }}</div>
     {% endif %}
+  </div>
+  <div class="d-flex gap-2 flex-wrap align-items-start">
+    <div class="stat-card text-center px-4 py-3"
+         style="{% if customer.balance < 0 %}border-color:rgba(244,63,94,.4){% elif customer.balance > 0 %}border-color:rgba(16,185,129,.4){% endif %}">
+      <div class="label">موجودی</div>
+      <div class="value num" style="color:{% if customer.balance < 0 %}var(--neon-red){% elif customer.balance > 0 %}var(--neon-green){% else %}var(--text-2){% endif %}">
+        {{ customer.balance|floatformat:0 }}
+      </div>
+      <div class="sub">تومان</div>
+    </div>
+    <div class="d-flex flex-column gap-2">
+      <a href="{% url 'customer_edit' customer.pk %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-pencil me-1"></i>ویرایش
+      </a>
+      <a href="{% url 'customer_delete' customer.pk %}" class="btn btn-outline-danger btn-sm">
+        <i class="bi bi-trash3 me-1"></i>حذف
+      </a>
+    </div>
   </div>
 </div>
 
 {% if customer.balance < 0 %}
-<div class="card neon-card-red p-4 mb-4">
-  <strong class="text-danger d-block mb-3">
-    <i class="bi bi-exclamation-triangle me-1"></i>تسویه بدهی
-  </strong>
-  <form method="post" action="{% url 'customer_settle' customer.pk %}" class="d-flex gap-2 align-items-end flex-wrap">
+<div class="card p-4 mb-4 fade-in" style="border-color:rgba(244,63,94,.3);background:rgba(244,63,94,.04)">
+  <div style="position:absolute;top:0;right:0;left:0;height:2px;background:var(--grad-pink);border-radius:var(--radius) var(--radius) 0 0"></div>
+  <strong style="color:var(--neon-red)" class="d-block mb-3"><i class="bi bi-exclamation-triangle me-1"></i>تسویه بدهی</strong>
+  <form method="post" action="{% url 'customer_settle' customer.pk %}" class="d-flex gap-3 align-items-end flex-wrap">
     {% csrf_token %}
     <div>
-      <label class="form-label">مبلغ دریافتی ( تومان )</label>
-      <input type="number" name="amount" class="form-control ltr" step="0.01" min="0.01"
-             value="{{ customer.debt_amount|intcomma }}" style="width:160px" required>
+      <label class="form-label">مبلغ دریافتی (تومان)</label>
+      <input type="number" name="amount" class="form-control ltr" step="1000" min="1000"
+             value="{{ customer.debt_amount|floatformat:0 }}" style="width:180px" required>
     </div>
     <div>
       <label class="form-label">یادداشت</label>
-      <input type="text" name="notes" class="form-control" placeholder="نقد، کارت و…" style="width:200px">
+      <input type="text" name="notes" class="form-control" placeholder="نقد، کارت…" style="width:200px">
     </div>
-    <button type="submit" class="btn btn-success">✓ تسویه</button>
+    <button type="submit" class="btn btn-success fw-bold">تسویه</button>
   </form>
 </div>
 {% endif %}
 
 <div class="row g-3">
-  <!-- Sessions -->
-  <div class="col-md-4">
+  <div class="col-md-4 fade-in">
     <div class="card p-4 h-100">
-      <div class="d-flex align-items-center gap-2 mb-3">
-        <i class="bi bi-controller text-accent"></i>
-        <strong>سشن‌های اخیر</strong>
-      </div>
+      <div style="position:absolute;top:0;right:0;left:0;height:2px;background:var(--grad-purple);border-radius:var(--radius) var(--radius) 0 0"></div>
+      <div class="d-flex align-items-center gap-2 mb-3"><i class="bi bi-controller" style="color:var(--neon-purple)"></i><strong>سشن‌های اخیر</strong></div>
       {% for s in sessions %}
-      <div class="history-item">
-        <div>
-          <div class="small fw-semibold">{{ s.device.name }}</div>
-          <div class="hi-sub">{{ s.started_at|shamsi:'short' }}</div>
-        </div>
-        <div class="num text-warning small fw-bold"> تومان {{ s.total_cost|intcomma|default:"فعال" }}</div>
+      <div class="d-flex justify-content-between py-2" style="border-bottom:1px solid var(--glass-border)">
+        <div><div style="font-size:.875rem;font-weight:500">{{ s.device.name }}</div>
+          <div style="font-size:.72rem;color:var(--text-3)">{{ s.started_at|shamsi:'short' }}</div></div>
+        <span class="num" style="color:var(--neon-gold);font-size:.875rem">{{ s.total_cost|default:"فعال"|floatformat:0 }}</span>
       </div>
-      {% empty %}<p class="text-muted small mt-2">سشنی ندارد.</p>{% endfor %}
+      {% empty %}<p style="color:var(--text-3);font-size:.8rem">سشنی ندارد.</p>{% endfor %}
     </div>
   </div>
-
-  <!-- Sales -->
-  <div class="col-md-4">
+  <div class="col-md-4 fade-in">
     <div class="card p-4 h-100">
-      <div class="d-flex align-items-center gap-2 mb-3">
-        <i class="bi bi-bag text-accent"></i>
-        <strong>خریدهای اخیر</strong>
-      </div>
+      <div style="position:absolute;top:0;right:0;left:0;height:2px;background:var(--grad-cyan);border-radius:var(--radius) var(--radius) 0 0"></div>
+      <div class="d-flex align-items-center gap-2 mb-3"><i class="bi bi-bag" style="color:var(--neon-cyan)"></i><strong>خریدهای اخیر</strong></div>
       {% for s in sales %}
-      <div class="history-item">
-        <div>
-          <div class="small fw-semibold">{{ s.product.name }} × {{ s.quantity|intcomma }}</div>
-          <div class="hi-sub">{{ s.sold_at|shamsi:'short' }} · {{ s.get_payment_type_display }}</div>
-        </div>
-        <div class="text-warning small num fw-bold"> تومان {{ s.total_price|intcomma }}</div>
+      <div class="d-flex justify-content-between py-2" style="border-bottom:1px solid var(--glass-border)">
+        <div><div style="font-size:.875rem">{{ s.product.name }} × {{ s.quantity }}</div>
+          <div style="font-size:.72rem;color:var(--text-3)">{{ s.sold_at|shamsi:'short' }}</div></div>
+        <span class="num" style="color:var(--neon-gold);font-size:.875rem">{{ s.total_price|floatformat:0 }}</span>
       </div>
-      {% empty %}<p class="text-muted small mt-2">خریدی ندارد.</p>{% endfor %}
+      {% empty %}<p style="color:var(--text-3);font-size:.8rem">خریدی ندارد.</p>{% endfor %}
     </div>
   </div>
-
-  <!-- Payments -->
-  <div class="col-md-4">
+  <div class="col-md-4 fade-in">
     <div class="card p-4 h-100">
-      <div class="d-flex align-items-center gap-2 mb-3">
-        <i class="bi bi-credit-card text-accent"></i>
-        <strong>تاریخچه پرداخت</strong>
-      </div>
+      <div style="position:absolute;top:0;right:0;left:0;height:2px;background:var(--grad-green);border-radius:var(--radius) var(--radius) 0 0"></div>
+      <div class="d-flex align-items-center gap-2 mb-3"><i class="bi bi-receipt" style="color:var(--neon-green)"></i><strong>تاریخچه پرداخت</strong></div>
       {% for p in payments %}
-      <div class="history-item">
-        <div>
-          <div class="small fw-semibold">
-            {% if p.payment_type == 'cash' %}💵 نقد
-            {% elif p.payment_type == 'account_debit' %}🏦 بدهکار
-            {% else %}✅ تسویه{% endif %}
-          </div>
-          <div class="hi-sub">{{ p.created_at|shamsi:'datetime' }}</div>
-          {% if p.notes %}<div class="hi-sub" style="color:var(--muted)">{{ p.notes }}</div>{% endif %}
-        </div>
-        <div class="num small fw-bold {% if p.payment_type == 'account_debit' %}text-danger{% else %}text-success{% endif %}">
-          {% if p.payment_type == 'account_debit' %} − {% else %} + {% endif %} تومان {{ p.amount|intcomma }}
-        </div>
+      <div class="d-flex justify-content-between py-2" style="border-bottom:1px solid var(--glass-border)">
+        <div><div style="font-size:.8rem">{% if p.payment_type == 'cash' %}💵 نقد{% elif p.payment_type == 'account_debit' %}🏦 بدهکار{% else %}✅ تسویه{% endif %}</div>
+          <div style="font-size:.7rem;color:var(--text-3)">{{ p.created_at|shamsi:'datetime' }}</div></div>
+        <span class="num fw-bold" style="font-size:.875rem;color:{% if p.payment_type == 'account_debit' %}var(--neon-red){% else %}var(--neon-green){% endif %}">
+          {% if p.payment_type == 'account_debit' %}−{% else %}+{% endif %}{{ p.amount|floatformat:0 }}
+        </span>
       </div>
-      {% empty %}<p class="text-muted small mt-2">پرداختی ندارد.</p>{% endfor %}
+      {% empty %}<p style="color:var(--text-3);font-size:.8rem">پرداختی ندارد.</p>{% endfor %}
     </div>
   </div>
 </div>
