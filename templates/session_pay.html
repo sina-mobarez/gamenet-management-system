@@ -1,253 +1,278 @@
 {% extends 'base.html' %}
-{% load shamsi humanize %}
+{% load shamsi %}
 {% block title %}پرداخت سشن{% endblock %}
-
-{% block extra_css %}
-<style>
-.pay-stat {
-  background: var(--s2); border: 1px solid var(--border);
-  border-radius: 14px; padding: 1.1rem 1.4rem; text-align: center;
-  position: relative; overflow: hidden;
-}
-.pay-stat::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
-.pay-stat.ps-neutral::before  { background: var(--muted); }
-.pay-stat.ps-green::before    { background: var(--green);  box-shadow: 0 0 10px var(--green); }
-.pay-stat.ps-amber::before    { background: var(--amber);  box-shadow: 0 0 10px var(--amber); }
-/* Pay stat labels contain Persian — use Vazirmatn, no letter-spacing */
-.pay-stat .ps-label { font-size: .72rem; font-family: 'Vazirmatn', sans-serif; font-weight: 700; color: var(--muted-lt); }
-.pay-stat .ps-value { font-family: 'Oxanium', 'Vazirmatn', sans-serif; font-size: 1.7rem; font-weight: 800; margin-top: .2rem; }
-
-.payment-entry {
-  background: var(--s3); border: 1px solid var(--border);
-  border-radius: 12px; padding: .85rem 1rem;
-  display: flex; justify-content: space-between; align-items: flex-start;
-  transition: all .15s;
-}
-.payment-entry:hover { border-color: var(--border2); }
-</style>
-{% endblock %}
-
 {% block content %}
+
 <div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-3">
   <div>
-    <a href="{% url 'dashboard' %}" class="btn btn-sm btn-outline-secondary mb-3">
+    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm mb-2">
       <i class="bi bi-arrow-right me-1"></i>داشبورد
     </a>
-    <h2><i class="bi bi-credit-card-fill me-2" style="-webkit-text-fill-color:var(--cyan-lt);color:var(--cyan-lt)"></i>پرداخت سشن</h2>
-    <p class="text-muted mb-0" style="font-size:.83rem">
-      {{ session.device.name }} &nbsp;|&nbsp;
+    <h2>پرداخت سشن</h2>
+    <div class="subtitle">
+      {{ session.device.name }} &nbsp;·&nbsp;
       {{ session.started_at|shamsi }} → {{ session.ended_at|shamsi:'time' }}
-    </p>
+    </div>
   </div>
   <form method="post">
     {% csrf_token %}
-    <button name="action" value="leave" type="submit" class="btn btn-outline-secondary">
-      <i class="bi bi-clock me-1"></i>بعداً پرداخت
+    <button name="action" value="leave" class="btn btn-outline-secondary">
+      <i class="bi bi-clock me-1"></i>بعداً پرداخت کنم
     </button>
   </form>
 </div>
 
-<!-- Stats -->
+<!-- ── Cost summary cards ── -->
 <div class="row g-3 mb-4">
-  <div class="col-sm-4">
-    <div class="pay-stat ps-neutral">
-      <div class="ps-label">مبلغ کل</div>
-      <div class="ps-value num"> تومان {{ session.total_cost|intcomma }}</div>
-      <div style="font-size:.75rem;color:var(--muted);margin-top:.2rem">مدت: {{ session.duration_display }}</div>
+  <div class="col-sm-4 fade-in">
+    <div class="stat-card text-center">
+      <div class="label">مبلغ کل سشن</div>
+      <div class="value num" style="background:var(--grad-main);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">
+        {{ session.total_cost|floatformat:0 }} تومان
+      </div>
+      <div class="sub">مدت: {{ session.duration_display }}</div>
     </div>
   </div>
-  <div class="col-sm-4">
-    <div class="pay-stat ps-green">
-      <div class="ps-label">پرداخت‌شده</div>
-      <div class="ps-value text-success num"> تومان {{ session.paid_amount|intcomma }}</div>
+  <div class="col-sm-4 fade-in">
+    <div class="stat-card text-center">
+      <div class="label">پرداخت‌شده</div>
+      <div class="value num grad-text-green">{{ session.paid_amount|floatformat:0 }} تومان</div>
+      <div class="sub">{{ existing_payments.count }} تراکنش</div>
     </div>
   </div>
-  <div class="col-sm-4">
-    <div class="pay-stat {% if session.is_fully_paid %}ps-green{% else %}ps-amber{% endif %}">
-      <div class="ps-label">مانده</div>
-      <div class="ps-value {% if session.is_fully_paid %}text-success{% else %}text-warning{% endif %} num">
-         تومان {{ session.remaining_amount|intcomma }}
+  <div class="col-sm-4 fade-in">
+    <div class="stat-card text-center"
+         style="{% if session.is_fully_paid %}border-color:rgba(16,185,129,0.4);background:rgba(16,185,129,0.06){% else %}border-color:rgba(245,158,11,0.4);background:rgba(245,158,11,0.05){% endif %}">
+      <div class="label">مانده</div>
+      <div class="value num {% if session.is_fully_paid %}grad-text-green{% else %}grad-text-gold{% endif %}">
+        {{ session.remaining_amount|floatformat:0 }} تومان
       </div>
       {% if session.is_fully_paid %}
-      <div style="font-size:.72rem;color:var(--green);margin-top:.2rem"><i class="bi bi-check-circle-fill me-1"></i>تسویه کامل</div>
+      <div class="sub" style="color:var(--neon-green)"><i class="bi bi-check-circle-fill me-1"></i>تسویه کامل</div>
       {% endif %}
     </div>
   </div>
 </div>
 
-<!-- Progress -->
+<!-- Progress bar -->
 {% if session.total_cost %}
 <div class="mb-4">
-  <div class="d-flex justify-content-between text-muted mb-1" style="font-size:.78rem">
-    <span>پیشرفت پرداخت</span>
-    <span class="num">{{ session.paid_amount|intcomma }} / {{ session.total_cost|intcomma }}</span>
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <span style="font-size:.75rem;color:var(--text-3);font-family:'Oxanium',sans-serif;text-transform:uppercase;letter-spacing:1px">پیشرفت پرداخت</span>
+    <span class="num" style="font-family:'Oxanium',sans-serif;font-size:.85rem;color:var(--text-2)">
+      {{ session.paid_amount|floatformat:0 }} / {{ session.total_cost|floatformat:0 }}
+    </span>
   </div>
-  <div class="progress" style="height:8px">
-    <div class="progress-bar bg-success"
-         style="width: {% widthratio session.paid_amount session.total_cost 100 %}%"></div>
+  <div class="progress" style="height:8px;border-radius:99px">
+    <div class="progress-bar" style="width:{% widthratio session.paid_amount session.total_cost 100 %}%;border-radius:99px"></div>
   </div>
 </div>
 {% endif %}
 
-<div class="row g-3">
-  <!-- Add payment -->
+<div class="row g-4">
+
+  <!-- ── LEFT: Add Payment ── -->
   <div class="col-lg-7">
     {% if not session.is_fully_paid %}
-    <div class="card p-4 mb-3">
-      <div class="d-flex align-items-center gap-2 mb-3">
-        <i class="bi bi-plus-circle-fill text-accent"></i>
-        <strong>افزودن پرداخت</strong>
+
+    <!-- Add payment panel -->
+    <div class="card p-4 mb-3 fade-in" style="border-color:rgba(168,85,247,0.2)">
+      <!-- Gradient top line -->
+      <div style="position:absolute;top:0;right:0;left:0;height:2px;background:var(--grad-main);border-radius:var(--radius) var(--radius) 0 0"></div>
+
+      <div class="d-flex align-items-center gap-2 mb-4">
+        <div style="width:32px;height:32px;background:linear-gradient(135deg,#7c3aed,#a855f7);border-radius:8px;display:flex;align-items:center;justify-content:center">
+          <i class="bi bi-plus-lg" style="color:#fff;font-size:.9rem"></i>
+        </div>
+        <strong style="font-family:'Oxanium',sans-serif;font-size:.95rem">افزودن پرداخت</strong>
       </div>
-      <form method="post" id="addPayForm">
+
+      <form method="post">
         {% csrf_token %}
         <input type="hidden" name="action" value="add_payment">
-        <div class="row g-2 align-items-end">
-          <div class="col-sm-4">
-            <label class="form-label">مبلغ ( تومان )</label>
+
+        <div class="row g-3 mb-3">
+          <!-- Amount -->
+          <div class="col-sm-5">
+            <label class="form-label">مبلغ ($)</label>
             <div class="input-group">
-              <span class="input-group-text"> تومان </span>
+              <span class="input-group-text" style="font-family:'Oxanium',sans-serif;color:var(--neon-gold)">$</span>
               <input type="number" name="amount" id="amountInput"
                      class="form-control ltr text-center fw-bold"
-                     step="0.01" min="0.01"
-                     value="{{ session.remaining_amount|intcomma }}" required>
+                     style="font-family:'Oxanium',sans-serif;font-size:1rem"
+                     step="1000" min="1000"
+                     value="{{ session.remaining_amount|floatformat:0 }}" required>
             </div>
           </div>
+
+          <!-- Type -->
           <div class="col-sm-4">
-            <label class="form-label">روش پرداخت</label>
+            <label class="form-label">روش</label>
             <select name="pay_type" id="payTypeSelect" class="form-select" onchange="toggleCustomer()">
               <option value="cash">💵 نقد</option>
               <option value="account">🏦 حساب</option>
             </select>
           </div>
-          <div class="col-sm-4" id="customerSelectWrap" style="display:none">
+
+          <!-- Customer -->
+          <div class="col-sm-3" id="customerSelectWrap" style="display:none">
             <label class="form-label">مشتری</label>
             <select name="customer_id" id="customerSelect" class="form-select">
               <option value="">— انتخاب —</option>
               {% for c in customers %}
-              <option value="{{ c.id }}" data-balance="{{ c.balance|intcomma }}">
-                {{ c.name }}{% if c.balance < 0 %} ⚠  تومان {{ c.debt_amount|intcomma }}{% endif %}
+              <option value="{{ c.id }}" data-balance="{{ c.balance }}">
+                {{ c.name }}{% if c.balance < 0 %} ⚠{% endif %}
               </option>
               {% endfor %}
             </select>
           </div>
         </div>
-        <div class="mt-2">
-          <input type="text" name="notes" class="form-control form-control-sm" placeholder="یادداشت (اختیاری)">
+
+        <!-- Notes -->
+        <div class="mb-3">
+          <input type="text" name="notes" class="form-control form-control-sm"
+                 placeholder="یادداشت (اختیاری)…">
         </div>
-        <div class="d-flex gap-2 mt-3 flex-wrap">
-          <button type="button" class="btn btn-sm btn-outline-secondary"
+
+        <!-- Quick-fill chips -->
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          <span class="section-label w-100 mb-0">میان‌بر مبلغ:</span>
+          <button type="button" class="btn btn-outline-secondary btn-sm"
                   onclick="setAmount({{ session.remaining_amount }})">
-            همه باقیمانده ( تومان {{ session.remaining_amount|intcomma }})
+            همه مانده ({{ session.remaining_amount|floatformat:0 }} تومان)
           </button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setAmount(50000)">۵۰,۰۰۰</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setAmount(100000)">۱۰۰,۰۰۰</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setAmount(200000)">۲۰۰,۰۰۰</button>
           {% if session.players.count > 1 %}
-          <button type="button" class="btn btn-sm btn-outline-secondary"
-                  onclick="setAmount({{ session.remaining_amount }} / {{ session.players.count }})">
-            تقسیم بین {{ session.players.count }} نفر
+          <button type="button" class="btn btn-outline-secondary btn-sm"
+                  onclick="setAmount(Math.round({{ session.remaining_amount }} / {{ session.players.count }} / 1000) * 1000)">
+            ÷ {{ session.players.count }} نفر
           </button>
           {% endif %}
         </div>
-        <div class="mt-3">
-          <button type="submit" class="btn btn-primary px-4 fw-bold">
-            <i class="bi bi-check2 me-1"></i>ثبت پرداخت
-          </button>
-        </div>
+
+        <button type="submit" class="btn btn-primary w-100 fw-bold btn-glow">
+          <i class="bi bi-check2-circle me-1"></i>ثبت پرداخت
+        </button>
       </form>
     </div>
 
     <!-- Quick shortcuts -->
-    <div class="card p-3 mb-3">
-      <div class="section-label mb-2">میان‌بر سریع</div>
+    <div class="card p-3 mb-3 fade-in">
+      <div class="section-label mb-2">پرداخت سریع</div>
       <div class="d-flex gap-2 flex-wrap">
         <form method="post" class="d-inline">
           {% csrf_token %}
-          <button name="action" value="pay_remaining_cash" type="submit" class="btn btn-success btn-sm fw-bold"
-                  onclick="return confirm('همه نقد؟')">
-            <i class="bi bi-cash me-1"></i>همه نقد ( تومان {{ session.remaining_amount|intcomma }})
+          <button name="action" value="pay_remaining_cash" type="submit"
+                  class="btn btn-success btn-sm"
+                  onclick="return confirm('تمام {{ session.remaining_amount|floatformat:0 }} تومان نقد دریافت شود؟')">
+            <i class="bi bi-cash me-1"></i>همه نقد ({{ session.remaining_amount|floatformat:0 }} تومان)
           </button>
         </form>
-        <button type="button" class="btn btn-outline-secondary btn-sm"
+        <button type="button" class="btn btn-outline-warning btn-sm"
                 data-bs-toggle="modal" data-bs-target="#allAccountModal">
           <i class="bi bi-person-lines-fill me-1"></i>همه به حساب
         </button>
       </div>
     </div>
+
     {% else %}
-    <div class="card p-5 text-center neon-card-green mb-3">
-      <div style="font-size:3rem;color:var(--green);text-shadow:0 0 30px var(--green)">
-        <i class="bi bi-check-circle-fill"></i>
+    <!-- Fully paid state -->
+    <div class="card p-5 text-center fade-in" style="border-color:rgba(16,185,129,0.3);background:rgba(16,185,129,0.05)">
+      <div style="font-size:3.5rem;margin-bottom:1rem;filter:drop-shadow(0 0 20px rgba(16,185,129,0.5))">✅</div>
+      <div style="font-family:'Oxanium',sans-serif;font-size:1.3rem;font-weight:800;color:var(--neon-green);margin-bottom:.5rem">
+        پرداخت کامل
       </div>
-      <div class="fw-bold text-success fs-5 mt-2">پرداخت کامل است</div>
-      <a href="{% url 'dashboard' %}" class="btn btn-success mt-3 px-4">بازگشت به داشبورد</a>
+      <div style="color:var(--text-3);font-size:.85rem;margin-bottom:1.5rem">این سشن کاملاً تسویه شده است.</div>
+      <a href="{% url 'dashboard' %}" class="btn btn-success mx-auto" style="width:200px">بازگشت به داشبورد</a>
     </div>
     {% endif %}
 
+    <!-- Players -->
     {% if players %}
-    <div class="card p-3">
+    <div class="card p-3 fade-in">
       <div class="section-label mb-2">بازیکنان این سشن</div>
       <div class="d-flex flex-wrap gap-2">
         {% for p in players %}
-        <span class="badge badge-violet py-2 px-3" style="font-size:.82rem">
-          <i class="bi bi-person me-1"></i>{{ p.display_name }}
+        <div class="pay-row d-inline-flex align-items-center gap-2">
+          <i class="bi bi-person-fill" style="color:var(--neon-purple)"></i>
+          <span>{{ p.display_name }}</span>
           {% if p.customer and p.customer.balance < 0 %}
-          <span class="badge badge-busy ms-1" style="font-size:.68rem">بدهی:  تومان {{ p.customer.debt_amount|intcomma }}</span>
+          <span class="badge-busy" style="font-size:.6rem">بدهی {{ p.customer.debt_amount|floatformat:0 }} تومان</span>
           {% endif %}
-        </span>
+        </div>
         {% endfor %}
       </div>
     </div>
     {% endif %}
   </div>
 
-  <!-- Payment history -->
+  <!-- ── RIGHT: Payment log ── -->
   <div class="col-lg-5">
-    <div class="card p-4 h-100">
-      <div class="d-flex align-items-center gap-2 mb-3">
-        <i class="bi bi-receipt text-accent"></i>
-        <strong>پرداخت‌های ثبت‌شده</strong>
-        {% if existing_payments.count > 0 %}
-        <span class="badge badge-violet ms-auto">{{ existing_payments.count }}</span>
+    <div class="card p-4 h-100 fade-in" style="border-color:rgba(6,182,212,0.15)">
+      <div style="position:absolute;top:0;right:0;left:0;height:2px;background:var(--grad-cyan);border-radius:var(--radius) var(--radius) 0 0"></div>
+
+      <div class="d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center gap-2">
+          <div style="width:32px;height:32px;background:linear-gradient(135deg,#0891b2,#06b6d4);border-radius:8px;display:flex;align-items:center;justify-content:center">
+            <i class="bi bi-receipt" style="color:#fff;font-size:.85rem"></i>
+          </div>
+          <strong style="font-family:'Oxanium',sans-serif;font-size:.95rem">تراکنش‌ها</strong>
+        </div>
+        {% if existing_payments.count %}
+        <span class="badge-ghost">{{ existing_payments.count }} مورد</span>
         {% endif %}
       </div>
+
       {% if existing_payments %}
       <div class="d-flex flex-column gap-2">
         {% for pay in existing_payments %}
-        <div class="payment-entry">
+        <div class="pay-row d-flex justify-content-between align-items-start">
           <div>
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2 mb-1">
               {% if pay.payment_type == 'cash' %}
-              <span class="badge badge-free">💵 نقد</span>
+              <span class="badge-free" style="font-size:.65rem">💵 نقد</span>
               {% else %}
-              <span class="badge badge-cyan">🏦 حساب</span>
+              <span class="badge-info" style="font-size:.65rem">🏦 حساب</span>
               {% endif %}
-              <span class="text-warning fw-bold num"> تومان {{ pay.amount|intcomma }}</span>
+              <span class="num fw-bold" style="color:var(--neon-gold);font-size:1rem">{{ pay.amount|floatformat:0 }} تومان</span>
             </div>
             {% if pay.customer %}
-            <div class="text-muted small mt-1"><i class="bi bi-person me-1"></i>{{ pay.customer.name }}</div>
+            <div style="font-size:.75rem;color:var(--text-3)">
+              <i class="bi bi-person me-1"></i>{{ pay.customer.name }}
+            </div>
             {% endif %}
             {% if pay.notes %}
-            <div class="text-muted small">{{ pay.notes }}</div>
+            <div style="font-size:.72rem;color:var(--text-3)">{{ pay.notes }}</div>
             {% endif %}
-            <div class="text-muted" style="font-size:.7rem;margin-top:.2rem">{{ pay.created_at|shamsi:'datetime' }}</div>
+            <div style="font-size:.68rem;color:var(--text-3);margin-top:.2rem">
+              {{ pay.created_at|shamsi:'datetime' }}
+            </div>
           </div>
-          <form method="post" class="ms-2">
+          <form method="post" class="me-1">
             {% csrf_token %}
             <input type="hidden" name="action" value="delete_payment">
             <input type="hidden" name="payment_id" value="{{ pay.pk }}">
-            <button type="submit" class="btn btn-sm btn-outline-danger px-2"
-                    onclick="return confirm('این پرداخت حذف شود؟')">
-              <i class="bi bi-trash3"></i>
+            <button type="submit" class="btn btn-outline-danger btn-sm px-2"
+                    onclick="return confirm('این پرداخت حذف شود؟')"
+                    title="حذف">
+              <i class="bi bi-trash3" style="font-size:.8rem"></i>
             </button>
           </form>
         </div>
         {% endfor %}
       </div>
-      <div class="mt-3 pt-3 d-flex justify-content-between" style="border-top:1px solid rgba(124,58,237,0.1)">
-        <span class="text-muted small">جمع پرداخت‌شده</span>
-        <span class="fw-bold text-success num"> تومان {{ session.paid_amount|intcomma }}</span>
+
+      <div class="neon-sep"></div>
+      <div class="d-flex justify-content-between align-items-center">
+        <span style="font-size:.8rem;color:var(--text-3)">جمع پرداخت‌شده</span>
+        <span class="num fw-bold grad-text-green" style="font-size:1.1rem">{{ session.paid_amount|floatformat:0 }} تومان</span>
       </div>
+
       {% else %}
-      <div class="text-center text-muted py-5">
-        <i class="bi bi-inbox d-block mb-2" style="font-size:2rem;opacity:.3"></i>
+      <div class="text-center py-4" style="color:var(--text-3)">
+        <i class="bi bi-inbox" style="font-size:2.5rem;display:block;margin-bottom:.75rem;opacity:.3"></i>
         هنوز پرداختی ثبت نشده
       </div>
       {% endif %}
@@ -255,9 +280,6 @@
   </div>
 </div>
 
-{% endblock %}
-
-{% block modals %}
 <!-- All to account modal -->
 <div class="modal fade" id="allAccountModal" tabindex="-1">
   <div class="modal-dialog modal-sm">
@@ -270,11 +292,10 @@
         {% csrf_token %}
         <input type="hidden" name="action" value="pay_remaining_account">
         <div class="modal-body">
-          <div class="p-3 rounded-3 mb-3" style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2)">
-            <div class="text-muted small">مبلغ</div>
-            <div class="fw-bold text-warning num" style="font-size:1.1rem"> تومان {{ session.remaining_amount|intcomma }}</div>
-          </div>
-          <label class="form-label">حساب مشتری</label>
+          <p style="color:var(--neon-gold)">
+            مبلغ <strong class="num">{{ session.remaining_amount|floatformat:0 }} تومان</strong>
+            به حساب کدام مشتری اضافه شود؟
+          </p>
           <select name="customer_id" class="form-select" required>
             <option value="">— انتخاب مشتری —</option>
             {% for c in customers %}
@@ -291,19 +312,17 @@
   </div>
 </div>
 {% endblock %}
-
-
 {% block extra_js %}
 <script>
 function toggleCustomer() {
   const t = document.getElementById('payTypeSelect').value;
   const w = document.getElementById('customerSelectWrap');
   w.style.display = t === 'account' ? 'block' : 'none';
-  document.getElementById('customerSelect').required = t === 'account';
 }
 function setAmount(val) {
-  try { document.getElementById('amountInput').value = parseFloat(eval(val)).toFixed(2); }
-  catch(e) { document.getElementById('amountInput').value = val; }
+  try {
+    document.getElementById('amountInput').value = parseFloat(eval(val)).toFixed(2);
+  } catch(e) { document.getElementById('amountInput').value = val; }
 }
 </script>
 {% endblock %}
