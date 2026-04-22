@@ -2,23 +2,43 @@
 {% block title %}{{ action }} مشتری{% endblock %}
 {% block content %}
 <div class="page-header">
-  <a href="{% url 'customers_list' %}" class="btn btn-sm btn-outline-secondary mb-3">← مشتریان</a>
+  <a href="{% url 'customers_list' %}" class="btn btn-outline-secondary btn-sm mb-2">← مشتریان</a>
   <h2>{{ action }} مشتری</h2>
 </div>
-<div class="card p-4" style="max-width:440px">
+<div class="card p-4 fade-in" style="max-width:480px;border-color:rgba(168,85,247,.2)">
+  <div style="position:absolute;top:0;right:0;left:0;height:2px;background:var(--grad-main);border-radius:var(--radius) var(--radius) 0 0"></div>
   <form method="post">
     {% csrf_token %}
     <div class="mb-3">
       <label class="form-label">نام کامل *</label>
-      <input type="text" name="name" class="form-control" required autofocus placeholder="علی احمدی">
+      <input type="text" name="name" class="form-control" value="{{ customer.name|default:'' }}" required autofocus>
     </div>
+    <div class="mb-3">
+      <label class="form-label">تلفن (اختیاری)</label>
+      <input type="text" name="phone" class="form-control ltr" value="{{ customer.phone|default:'' }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">سقف بدهی (تومان)</label>
+      <div class="input-group">
+        <input type="number" name="debt_limit" class="form-control ltr text-center" step="1000" min="0"
+               value="{{ customer.debt_limit|default:0 }}"
+               style="font-family:'Oxanium',sans-serif">
+        <span class="input-group-text">تومان</span>
+      </div>
+      <div style="font-size:.73rem;color:var(--text-3);margin-top:.3rem">
+        ۰ = بدون سقف &nbsp;·&nbsp; هر مبلغ مثبت = حد مجاز بدهی. پس از رسیدن به سقف، حساب مسدود می‌شود.
+      </div>
+    </div>
+    {% if customer %}
     <div class="mb-4">
-      <label class="form-label">تلفن <span class="text-muted">(اختیاری)</span></label>
-      <input type="text" name="phone" class="form-control ltr" placeholder="09123456789">
+      <label class="form-label">یادداشت</label>
+      <textarea name="notes" class="form-control" rows="2">{{ customer.notes|default:'' }}</textarea>
     </div>
+    {% endif %}
     <div class="d-flex gap-2">
       <button type="submit" class="btn btn-primary">{{ action }}</button>
-      <a href="{% url 'customers_list' %}" class="btn btn-outline-secondary">انصراف</a>
+      <a href="{% if customer %}{% url 'customer_detail' customer.pk %}{% else %}{% url 'customers_list' %}{% endif %}"
+         class="btn btn-outline-secondary">انصراف</a>
     </div>
   </form>
 </div>
