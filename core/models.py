@@ -8,8 +8,9 @@ class Device(models.Model):
         ('snooker',  'Snooker'),
         ('ps4',      'PS4'),
         ('ps5',      'PS5'),
-        ('AirHocky', 'Air Hocky'),
-        ('system', 'Custom System')
+        ('airHocky', 'Air Hocky'),
+        ('system', 'Custom System'),
+        ('tennis', 'Tennis')
     ]
     name                   = models.CharField(max_length=100)
     device_type            = models.CharField(max_length=20, choices=DEVICE_TYPES)
