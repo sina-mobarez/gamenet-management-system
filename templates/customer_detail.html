@@ -92,7 +92,7 @@
         <div><div style="font-size:.8rem">{% if p.payment_type == 'cash' %}💵 نقد{% elif p.payment_type == 'account_debit' %}🏦 بدهکار{% else %}✅ تسویه{% endif %}</div>
           <div style="font-size:.7rem;color:var(--text-3)">{{ p.created_at|shamsi:'datetime' }}</div></div>
         <span class="num fw-bold" style="font-size:.875rem;color:{% if p.payment_type == 'account_debit' %}var(--neon-red){% else %}var(--neon-green){% endif %}">
-          {% if p.payment_type == 'account_debit' %}−{% else %}+{% endif %}{{ p.amount|intcomma}
+          {% if p.payment_type == 'account_debit' %}−{% else %}+{% endif %}{{ p.amount|intcomma }
         </span>
       </div>
       {% empty %}<p style="color:var(--text-3);font-size:.8rem">پرداختی ندارد.</p>{% endfor %}
