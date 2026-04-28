@@ -36,25 +36,51 @@
   </div>
 </div>
 
-{% if customer.balance < 0 %}
-<div class="card p-4 mb-4 fade-in" style="border-color:rgba(244,63,94,.3);background:rgba(244,63,94,.04)">
-  <div style="position:absolute;top:0;right:0;left:0;height:2px;background:var(--grad-pink);border-radius:var(--radius) var(--radius) 0 0"></div>
-  <strong style="color:var(--neon-red)" class="d-block mb-3"><i class="bi bi-exclamation-triangle me-1"></i>تسویه بدهی</strong>
-  <form method="post" action="{% url 'customer_settle' customer.pk %}" class="d-flex gap-3 align-items-end flex-wrap">
-    {% csrf_token %}
-    <div>
-      <label class="form-label">مبلغ دریافتی (تومان)</label>
-      <input type="number" name="amount" class="form-control ltr" step="1000" min="1000"
-             value="{{ customer.debt_amount|intcomma }}" style="width:180px" required>
+<!-- Action cards row -->
+<div class="row g-3 mb-4">
+  <!-- Settle debt (only when in debt) -->
+  {% if customer.balance < 0 %}
+  <div class="col-md-6 fade-in">
+    <div class="card p-4 h-100" style="border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.04)">
+      <div style="position:absolute;top:0;right:0;left:0;height:2px;background:var(--grad-green);border-radius:var(--radius) var(--radius) 0 0"></div>
+      <strong style="color:var(--neon-green)" class="d-block mb-3"><i class="bi bi-check-circle me-1"></i>تسویه بدهی</strong>
+      <form method="post" action="{% url 'customer_settle' customer.pk %}" class="d-flex flex-column gap-2">
+        {% csrf_token %}
+        <div>
+          <label class="form-label">مبلغ دریافتی (تومان)</label>
+          <input type="number" name="amount" class="form-control ltr" step="1000" min="1000"
+                 value="{{ customer.debt_amount }}" required>
+        </div>
+        <div>
+          <label class="form-label">یادداشت</label>
+          <input type="text" name="notes" class="form-control" placeholder="نقد، کارت…">
+        </div>
+        <button type="submit" class="btn btn-success fw-bold">تسویه</button>
+      </form>
     </div>
-    <div>
-      <label class="form-label">یادداشت</label>
-      <input type="text" name="notes" class="form-control" placeholder="نقد، کارت…" style="width:200px">
+  </div>
+  {% endif %}
+
+  <!-- Add manual debt -->
+  <div class="col-md-6 fade-in">
+    <div class="card p-4 h-100" style="border-color:rgba(244,63,94,.3);background:rgba(244,63,94,.04)">
+      <div style="position:absolute;top:0;right:0;left:0;height:2px;background:var(--grad-pink);border-radius:var(--radius) var(--radius) 0 0"></div>
+      <strong style="color:var(--neon-red)" class="d-block mb-3"><i class="bi bi-plus-circle me-1"></i>افزودن بدهی دستی</strong>
+      <form method="post" action="{% url 'customer_add_debt' customer.pk %}" class="d-flex flex-column gap-2">
+        {% csrf_token %}
+        <div>
+          <label class="form-label">مبلغ بدهی (تومان)</label>
+          <input type="number" name="amount" class="form-control ltr" step="1000" min="1000" placeholder="مثلاً ۵۰۰۰۰" required>
+        </div>
+        <div>
+          <label class="form-label">یادداشت</label>
+          <input type="text" name="notes" class="form-control" placeholder="توضیح…">
+        </div>
+        <button type="submit" class="btn btn-danger fw-bold">ثبت بدهی</button>
+      </form>
     </div>
-    <button type="submit" class="btn btn-success fw-bold">تسویه</button>
-  </form>
+  </div>
 </div>
-{% endif %}
 
 <div class="row g-3">
   <div class="col-md-4 fade-in">

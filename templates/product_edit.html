@@ -1,5 +1,10 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}ویرایش {{ product.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/tom-select.min.css' %}">
+{% endblock %}
 {% block content %}
 <div class="page-header">
   <a href="{% url 'products_manage' %}" class="btn btn-outline-secondary btn-sm mb-2">← محصولات</a>
@@ -52,4 +57,11 @@
     </div>
   </form>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/tom-select.min.js' %}"></script>
+<script>
+new TomSelect('select[name="category_id"]', { create: false });
+</script>
 {% endblock %}

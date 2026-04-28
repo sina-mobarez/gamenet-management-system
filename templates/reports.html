@@ -4,10 +4,15 @@
 {% block content %}
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
   <h2>گزارش مالی</h2>
-  <div style="background:rgba(255,255,255,0.04);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:.3rem;display:flex;gap:.25rem">
-    <a href="?period=today" class="btn btn-sm {% if period == 'today' %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="border-radius:6px">امروز</a>
-    <a href="?period=week"  class="btn btn-sm {% if period == 'week'  %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="border-radius:6px">۷ روز</a>
-    <a href="?period=month" class="btn btn-sm {% if period == 'month' %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="border-radius:6px">۳۰ روز</a>
+  <div class="d-flex gap-2 align-items-center flex-wrap">
+    <div style="background:rgba(255,255,255,0.04);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:.3rem;display:flex;gap:.25rem">
+      <a href="?period=today" class="btn btn-sm {% if period == 'today' %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="border-radius:6px">امروز</a>
+      <a href="?period=week"  class="btn btn-sm {% if period == 'week'  %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="border-radius:6px">۷ روز</a>
+      <a href="?period=month" class="btn btn-sm {% if period == 'month' %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="border-radius:6px">۳۰ روز</a>
+    </div>
+    <a href="{% url 'reports_csv' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-download me-1"></i>خروجی CSV بدهی‌ها
+    </a>
   </div>
 </div>
 

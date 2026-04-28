@@ -36,9 +36,9 @@
   --neon-gold:   #f59e0b;
 
   /* Text */
-  --text:    #e8e8f0;
-  --text-2:  #a0a0c0;
-  --text-3:  #5a5a80;
+  --text:    #f0f0fa;
+  --text-2:  #c8c8e0;
+  --text-3:  #9898b8;
 
   --sidebar-w: 240px;
   --radius:  14px;
@@ -74,7 +74,8 @@ body {
 
 /* Global form elements — always Vazirmatn so Persian placeholders render correctly */
 strong {
-  color: rgb(5, 94, 97);
+  color: var(--text);
+  font-weight: 700;
 }
 input, textarea, select, button, optgroup, option {
   font-family: 'Vazirmatn', sans-serif;
@@ -166,7 +167,7 @@ body::after {
   opacity: 0.6;
 }
 .sidebar-logo .brand {
-  font-family: 'Oxanium', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 1.35rem;
   font-weight: 800;
   background: var(--grad-main);
@@ -183,12 +184,13 @@ body::after {
 }
 
 .nav-section-label {
-  font-size: .6rem;
+  font-size: .68rem;
   text-transform: uppercase;
-  letter-spacing: 2px;
-  color: var(--text-3);
+  letter-spacing: 1.5px;
+  color: var(--text-2);
   padding: 1rem 1.25rem .3rem;
-  font-family: 'Oxanium', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
 }
 
 .sidebar-nav {
@@ -330,22 +332,23 @@ body::after {
 .stat-card:hover { transform: translateY(-2px); }
 
 .stat-card .label {
-  font-size: .65rem;
+  font-size: .72rem;
   text-transform: uppercase;
-  letter-spacing: 2px;
-  color: var(--text-3);
-  font-family: 'Oxanium', sans-serif;
+  letter-spacing: 1px;
+  color: var(--text-2);
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
   margin-bottom: .4rem;
 }
 .stat-card .value {
-  font-family: 'Oxanium', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 1.9rem;
   font-weight: 800;
   line-height: 1;
 }
 .stat-card .sub {
-  font-size: .72rem;
-  color: var(--text-3);
+  font-size: .75rem;
+  color: var(--text-2);
   margin-top: .3rem;
 }
 .stat-card .icon-bg {
@@ -449,7 +452,7 @@ body::after {
   font-weight: 600;
   letter-spacing: .5px;
   box-shadow: 0 2px 10px rgba(16,185,129,0.4);
-  font-family: 'Oxanium', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
 }
 .badge-busy {
   background: linear-gradient(135deg, #f43f5e, #ec4899);
@@ -460,7 +463,7 @@ body::after {
   font-weight: 600;
   letter-spacing: .5px;
   box-shadow: 0 2px 10px rgba(244,63,94,0.4);
-  font-family: 'Oxanium', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
 }
 .badge-unpaid {
   background: linear-gradient(135deg, #f59e0b, #fbbf24);
@@ -471,7 +474,7 @@ body::after {
   font-weight: 700;
   letter-spacing: .5px;
   box-shadow: 0 2px 10px rgba(245,158,11,0.4);
-  font-family: 'Oxanium', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
 }
 .badge-info {
   background: linear-gradient(135deg, #06b6d4, #22d3ee);
@@ -481,7 +484,7 @@ body::after {
   border-radius: 99px;
   font-weight: 600;
   box-shadow: 0 2px 10px rgba(6,182,212,0.35);
-  font-family: 'Oxanium', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
 }
 .badge-ghost {
   background: rgba(255,255,255,0.07);
@@ -496,7 +499,7 @@ body::after {
    TIMER
 ═══════════════════════════════════════════ */
 .timer-display {
-  font-family: 'Oxanium', monospace;
+  font-family: 'Space Grotesk', monospace;
   font-size: 1.9rem;
   font-weight: 800;
   letter-spacing: 3px;
@@ -518,7 +521,7 @@ body::after {
 }
 
 .cost-display {
-  font-family: 'Oxanium', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--neon-gold);
@@ -556,7 +559,7 @@ body::after {
   background-color: var(--neon-purple);
   border-color: var(--neon-purple);
 }
-label.form-label { color: var(--text-2); font-size: .8rem; font-weight: 500; }
+label.form-label { color: var(--text); font-size: .82rem; font-weight: 500; }
 
 /* ═══════════════════════════════════════════
    BUTTONS
@@ -676,7 +679,7 @@ label.form-label { color: var(--text-2); font-size: .8rem; font-weight: 500; }
   font-size: .75rem;
   text-transform: uppercase;
   letter-spacing: 1px;
-  font-family: 'Oxanium', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   padding: .85rem 1rem;
   font-weight: 600;
 }
@@ -686,7 +689,7 @@ label.form-label { color: var(--text-2); font-size: .8rem; font-weight: 500; }
   vertical-align: middle;
   background: transparent;
   color: var(--text);
-  font-size: .875rem;
+  font-size: .9rem;
 }
 .table tbody tr {
   transition: all .15s;
@@ -793,7 +796,7 @@ label.form-label { color: var(--text-2); font-size: .8rem; font-weight: 500; }
   background: linear-gradient(90deg, rgba(168,85,247,0.5), rgba(6,182,212,0.5), transparent);
 }
 .page-header h2 {
-  font-family: 'Oxanium', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   font-weight: 800;
   font-size: 1.5rem;
   margin: 0;
@@ -813,7 +816,7 @@ label.form-label { color: var(--text-2); font-size: .8rem; font-weight: 500; }
 ═══════════════════════════════════════════ */
 .ltr { direction: ltr; display: inline-block; }
 .num {
-  font-family: 'Oxanium', monospace;
+  font-family: 'Space Grotesk', monospace;
   direction: ltr;
   display: inline-block;
 }
@@ -841,11 +844,12 @@ label.form-label { color: var(--text-2); font-size: .8rem; font-weight: 500; }
   margin: 1rem 0;
 }
 .section-label {
-  font-size: .62rem;
+  font-size: .72rem;
   text-transform: uppercase;
-  letter-spacing: 2px;
-  color: var(--text-3);
-  font-family: 'Oxanium', sans-serif;
+  letter-spacing: 1px;
+  color: var(--text-2);
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
   margin-bottom: .35rem;
 }
 a { color: var(--neon-purple); }
@@ -910,6 +914,61 @@ a:hover { color: #c084fc; }
 .fade-in:nth-child(6)  { animation-delay: .30s; }
 .fade-in:nth-child(7)  { animation-delay: .35s; }
 .fade-in:nth-child(8)  { animation-delay: .40s; }
+/* ═══ Tom Select dark theme ═══ */
+.ts-wrapper .ts-control {
+  background: rgba(255,255,255,0.04) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  border-radius: var(--radius-sm) !important;
+  color: var(--text) !important;
+  font-family: 'Vazirmatn', sans-serif !important;
+  font-size: .875rem !important;
+  min-height: 38px;
+  box-shadow: none !important;
+}
+.ts-wrapper.focus .ts-control {
+  border-color: rgba(168,85,247,0.5) !important;
+  box-shadow: 0 0 0 3px rgba(168,85,247,0.15) !important;
+}
+.ts-wrapper .ts-control input {
+  color: var(--text) !important;
+  font-family: 'Vazirmatn', sans-serif !important;
+}
+.ts-dropdown {
+  background: #0f0f22 !important;
+  border: 1px solid rgba(168,85,247,0.25) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5) !important;
+  font-family: 'Vazirmatn', sans-serif !important;
+  font-size: .875rem !important;
+  color: var(--text) !important;
+  z-index: 9999 !important;
+}
+.ts-dropdown .ts-dropdown-content { max-height: 220px; }
+.ts-dropdown .option {
+  color: var(--text-2) !important;
+  padding: .5rem .9rem !important;
+}
+.ts-dropdown .option.active, .ts-dropdown .option:hover {
+  background: rgba(168,85,247,0.18) !important;
+  color: var(--text) !important;
+}
+.ts-dropdown .option.selected {
+  background: rgba(168,85,247,0.12) !important;
+  color: var(--neon-purple) !important;
+}
+.ts-wrapper .ts-control .item {
+  background: rgba(168,85,247,0.15) !important;
+  color: var(--text) !important;
+  border-radius: 4px !important;
+  border: 1px solid rgba(168,85,247,0.3) !important;
+}
+.ts-dropdown input[type=text] {
+  background: rgba(255,255,255,.04) !important;
+  border-color: rgba(255,255,255,.12) !important;
+  color: var(--text) !important;
+  font-family: 'Vazirmatn', sans-serif !important;
+}
+.ts-dropdown .no-results { color: var(--text-3) !important; }
 </style>
 {% block extra_css %}{% endblock %}
 </head>
@@ -966,11 +1025,13 @@ a:hover { color: #c084fc; }
         <i class="bi bi-hdd-stack-fill"></i> دستگاه‌ها
       </a>
     </div>
+    {% if user.is_superuser %}
     <div class="nav-item">
       <a href="{% url 'reports' %}" class="{% if request.resolver_match.url_name == 'reports' %}active{% endif %}">
         <i class="bi bi-bar-chart-fill"></i> گزارش‌ها
       </a>
     </div>
+    {% endif %}
   </nav>
 
   <div class="sidebar-footer">

@@ -2,7 +2,9 @@
 {% load shamsi humanize static %}
 {% block title %}داشبورد — GameNet{% endblock %}
 
+{% load static %}
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/tom-select.min.css' %}">
 <style>
 .device-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
 .device-col  { min-height: 220px; }
@@ -12,8 +14,7 @@
   position: absolute; top: .6rem; left: .6rem;
   cursor: grab; color: rgba(255,255,255,.2);
   font-size: 1rem; transition: color .2s;
-  user-select: none;
-  line-height: 1;
+  user-select: none; line-height: 1;
 }
 .drag-handle:hover { color: rgba(255,255,255,.5); }
 .drag-handle:active { cursor: grabbing; }
@@ -27,14 +28,22 @@
 .countdown-ring { position: absolute; top:0; left:0; transform: rotate(-90deg); }
 .countdown-ring circle { transition: stroke-dashoffset .5s linear; }
 .countdown-num {
-  font-family: 'Oxanium', monospace;
-  font-size: .9rem; font-weight: 800;
+  font-family: 'Space Grotesk', monospace;
+  font-size: .9rem; font-weight: 700;
   color: var(--neon-cyan);
   text-align: center; direction: ltr; line-height: 1.1;
 }
 .countdown-num.overrun { color: var(--neon-red); animation: overrunPulse 1s ease-in-out infinite; }
-@keyframes overrunPulse {
-  0%,100% { opacity:1; } 50% { opacity:.4; }
+@keyframes overrunPulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+
+.category-header {
+  display: flex; align-items: center; gap: .75rem;
+  margin-bottom: .75rem; padding-bottom: .5rem;
+  border-bottom: 1px solid var(--glass-border);
+}
+.category-header .cat-label {
+  font-size: .72rem; text-transform: uppercase; letter-spacing: 2px;
+  color: var(--text-3); font-family: 'Space Grotesk', sans-serif; font-weight: 600;
 }
 </style>
 {% endblock %}
@@ -45,6 +54,7 @@
     <h2>داشبورد</h2>
     <div class="subtitle">{% shamsi_today %} &nbsp;·&nbsp; <span id="live-clock" class="ltr"></span></div>
   </div>
+  {% if user.is_superuser %}
   <div class="d-flex gap-3">
     <div class="stat-card" style="min-width:160px">
       <div class="label">دریافتی امروز</div>
@@ -52,9 +62,10 @@
     </div>
     <div class="stat-card" style="min-width:160px">
       <div class="label">بدهی کل</div>
-      <div class="value num" style="background:var(--grad-pink);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">{{ total_debt|intcomma}}</div>
+      <div class="value num" style="background:var(--grad-pink);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">{{ total_debt|intcomma }}</div>
     </div>
   </div>
+  {% endif %}
 </div>
 
 {% if unpaid_sessions %}
@@ -69,171 +80,180 @@
 </div>
 {% endif %}
 
-<!-- ── Device cards (sortable) ── -->
-<div class="device-grid" id="deviceGrid">
-{% for device in devices %}
-<div class="device-col" data-device-id="{{ device.id }}" id="col-{{ device.id }}">
+<!-- ── Device cards grouped by category ── -->
+{% for cat_name, cat_devices in device_groups %}
+<div class="mb-4">
+  <div class="category-header">
+    <span class="cat-label">{{ cat_name }}</span>
+    <span style="font-size:.7rem;color:var(--text-3)">{{ cat_devices|length }} دستگاه</span>
+  </div>
+  <div class="device-grid" id="deviceGrid-{{ forloop.counter }}" data-group="{{ forloop.counter }}">
+  {% for device in cat_devices %}
+  <div class="device-col" data-device-id="{{ device.id }}" id="col-{{ device.id }}">
 
-  {% if device.is_occupied %}{% with session=device.active_session %}
-  <!-- ░░ BUSY ░░ -->
-  <div class="device-card busy h-100 pulse-ring" style="position:relative">
-    <span class="drag-handle">⠿</span>
-    <div class="d-flex justify-content-between align-items-start mb-2 pe-4">
-      <div>
-        <div class="section-label">{{ device.get_device_type_display }}</div>
-        <div style="font-family:'Oxanium',sans-serif;font-weight:700;font-size:1rem">{{ device.name }}</div>
+    {% if device.is_occupied %}{% with session=device.active_session %}
+    <!-- BUSY -->
+    <div class="device-card busy h-100 pulse-ring" style="position:relative">
+      <span class="drag-handle">⠿</span>
+      <div class="d-flex justify-content-between align-items-start mb-2 pe-4">
+        <div>
+          <div class="section-label">{{ device.get_device_type_display }}</div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem">{{ device.name }}</div>
+        </div>
+        <span class="badge-busy"><span class="dot-pulse">●</span> فعال</span>
       </div>
-      <span class="badge-busy"><span class="dot-pulse">●</span> فعال</span>
-    </div>
 
-    {% if session.session_type == 'timed' and session.duration_minutes %}
-    <!-- Countdown ring for timed session -->
-    <div class="d-flex align-items-center gap-3 mb-2">
-      <div class="countdown-wrap">
-        <svg class="countdown-ring" width="72" height="72">
-          <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="4"/>
-          <circle id="ring-{{ session.pk }}" cx="36" cy="36" r="30" fill="none"
-                  stroke="var(--neon-cyan)" stroke-width="4"
-                  stroke-dasharray="188.5" stroke-dashoffset="0"
-                  stroke-linecap="round"/>
-        </svg>
-        <div class="countdown-num" id="countdown-{{ session.pk }}"
-             data-total="{{ session.duration_minutes }}"
-             data-started="{{ session.started_at|date:'c' }}">
-          --:--
+      {% if session.session_type == 'timed' and session.duration_minutes %}
+      <div class="d-flex align-items-center gap-3 mb-2">
+        <div class="countdown-wrap">
+          <svg class="countdown-ring" width="72" height="72">
+            <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="4"/>
+            <circle id="ring-{{ session.pk }}" cx="36" cy="36" r="30" fill="none"
+                    stroke="var(--neon-cyan)" stroke-width="4"
+                    stroke-dasharray="188.5" stroke-dashoffset="0" stroke-linecap="round"/>
+          </svg>
+          <div class="countdown-num" id="countdown-{{ session.pk }}"
+               data-total="{{ session.duration_minutes }}"
+               data-started="{{ session.started_at|date:'c' }}">--:--</div>
+        </div>
+        <div>
+          <div style="color:var(--text-3);font-size:.7rem;margin-bottom:.2rem">گذشته</div>
+          <div class="timer-display" style="font-size:1.1rem"
+               id="timer-{{ session.pk }}"
+               data-started="{{ session.started_at|date:'c' }}">
+            {{ session.duration_display }}
+          </div>
+          <div class="cost-display" style="font-size:.95rem">
+            {{ session.calculate_cost|intcomma }} <span style="font-size:.7rem;font-family:'Vazirmatn',sans-serif;color:var(--text-3)">تومان</span>
+          </div>
         </div>
       </div>
-      <div>
-        <div style="color:var(--text-3);font-size:.7rem;margin-bottom:.2rem">گذشته</div>
-        <div class="timer-display" style="font-size:1.1rem"
-             id="timer-{{ session.pk }}"
-             data-started="{{ session.started_at|date:'c' }}">
-          {{ session.duration_display }}
-        </div>
-        <div class="cost-display" style="font-size:.95rem">
-          {{ session.calculate_cost|intcomma }} <span style="font-size:.7rem;font-family:'Vazirmatn',sans-serif;color:var(--text-3)">تومان</span>
-        </div>
+      {% else %}
+      <div class="timer-display active mb-1"
+           id="timer-{{ session.pk }}"
+           data-started="{{ session.started_at|date:'c' }}">
+        {{ session.duration_display }}
+      </div>
+      <div class="cost-display mb-2">
+        {{ session.calculate_cost|intcomma }}
+        <span style="font-size:.72rem;font-family:'Vazirmatn',sans-serif;color:var(--text-3)">تومان</span>
+      </div>
+      {% endif %}
+
+      <div class="d-flex flex-wrap gap-1 mb-2 mt-1">
+        {% for p in session.players.all %}
+        <span class="badge-ghost">{{ p.display_name }}</span>
+        {% empty %}<span style="color:var(--text-3);font-size:.75rem">بدون بازیکن</span>{% endfor %}
+        {% if session.notes %}
+        <span class="badge-ghost" style="font-size:.65rem;color:var(--text-3)">📝 {{ session.notes|truncatechars:20 }}</span>
+        {% endif %}
+      </div>
+
+      <div class="d-flex gap-1 mt-auto flex-wrap">
+        <a href="{% url 'session_detail' session.pk %}" class="btn btn-outline-light btn-sm">جزئیات</a>
+        <button class="btn btn-outline-secondary btn-sm px-2"
+                data-bs-toggle="modal" data-bs-target="#editSessionModal"
+                data-sid="{{ session.pk }}" data-name="{{ device.name }}"
+                title="ویرایش سشن">
+          <i class="bi bi-pencil-fill"></i>
+        </button>
+        <a href="{% url 'session_end' session.pk %}"
+           class="btn btn-danger btn-sm flex-fill"
+           onclick="return confirm('سشن پایان یابد؟')">⏹ پایان</a>
+        <button class="btn btn-outline-danger btn-sm px-2"
+                data-bs-toggle="modal" data-bs-target="#cancelModal"
+                data-sid="{{ session.pk }}" data-name="{{ device.name }}"
+                title="لغو سشن">
+          <i class="bi bi-x-lg"></i>
+        </button>
       </div>
     </div>
+    {% endwith %}
+
+    {% elif device.unpaid_session %}{% with session=device.unpaid_session %}
+    <!-- UNPAID -->
+    <div class="device-card unpaid h-100" style="position:relative">
+      <span class="drag-handle">⠿</span>
+      <div class="d-flex justify-content-between align-items-start mb-3 pe-4">
+        <div>
+          <div class="section-label">{{ device.get_device_type_display }}</div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem">{{ device.name }}</div>
+        </div>
+        <span class="badge-unpaid">⏳ پرداخت‌نشده</span>
+      </div>
+      <div class="d-flex justify-content-between mb-1 small">
+        <span style="color:var(--text-3)">کل</span>
+        <span class="num" style="color:var(--neon-gold)">{{ session.total_cost|intcomma }}</span>
+      </div>
+      <div class="d-flex justify-content-between mb-1 small">
+        <span style="color:var(--text-3)">پرداخت‌شده</span>
+        <span class="num" style="color:var(--neon-green)">{{ session.paid_amount|intcomma }}</span>
+      </div>
+      <div class="d-flex justify-content-between mb-3 fw-bold">
+        <span style="color:var(--text-2)">مانده</span>
+        <span class="num" style="color:var(--neon-red);font-size:1.1rem">{{ session.remaining_amount|intcomma }}</span>
+      </div>
+      {% if session.total_cost %}
+      <div class="progress mb-3" style="height:5px">
+        <div class="progress-bar" style="width:{% widthratio session.paid_amount session.total_cost 100 %}%"></div>
+      </div>
+      {% endif %}
+      <div class="d-flex gap-2 mt-auto">
+        <a href="{% url 'session_pay' session.pk %}" class="btn btn-warning btn-sm flex-fill fw-bold">💳 پرداخت</a>
+        <button class="btn btn-success btn-sm flex-fill"
+                data-bs-toggle="modal" data-bs-target="#startModal"
+                data-device-id="{{ device.id }}" data-device-name="{{ device.name }}"
+                data-device-type="{{ device.get_device_type_display }}"
+                data-price="{{ device.price_per_hour }}"
+                data-extra-price="{{ device.extra_controller_price }}"
+                data-device-type-raw="{{ device.device_type }}">▶ سشن جدید</button>
+      </div>
+    </div>
+    {% endwith %}
 
     {% else %}
-    <!-- Free session timer -->
-    <div class="timer-display active mb-1"
-         id="timer-{{ session.pk }}"
-         data-started="{{ session.started_at|date:'c' }}">
-      {{ session.duration_display }}
-    </div>
-    <div class="cost-display mb-2">
-      {{ session.calculate_cost|intcomma }}
-      <span style="font-size:.72rem;font-family:'Vazirmatn',sans-serif;color:var(--text-3)">تومان</span>
-    </div>
-    {% endif %}
-
-    <div class="d-flex flex-wrap gap-1 mb-2 mt-1">
-      {% for p in session.players.all %}
-      <span class="badge-ghost">{{ p.display_name }}</span>
-      {% empty %}<span style="color:var(--text-3);font-size:.75rem">بدون بازیکن</span>{% endfor %}
-    </div>
-
-    <div class="d-flex gap-1 mt-auto flex-wrap">
-      <a href="{% url 'session_detail' session.pk %}" class="btn btn-outline-light btn-sm">جزئیات</a>
-      <a href="{% url 'session_end' session.pk %}"
-         class="btn btn-danger btn-sm flex-fill"
-         onclick="return confirm('سشن پایان یابد؟')">⏹ پایان</a>
-      <button class="btn btn-outline-danger btn-sm px-2"
-              data-bs-toggle="modal" data-bs-target="#cancelModal"
-              data-sid="{{ session.pk }}" data-name="{{ device.name }}"
-              title="لغو سشن (بدون پرداخت)">
-        <i class="bi bi-x-lg"></i>
-      </button>
-    </div>
-  </div>
-  {% endwith %}
-
-  {% elif device.unpaid_session %}{% with session=device.unpaid_session %}
-  <!-- ░░ UNPAID ░░ -->
-  <div class="device-card unpaid h-100" style="position:relative">
-    <span class="drag-handle">⠿</span>
-    <div class="d-flex justify-content-between align-items-start mb-3 pe-4">
-      <div>
-        <div class="section-label">{{ device.get_device_type_display }}</div>
-        <div style="font-family:'Oxanium',sans-serif;font-weight:700;font-size:1rem">{{ device.name }}</div>
+    <!-- FREE -->
+    <div class="device-card free h-100 d-flex flex-column" style="position:relative"
+         data-bs-toggle="modal" data-bs-target="#startModal"
+         data-device-id="{{ device.id }}" data-device-name="{{ device.name }}"
+         data-device-type="{{ device.get_device_type_display }}"
+         data-price="{{ device.price_per_hour }}"
+         data-extra-price="{{ device.extra_controller_price }}"
+         data-device-type-raw="{{ device.device_type }}">
+      <span class="drag-handle" onclick="event.stopPropagation()">⠿</span>
+      <div class="d-flex justify-content-between align-items-start mb-3 pe-4">
+        <div>
+          <div class="section-label">{{ device.get_device_type_display }}</div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem">{{ device.name }}</div>
+        </div>
+        <span class="badge-free">● آزاد</span>
       </div>
-      <span class="badge-unpaid">⏳ پرداخت‌نشده</span>
-    </div>
-    <div class="d-flex justify-content-between mb-1 small">
-      <span style="color:var(--text-3)">کل</span>
-      <span class="num" style="color:var(--neon-gold)">{{ session.total_cost|intcomma }}</span>
-    </div>
-    <div class="d-flex justify-content-between mb-1 small">
-      <span style="color:var(--text-3)">پرداخت‌شده</span>
-      <span class="num" style="color:var(--neon-green)">{{ session.paid_amount|intcomma }}</span>
-    </div>
-    <div class="d-flex justify-content-between mb-3 fw-bold">
-      <span style="color:var(--text-2)">مانده</span>
-      <span class="num" style="color:var(--neon-red);font-size:1.1rem">{{ session.remaining_amount|intcomma }}</span>
-    </div>
-    {% if session.total_cost %}
-    <div class="progress mb-3" style="height:5px">
-      <div class="progress-bar" style="width:{% widthratio session.paid_amount session.total_cost 100 %}%"></div>
-    </div>
-    {% endif %}
-    <div class="d-flex gap-2 mt-auto">
-      <a href="{% url 'session_pay' session.pk %}" class="btn btn-warning btn-sm flex-fill fw-bold">💳 پرداخت</a>
-      <button class="btn btn-success btn-sm flex-fill"
-              data-bs-toggle="modal" data-bs-target="#startModal"
-              data-device-id="{{ device.id }}" data-device-name="{{ device.name }}"
-              data-device-type="{{ device.get_device_type_display }}"
-              data-price="{{ device.price_per_hour }}"
-              data-extra-price="{{ device.extra_controller_price }}"
-              data-device-type-raw="{{ device.device_type }}">▶ سشن جدید</button>
-    </div>
-  </div>
-  {% endwith %}
-
-  {% else %}
-  <!-- ░░ FREE ░░ -->
-  <div class="device-card free h-100 d-flex flex-column" style="position:relative"
-       data-bs-toggle="modal" data-bs-target="#startModal"
-       data-device-id="{{ device.id }}" data-device-name="{{ device.name }}"
-       data-device-type="{{ device.get_device_type_display }}"
-       data-price="{{ device.price_per_hour }}"
-       data-extra-price="{{ device.extra_controller_price }}"
-       data-device-type-raw="{{ device.device_type }}">
-    <span class="drag-handle" onclick="event.stopPropagation()">⠿</span>
-    <div class="d-flex justify-content-between align-items-start mb-3 pe-4">
-      <div>
-        <div class="section-label">{{ device.get_device_type_display }}</div>
-        <div style="font-family:'Oxanium',sans-serif;font-weight:700;font-size:1rem">{{ device.name }}</div>
+      <div style="color:var(--text-3);font-size:.85rem;margin-bottom:.4rem">
+        <span class="num" style="color:var(--neon-green);font-size:1.15rem;font-family:'Space Grotesk',sans-serif;font-weight:700">{{ device.price_per_hour|intcomma }}</span>
+        <span style="font-size:.72rem"> تومان/ساعت</span>
       </div>
-      <span class="badge-free">● آزاد</span>
-    </div>
-    <div style="color:var(--text-3);font-size:.85rem;margin-bottom:.4rem">
-      <span class="num" style="color:var(--neon-green);font-size:1.15rem;font-family:'Oxanium',sans-serif;font-weight:800">{{ device.price_per_hour|intcomma }}</span>
-      <span style="font-size:.72rem"> تومان/ساعت</span>
-    </div>
-    {% if device.extra_controller_price > 0 %}
-    <div style="color:var(--text-3);font-size:.75rem">
-      <i class="bi bi-controller me-1"></i>+{{ device.extra_controller_price|intcomma }} تومان/کنترلر/ساعت
+      {% if device.extra_controller_price > 0 %}
+      <div style="color:var(--text-3);font-size:.75rem">
+        <i class="bi bi-controller me-1"></i>+{{ device.extra_controller_price|intcomma }} تومان/کنترلر/ساعت
+      </div>
+      {% endif %}
+      <div class="mt-auto pt-2">
+        <div class="btn btn-success w-100 fw-bold"><i class="bi bi-play-fill me-1"></i>شروع سشن</div>
+      </div>
     </div>
     {% endif %}
-    <div class="mt-auto pt-2">
-      <div class="btn btn-success w-100 fw-bold"><i class="bi bi-play-fill me-1"></i>شروع سشن</div>
-    </div>
-  </div>
-  {% endif %}
 
+  </div>
+  {% endfor %}
+  </div><!-- /device-grid -->
 </div>
 {% empty %}
-<div style="grid-column:1/-1">
-  <div class="card p-5 text-center">
-    <i class="bi bi-hdd-stack" style="font-size:3rem;color:var(--text-3)"></i>
-    <p class="mt-3 mb-3" style="color:var(--text-3)">هنوز دستگاهی تنظیم نشده.</p>
-    <a href="{% url 'devices_manage' %}" class="btn btn-primary mx-auto" style="width:200px">افزودن دستگاه</a>
-  </div>
+<div class="card p-5 text-center">
+  <i class="bi bi-hdd-stack" style="font-size:3rem;color:var(--text-3)"></i>
+  <p class="mt-3 mb-3" style="color:var(--text-3)">هنوز دستگاهی تنظیم نشده.</p>
+  <a href="{% url 'devices_manage' %}" class="btn btn-primary mx-auto" style="width:200px">افزودن دستگاه</a>
 </div>
 {% endfor %}
-</div><!-- /device-grid -->
 
 {% if low_stock %}
 <div class="alert alert-danger mt-4 d-flex align-items-center gap-2 flex-wrap">
@@ -243,7 +263,6 @@
 </div>
 {% endif %}
 
-<!-- Alarm audio (Web Audio API — no file needed) -->
 <script>
 const CUSTOMERS = [
   {% for c in customers_for_modal %}
@@ -254,9 +273,7 @@ const CUSTOMERS = [
 {% endblock %}
 
 {% block modals %}
-<!-- ══════════════════════════════════════════
-     START SESSION MODAL
-══════════════════════════════════════════ -->
+<!-- ══ START SESSION MODAL ══ -->
 <div class="modal fade" id="startModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -268,18 +285,15 @@ const CUSTOMERS = [
         {% csrf_token %}
         <input type="hidden" name="device_id" id="modalDeviceId">
         <div class="modal-body">
-
-          <!-- Device info banner -->
           <div class="p-3 rounded-3 mb-4 d-flex justify-content-between align-items-center"
                style="background:linear-gradient(135deg,rgba(124,58,237,.12),rgba(6,182,212,.08));border:1px solid rgba(168,85,247,.2)">
             <div>
               <div style="color:var(--text-3);font-size:.7rem;text-transform:uppercase;letter-spacing:1px" id="modalDeviceTypeBadge"></div>
-              <strong id="modalDeviceName" style="font-family:'Oxanium',sans-serif;font-size:1.15rem"></strong>
+              <strong id="modalDeviceName" style="font-family:'Space Grotesk',sans-serif;font-size:1.15rem"></strong>
             </div>
-            <div style="font-family:'Oxanium',sans-serif;font-size:1.2rem;font-weight:800;color:var(--neon-green)" id="modalPriceBanner"></div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:1.2rem;font-weight:700;color:var(--neon-green)" id="modalPriceBanner"></div>
           </div>
 
-          <!-- Session type toggle -->
           <div class="mb-3">
             <label class="form-label fw-semibold">نوع سشن</label>
             <div class="d-flex gap-2">
@@ -304,13 +318,11 @@ const CUSTOMERS = [
             </div>
           </div>
 
-          <!-- Duration (timed only) -->
           <div id="timedFields" class="mb-3" style="display:none">
             <label class="form-label">مدت (دقیقه)</label>
             <div class="d-flex gap-2 flex-wrap align-items-center">
               <input type="number" name="duration_minutes" id="durationInput"
-                     class="form-control ltr text-center"
-                     style="width:110px;font-family:'Oxanium',sans-serif;font-size:1.1rem;font-weight:700"
+                     class="form-control ltr text-center" style="width:110px;font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:700"
                      value="60" min="5" step="5">
               <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDur(30)">۳۰ دقیقه</button>
               <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDur(60)">۱ ساعت</button>
@@ -320,7 +332,6 @@ const CUSTOMERS = [
             <div id="timedCostPreview" class="mt-2" style="font-size:.85rem;color:var(--neon-gold)"></div>
           </div>
 
-          <!-- Extra controllers (PS4/PS5) -->
           <div id="controllerSection" class="mb-3" style="display:none">
             <label class="form-label">کنترلر اضافه</label>
             <div class="d-flex align-items-center gap-3 flex-wrap">
@@ -334,7 +345,6 @@ const CUSTOMERS = [
             </div>
           </div>
 
-          <!-- Players -->
           <div class="row g-3">
             <div class="col-md-6">
               <label class="form-label"><i class="bi bi-person-check me-1"></i>بازیکنان ثبت‌نام‌شده</label>
@@ -352,19 +362,72 @@ const CUSTOMERS = [
             </div>
           </div>
         </div>
-
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">انصراف</button>
-          <button type="submit" class="btn btn-success px-4 fw-bold">
-            <i class="bi bi-play-fill me-1"></i>شروع سشن
-          </button>
+          <button type="submit" class="btn btn-success px-4 fw-bold"><i class="bi bi-play-fill me-1"></i>شروع سشن</button>
         </div>
       </form>
     </div>
   </div>
 </div>
 
-<!-- Cancel session modal -->
+<!-- ══ EDIT ACTIVE SESSION MODAL ══ -->
+<div class="modal fade" id="editSessionModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content" style="border-color:rgba(168,85,247,.3)">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil-fill me-2" style="color:var(--neon-purple)"></i>ویرایش سشن: <span id="editSessionDeviceName"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Notes -->
+        <form method="post" id="editNotesForm" class="mb-3">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="update_notes">
+          <input type="hidden" name="next" value="dashboard">
+          <label class="form-label">یادداشت سشن</label>
+          <div class="d-flex gap-2">
+            <input type="text" name="notes" id="editNotesInput" class="form-control" placeholder="توضیحات، سفارش خاص…">
+            <button type="submit" class="btn btn-primary btn-sm px-3">ذخیره</button>
+          </div>
+        </form>
+        <hr style="border-color:var(--glass-border)">
+        <!-- Add player -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold"><i class="bi bi-person-plus me-1"></i>افزودن بازیکن</label>
+          <form method="post" id="addPlayerForm" class="mb-2">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_player">
+            <input type="hidden" name="next" value="dashboard">
+            <div class="d-flex gap-2 mb-2">
+              <select name="customer_id" id="editPlayerSelect" class="form-select form-select-sm">
+                <option value="">— مشتری ثبت‌نام‌شده —</option>
+                {% for c in customers_for_modal %}
+                <option value="{{ c.id }}">{{ c.name }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-success btn-sm px-3">+</button>
+            </div>
+          </form>
+          <form method="post" id="addWalkInForm">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_player">
+            <input type="hidden" name="next" value="dashboard">
+            <div class="d-flex gap-2">
+              <input type="text" name="player_name" class="form-control form-control-sm" placeholder="نام مهمان">
+              <button type="submit" class="btn btn-outline-secondary btn-sm px-3">+</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">بستن</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CANCEL SESSION MODAL ══ -->
 <div class="modal fade" id="cancelModal" tabindex="-1">
   <div class="modal-dialog modal-sm">
     <div class="modal-content" style="border-color:rgba(244,63,94,0.3)">
@@ -374,7 +437,7 @@ const CUSTOMERS = [
       </div>
       <div class="modal-body">
         <p style="color:var(--text-2)">سشن <strong id="cancelDeviceName"></strong> لغو و حذف شود؟</p>
-        <p style="font-size:.8rem;color:var(--text-3)">این گزینه فقط برای سشن‌های اشتباه‌شروع‌شده است. هیچ پرداختی ثبت نمی‌شود.</p>
+        <p style="font-size:.8rem;color:var(--text-3)">این گزینه فقط برای سشن‌های اشتباه‌شروع‌شده است.</p>
       </div>
       <div class="modal-footer" style="border-color:rgba(244,63,94,0.2)">
         <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">انصراف</button>
@@ -390,6 +453,7 @@ const CUSTOMERS = [
 
 {% block extra_js %}
 <script src="{% static 'js/Sortable.min.js' %}"></script>
+<script src="{% static 'js/tom-select.min.js' %}"></script>
 <script>
 // ── Clock ──────────────────────────────────────────────────────────────────
 function updateClock() {
@@ -400,8 +464,8 @@ setInterval(updateClock, 1000); updateClock();
 
 // ── Free-session timers ────────────────────────────────────────────────────
 function updateTimers() {
-  document.querySelectorAll('[data-started]').forEach(el => {
-    if (!el.id.startsWith('timer-')) return;
+  document.querySelectorAll('[id^="timer-"]').forEach(el => {
+    if (!el.dataset.started) return;
     const elapsed = Math.floor((Date.now() - new Date(el.dataset.started)) / 1000);
     const h = String(Math.floor(elapsed/3600)).padStart(2,'0');
     const m = String(Math.floor((elapsed%3600)/60)).padStart(2,'0');
@@ -412,7 +476,7 @@ function updateTimers() {
 setInterval(updateTimers, 1000); updateTimers();
 
 // ── Timed session countdown ────────────────────────────────────────────────
-const CIRCUMFERENCE = 2 * Math.PI * 30; // r=30
+const CIRCUMFERENCE = 2 * Math.PI * 30;
 let alarmFired = {};
 
 function updateCountdowns() {
@@ -423,40 +487,24 @@ function updateCountdowns() {
     const elapsed  = (Date.now() - started) / 1000;
     const totalSec = totalMin * 60;
     const remaining= totalSec - elapsed;
-
     const ring = document.getElementById('ring-' + sid);
     const timerEl = document.getElementById('timer-' + sid);
 
     if (remaining > 0) {
-      // countdown display
-      const rm = Math.floor(remaining / 60);
-      const rs = Math.floor(remaining % 60);
+      const rm = Math.floor(remaining / 60), rs = Math.floor(remaining % 60);
       el.textContent = `${String(rm).padStart(2,'0')}:${String(rs).padStart(2,'0')}`;
       el.classList.remove('overrun');
-      // ring progress
       if (ring) {
-        const pct = remaining / totalSec;
-        const offset = CIRCUMFERENCE * (1 - pct);
-        ring.style.strokeDashoffset = offset;
+        ring.style.strokeDashoffset = CIRCUMFERENCE * (1 - remaining / totalSec);
         ring.style.stroke = remaining < 60 ? 'var(--neon-red)' : 'var(--neon-cyan)';
       }
     } else {
-      // Overrun
       const overrun = Math.abs(Math.floor(remaining));
-      const om = Math.floor(overrun / 60);
-      const os = overrun % 60;
-      el.textContent = `+${String(om).padStart(2,'0')}:${String(os).padStart(2,'0')}`;
+      el.textContent = `+${String(Math.floor(overrun/60)).padStart(2,'0')}:${String(overrun%60).padStart(2,'0')}`;
       el.classList.add('overrun');
       if (ring) { ring.style.strokeDashoffset = CIRCUMFERENCE; ring.style.stroke = 'var(--neon-red)'; }
-
-      // Fire alarm once per session
-      if (!alarmFired[sid]) {
-        alarmFired[sid] = true;
-        playAlarm();
-        showTimerNotification(sid);
-      }
+      if (!alarmFired[sid]) { alarmFired[sid] = true; playAlarm(); showTimerNotification(); }
     }
-    // Also update elapsed timer
     if (timerEl) {
       const e = Math.floor(elapsed);
       timerEl.textContent = `${String(Math.floor(e/3600)).padStart(2,'0')}:${String(Math.floor((e%3600)/60)).padStart(2,'0')}:${String(e%60).padStart(2,'0')}`;
@@ -467,64 +515,29 @@ setInterval(updateCountdowns, 500); updateCountdowns();
 
 // ── Web Audio alarm ────────────────────────────────────────────────────────
 let audioCtx = null;
-function getAudioCtx() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  return audioCtx;
-}
+function getAudioCtx() { if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); return audioCtx; }
 function playBeep(freq, dur, vol=0.4, type='square') {
-  const ctx = getAudioCtx();
-  const osc = ctx.createOscillator();
-  const gain= ctx.createGain();
+  const ctx = getAudioCtx(), osc = ctx.createOscillator(), gain = ctx.createGain();
   osc.connect(gain); gain.connect(ctx.destination);
-  osc.type = type;
-  osc.frequency.setValueAtTime(freq, ctx.currentTime);
+  osc.type = type; osc.frequency.setValueAtTime(freq, ctx.currentTime);
   gain.gain.setValueAtTime(vol, ctx.currentTime);
   gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
-  osc.start(ctx.currentTime);
-  osc.stop(ctx.currentTime + dur);
+  osc.start(ctx.currentTime); osc.stop(ctx.currentTime + dur);
 }
 function playAlarm() {
-  // 3 ascending beeps
-  [880, 1100, 1320].forEach((f, i) => {
-    setTimeout(() => { playBeep(f, 0.3, 0.5, 'square'); }, i * 350);
-  });
-  setTimeout(() => {
-    [880, 1100, 1320].forEach((f, i) => {
-      setTimeout(() => { playBeep(f, 0.3, 0.5, 'square'); }, i * 350);
-    });
-  }, 1200);
-  // Browser notification
-  if (Notification.permission === 'granted') {
-    new Notification('⏰ زمان سشن تمام شد!', { body: 'یک سشن زمان‌دار به پایان رسیده است.' });
-  } else if (Notification.permission !== 'denied') {
-    Notification.requestPermission().then(p => {
-      if (p === 'granted') new Notification('⏰ زمان سشن تمام شد!');
-    });
-  }
+  [880,1100,1320].forEach((f,i) => setTimeout(()=>playBeep(f,.3,.5,'square'), i*350));
+  setTimeout(()=>[880,1100,1320].forEach((f,i)=>setTimeout(()=>playBeep(f,.3,.5,'square'),i*350)), 1200);
+  if (Notification.permission==='granted') new Notification('⏰ زمان سشن تمام شد!',{body:'یک سشن زمان‌دار به پایان رسیده.'});
+  else if (Notification.permission!=='denied') Notification.requestPermission().then(p=>{ if(p==='granted') new Notification('⏰ زمان سشن تمام شد!'); });
 }
-function showTimerNotification(sid) {
-  // Flash a banner
-  const banner = document.createElement('div');
-  banner.style.cssText = `
-    position:fixed;top:1rem;left:50%;transform:translateX(-50%);
-    background:linear-gradient(135deg,#dc2626,#f43f5e);
-    color:#fff;padding:.75rem 1.5rem;border-radius:12px;font-weight:700;
-    z-index:9999;font-family:'Oxanium',sans-serif;font-size:1rem;
-    box-shadow:0 8px 32px rgba(244,63,94,.5);letter-spacing:.5px;
-    animation:bannerIn .3s ease;
-  `;
-  banner.textContent = '⏰  زمان سشن تمام شد!';
-  document.body.appendChild(banner);
-  setTimeout(() => banner.remove(), 5000);
+function showTimerNotification() {
+  const b = document.createElement('div');
+  b.style.cssText = 'position:fixed;top:1rem;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#dc2626,#f43f5e);color:#fff;padding:.75rem 1.5rem;border-radius:12px;font-weight:700;z-index:9999;font-size:1rem;box-shadow:0 8px 32px rgba(244,63,94,.5);';
+  b.textContent = '⏰  زمان سشن تمام شد!';
+  document.body.appendChild(b);
+  setTimeout(()=>b.remove(), 5000);
 }
-
-// ── Refresh costs every 30s ────────────────────────────────────────────────
-setInterval(() => {
-  document.querySelectorAll('[id^="cost-"]').forEach(el => {
-    fetch(`/session/${el.id.replace('cost-','')}/status/`)
-      .then(r=>r.json()).then(d=>{el.textContent=d.current_cost.toLocaleString('fa');}).catch(()=>{});
-  });
-}, 30000);
+if (Notification.permission==='default') Notification.requestPermission();
 
 // ── START MODAL ────────────────────────────────────────────────────────────
 let modalDeviceData = {};
@@ -532,41 +545,31 @@ document.getElementById('startModal').addEventListener('show.bs.modal', e => {
   const c = e.relatedTarget;
   if (!c?.dataset.deviceId) return;
   modalDeviceData = {
-    id:       c.dataset.deviceId,
-    name:     c.dataset.deviceName,
-    type:     c.dataset.deviceType,
-    typeRaw:  c.dataset.deviceTypeRaw,
-    price:    parseInt(c.dataset.price) || 0,
-    extraP:   parseInt(c.dataset.extraPrice) || 0,
+    id: c.dataset.deviceId, name: c.dataset.deviceName,
+    type: c.dataset.deviceType, typeRaw: c.dataset.deviceTypeRaw,
+    price: parseInt(c.dataset.price)||0, extraP: parseInt(c.dataset.extraPrice)||0,
   };
   document.getElementById('modalDeviceId').value = c.dataset.deviceId;
   document.getElementById('modalDeviceName').textContent = c.dataset.deviceName;
   document.getElementById('modalDeviceTypeBadge').textContent = c.dataset.deviceType;
-  document.getElementById('controllerSection').style.display =
-    ['ps4','ps5'].includes(c.dataset.deviceTypeRaw) ? 'block' : 'none';
+  document.getElementById('controllerSection').style.display = ['ps4','ps5'].includes(c.dataset.deviceTypeRaw) ? 'block' : 'none';
   document.getElementById('extraControllers').value = 0;
   document.getElementById('playerSelects').innerHTML = '';
   document.getElementById('walkInNames').innerHTML = '';
-  // reset session type
   document.getElementById('typeFree').checked = true;
-  toggleTimedFields();
-  updateRateBanner();
+  toggleTimedFields(); updateRateBanner();
 });
 
 function updateRateBanner() {
-  const extra = parseInt(document.getElementById('extraControllers')?.value || 0);
-  const rate  = (modalDeviceData.price || 0) + extra * (modalDeviceData.extraP || 0);
-  document.getElementById('modalPriceBanner').textContent = rate.toLocaleString('fa') + ' تومان/ساعت';
-  if (modalDeviceData.extraP > 0 && extra > 0) {
-    document.getElementById('rateNote').textContent =
-      `${modalDeviceData.price.toLocaleString('fa')} + ${extra}×${modalDeviceData.extraP.toLocaleString('fa')} = ${rate.toLocaleString('fa')} تومان/ساعت`;
-  } else if (modalDeviceData.extraP > 0) {
-    document.getElementById('rateNote').textContent =
-      `هر کنترلر اضافه ${modalDeviceData.extraP.toLocaleString('fa')} تومان به نرخ ساعتی اضافه می‌شود`;
-  }
+  const extra = parseInt(document.getElementById('extraControllers')?.value||0);
+  const rate  = (modalDeviceData.price||0) + extra*(modalDeviceData.extraP||0);
+  document.getElementById('modalPriceBanner').textContent = rate.toLocaleString('fa')+' تومان/ساعت';
+  if (modalDeviceData.extraP>0 && extra>0)
+    document.getElementById('rateNote').textContent = `${modalDeviceData.price.toLocaleString('fa')} + ${extra}×${modalDeviceData.extraP.toLocaleString('fa')} = ${rate.toLocaleString('fa')} تومان/ساعت`;
+  else if (modalDeviceData.extraP>0)
+    document.getElementById('rateNote').textContent = `هر کنترلر اضافه ${modalDeviceData.extraP.toLocaleString('fa')} تومان`;
   updateTimedCostPreview();
 }
-
 function toggleTimedFields() {
   const isTimed = document.getElementById('typeTimed').checked;
   document.getElementById('timedFields').style.display = isTimed ? 'block' : 'none';
@@ -576,37 +579,34 @@ function toggleTimedFields() {
   document.getElementById('btnTimed').style.background  = isTimed  ? 'rgba(6,182,212,0.1)'  : 'rgba(255,255,255,0.03)';
   updateTimedCostPreview();
 }
-function setDur(m) {
-  document.getElementById('durationInput').value = m;
-  updateTimedCostPreview();
-}
+function setDur(m) { document.getElementById('durationInput').value = m; updateTimedCostPreview(); }
 function updateTimedCostPreview() {
-  const min  = parseInt(document.getElementById('durationInput')?.value || 60);
-  const extra= parseInt(document.getElementById('extraControllers')?.value || 0);
-  const rate = (modalDeviceData.price || 0) + extra * (modalDeviceData.extraP || 0);
-  const cost = Math.round((min / 60) * rate);
+  const min  = parseInt(document.getElementById('durationInput')?.value||60);
+  const extra= parseInt(document.getElementById('extraControllers')?.value||0);
+  const rate = (modalDeviceData.price||0) + extra*(modalDeviceData.extraP||0);
+  const cost = Math.round((min/60)*rate);
   const el   = document.getElementById('timedCostPreview');
-  if (el && document.getElementById('typeTimed')?.checked) {
+  if (el && document.getElementById('typeTimed')?.checked)
     el.textContent = `هزینه تخمینی: ${cost.toLocaleString('fa')} تومان`;
-  } else if (el) {
-    el.textContent = '';
-  }
+  else if (el) el.textContent = '';
 }
 document.getElementById('durationInput')?.addEventListener('input', updateTimedCostPreview);
 
 function buildOpts() {
   let o = '<option value="">— بدون حساب —</option>';
   CUSTOMERS.forEach(c => {
-    const d = c.balance < 0 ? ` ⚠ ${Math.abs(c.balance).toLocaleString('fa')}` : '';
+    const d = c.balance<0 ? ` ⚠ ${Math.abs(c.balance).toLocaleString('fa')}` : '';
     o += `<option value="${c.id}">${c.name}${d}</option>`;
   });
   return o;
 }
 function addPlayerSelect() {
   const d = document.createElement('div'); d.className = 'd-flex gap-2 mb-2';
-  d.innerHTML = `<select name="player_ids" class="form-select form-select-sm">${buildOpts()}</select>
+  const uid = 'ps_' + Date.now();
+  d.innerHTML = `<select id="${uid}" name="player_ids" class="form-select form-select-sm">${buildOpts()}</select>
     <button type="button" class="btn btn-outline-danger btn-sm px-2" onclick="this.parentElement.remove()">✕</button>`;
   document.getElementById('playerSelects').appendChild(d);
+  new TomSelect('#' + uid, { create: false, maxOptions: 200 });
 }
 function addWalkIn() {
   const d = document.createElement('div'); d.className = 'd-flex gap-2 mb-2';
@@ -615,45 +615,53 @@ function addWalkIn() {
   document.getElementById('walkInNames').appendChild(d);
 }
 
-// ── CANCEL SESSION modal ───────────────────────────────────────────────────
+// ── EDIT SESSION MODAL ─────────────────────────────────────────────────────
+let editPlayerTS = null;
+document.getElementById('editSessionModal').addEventListener('shown.bs.modal', () => {
+  if (!editPlayerTS) {
+    const el = document.getElementById('editPlayerSelect');
+    if (el) editPlayerTS = new TomSelect(el, { create: false, maxOptions: 200 });
+  }
+});
+document.getElementById('editSessionModal').addEventListener('show.bs.modal', e => {
+  const b = e.relatedTarget;
+  const sid = b.dataset.sid;
+  const name = b.dataset.name;
+  document.getElementById('editSessionDeviceName').textContent = name;
+  document.getElementById('editNotesForm').action = `/session/${sid}/update/`;
+  document.getElementById('addPlayerForm').action = `/session/${sid}/update/`;
+  document.getElementById('addWalkInForm').action = `/session/${sid}/update/`;
+  document.getElementById('editNotesInput').value = '';
+});
+
+// ── CANCEL SESSION MODAL ───────────────────────────────────────────────────
 document.getElementById('cancelModal').addEventListener('show.bs.modal', e => {
   const b = e.relatedTarget;
   document.getElementById('cancelDeviceName').textContent = b.dataset.name;
   document.getElementById('cancelForm').action = `/session/${b.dataset.sid}/cancel/`;
 });
 
-// ── SORTABLE drag-to-reorder ───────────────────────────────────────────────
+// ── SORTABLE drag-to-reorder (per group) ──────────────────────────────────
 const STORAGE_KEY = 'gamenet_card_order';
-
 function saveOrder() {
   const ids = [...document.querySelectorAll('.device-col')].map(c => c.dataset.deviceId);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
 }
-
 function applyOrder() {
-  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
   if (!saved.length) return;
-  const grid = document.getElementById('deviceGrid');
   saved.forEach(id => {
-    const col = document.getElementById('col-' + id);
-    if (col) grid.appendChild(col);
+    const col = document.getElementById('col-'+id);
+    if (col) col.parentElement.appendChild(col);
   });
 }
 applyOrder();
-
-Sortable.create(document.getElementById('deviceGrid'), {
-  animation:     180,
-  handle:        '.drag-handle',
-  ghostClass:    'sortable-ghost',
-  chosenClass:   'sortable-chosen',
-  delay:         80,
-  delayOnTouchOnly: true,
-  onEnd: saveOrder,
+document.querySelectorAll('[id^="deviceGrid-"]').forEach(grid => {
+  Sortable.create(grid, {
+    animation: 180, handle: '.drag-handle',
+    ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen',
+    delay: 80, delayOnTouchOnly: true, onEnd: saveOrder,
+  });
 });
-
-// Request notification permission early
-if (Notification.permission === 'default') {
-  Notification.requestPermission();
-}
 </script>
 {% endblock %}

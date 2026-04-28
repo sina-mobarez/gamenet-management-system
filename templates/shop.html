@@ -1,6 +1,37 @@
 {% extends 'base.html' %}
-{% load shamsi %}
+{% load shamsi humanize %}
 {% block title %}فروش کافه{% endblock %}
+
+{% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/tom-select.min.css' %}">
+<style>
+.product-card {
+  background: var(--surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 1rem .75rem;
+  text-align: center;
+  transition: all .2s;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+}
+.product-card:hover { background: rgba(168,85,247,0.08); border-color: rgba(168,85,247,.3); }
+.product-card.selected { border-color: rgba(168,85,247,.7); background: rgba(168,85,247,.12); box-shadow: 0 0 18px rgba(168,85,247,.25); }
+.product-card.out-of-stock { opacity: .4; cursor: not-allowed; pointer-events: none; }
+.product-card .qty-badge {
+  position: absolute; top: .4rem; left: .4rem;
+  background: var(--neon-purple); color: #fff;
+  border-radius: 99px; font-size: .7rem; font-weight: 700;
+  padding: .15em .5em; min-width: 1.4em; text-align: center;
+  display: none;
+}
+.product-card.selected .qty-badge { display: block; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header d-flex justify-content-between align-items-center">
   <h2>فروش / کافه</h2>
@@ -17,27 +48,19 @@
       <div class="row g-2">
         {% for p in cat.list %}
         <div class="col-6 col-sm-4 col-md-3 fade-in">
-          <div class="product-card"
+          <div class="product-card {% if p.stock == 0 %}out-of-stock{% endif %}"
                id="pcard-{{ p.id }}"
-               onclick="{% if p.stock > 0 %}selectProduct({{ p.id }},'{{ p.name|escapejs }}',{{ p.price }},{{ p.stock }}){% endif %}"
-               style="cursor:{% if p.stock > 0 %}pointer{% else %}not-allowed{% endif %};
-                      background:var(--surface);
-                      border:1px solid var(--glass-border);
-                      border-radius:var(--radius);
-                      padding:1rem .75rem;
-                      text-align:center;
-                      opacity:{% if p.stock == 0 %}0.4{% else %}1{% endif %};
-                      transition:all .2s;
-                      position:relative;
-                      overflow:hidden;">
-            <div style="font-size:1.8rem;margin-bottom:.5rem">
+               onclick="toggleCart({{ p.id }},'{{ p.name|escapejs }}',{{ p.price }},{{ p.stock }})"
+               data-pid="{{ p.id }}">
+            <div class="qty-badge" id="qbadge-{{ p.id }}">1</div>
+            <div style="font-size:1.6rem;margin-bottom:.4rem">
               {% if p.category.name == 'نوشیدنی' or p.category.name == 'Drinks' %}🥤
               {% elif p.category.name == 'اسنک' or p.category.name == 'Snacks' %}🍟
               {% elif p.category.name == 'کیک' or p.category.name == 'Cakes' %}🎂
               {% else %}🛍️{% endif %}
             </div>
-            <div style="font-size:.8rem;font-weight:600;margin-bottom:.3rem">{{ p.name }}</div>
-            <div class="num" style="font-family:'Oxanium',sans-serif;font-weight:700;color:var(--neon-gold);font-size:.9rem">${{ p.price }}</div>
+            <div style="font-size:.8rem;font-weight:600;margin-bottom:.3rem;color:var(--text)">{{ p.name }}</div>
+            <div class="num" style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--neon-gold);font-size:.9rem">{{ p.price|intcomma }}</div>
             <div style="font-size:.68rem;margin-top:.2rem;color:{% if p.is_low_stock %}var(--neon-red){% else %}var(--text-3){% endif %}">
               موجودی: {{ p.stock }}
             </div>
@@ -53,52 +76,39 @@
     {% endfor %}
   </div>
 
-  <!-- Sell panel -->
+  <!-- Cart / Sell panel -->
   <div class="col-lg-4">
     <div class="card p-4 fade-in" style="position:sticky;top:1rem;border-color:rgba(168,85,247,0.2)">
       <div style="position:absolute;top:0;right:0;left:0;height:2px;background:var(--grad-main);border-radius:var(--radius) var(--radius) 0 0"></div>
 
-      <div class="d-flex align-items-center gap-2 mb-4">
-        <div style="width:36px;height:36px;background:var(--grad-main);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem">🛒</div>
-        <strong style="font-family:'Oxanium',sans-serif">ثبت فروش</strong>
-      </div>
-
-      <div id="noSelected" class="text-center py-3 mb-3" style="background:rgba(255,255,255,0.03);border-radius:var(--radius-sm);color:var(--text-3);font-size:.85rem">
-        ← روی یک محصول کلیک کنید
-      </div>
-      <div id="selectedDisplay" class="p-3 mb-3 rounded-3" style="background:linear-gradient(135deg,rgba(168,85,247,0.1),rgba(6,182,212,0.06));border:1px solid rgba(168,85,247,0.2);display:none">
-        <div class="section-label">انتخاب‌شده</div>
-        <div id="selName" style="font-weight:700;margin-bottom:.25rem"></div>
-        <div class="num" style="color:var(--neon-gold);font-family:'Oxanium',sans-serif;font-size:1.1rem;font-weight:700">$<span id="selPrice">0</span></div>
-        <div style="font-size:.72rem;color:var(--text-3);margin-top:.2rem">موجودی: <span id="selStock">0</span></div>
-      </div>
-
-      <form method="post" action="{% url 'shop_sell' %}">
-        {% csrf_token %}
-        <input type="hidden" name="product_id" id="productId">
-
-        <div class="mb-3">
-          <label class="form-label">تعداد</label>
-          <div class="input-group">
-            <button type="button" class="btn btn-outline-secondary" onclick="changeQty(-1)">−</button>
-            <input type="number" name="quantity" id="qtyInput" value="1" min="1"
-                   class="form-control text-center ltr fw-bold" oninput="updateTotal()"
-                   style="font-family:'Oxanium',sans-serif">
-            <button type="button" class="btn btn-outline-secondary" onclick="changeQty(1)">+</button>
-          </div>
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <div style="width:36px;height:36px;background:var(--grad-main);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem">🛒</div>
+          <strong style="font-family:'Space Grotesk',sans-serif">سبد خرید</strong>
         </div>
+        <button class="btn btn-outline-danger btn-sm" onclick="clearCart()">پاک کردن</button>
+      </div>
+
+      <div id="cartEmpty" class="text-center py-3 mb-3" style="background:rgba(255,255,255,0.03);border-radius:var(--radius-sm);color:var(--text-3);font-size:.85rem">
+        ← روی محصول کلیک کنید
+      </div>
+      <div id="cartItems" class="mb-3"></div>
+
+      <form id="cartForm" method="post" action="{% url 'shop_sell' %}">
+        {% csrf_token %}
 
         <div class="mb-3">
           <label class="form-label">روش پرداخت</label>
-          <select name="payment_type" id="payType" class="form-select" onchange="toggleCustomerSell()">
+          <select name="payment_type" id="payType" class="form-select" onchange="toggleCustomerField()">
             <option value="cash">💵 نقد</option>
-            <option value="account">🏦 به حساب</option>
+            <option value="account">🏦 به حساب مشتری</option>
+            <option value="deferred">📌 تب سشن (پرداخت با سشن)</option>
           </select>
         </div>
 
-        <div id="customerSellSection" class="mb-3" style="display:none">
+        <div id="customerSection" class="mb-3" style="display:none">
           <label class="form-label">مشتری</label>
-          <select name="customer_id" class="form-select">
+          <select name="customer_id" id="shopCustomerSelect" class="form-select">
             <option value="">— انتخاب —</option>
             {% for c in customers %}
             <option value="{{ c.id }}">{{ c.name }}{% if c.balance < 0 %} ⚠{% endif %}</option>
@@ -107,73 +117,171 @@
         </div>
 
         <div class="mb-3">
-          <label class="form-label">لینک به سشن (اختیاری)</label>
-          <select name="session_id" class="form-select">
+          <label class="form-label" id="sessionLabel">لینک به سشن <span id="sessionRequired" style="color:var(--neon-red);display:none">*</span></label>
+          <select name="session_id" id="shopSessionSelect" class="form-select">
             <option value="">— بدون سشن —</option>
             {% for s in active_sessions %}
             <option value="{{ s.id }}">{{ s.device.name }}</option>
             {% endfor %}
           </select>
+          <div id="sessionHint" style="font-size:.75rem;color:var(--text-3);margin-top:.25rem;display:none">
+            برای تب سشن، انتخاب سشن الزامی است.
+          </div>
         </div>
 
         <div class="text-center p-3 rounded-3 mb-3"
              style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2)">
           <div class="section-label">جمع کل</div>
-          <div class="num" style="font-family:'Oxanium',sans-serif;font-size:1.8rem;font-weight:800;color:var(--neon-gold)">
-            $<span id="totalDisplay">0.00</span>
+          <div class="num" style="font-family:'Space Grotesk',sans-serif;font-size:1.8rem;font-weight:700;color:var(--neon-gold)">
+            <span id="cartTotal">0</span> <span style="font-size:.9rem;font-family:'Vazirmatn',sans-serif;color:var(--text-3)">تومان</span>
           </div>
         </div>
 
-        <button type="submit" id="sellBtn" disabled
-                class="btn btn-success w-100 fw-bold py-2 btn-glow">
-          <i class="bi bi-bag-check-fill me-1"></i>ثبت فروش
+        <button type="button" id="submitBtn" disabled
+                class="btn btn-success w-100 fw-bold py-2 btn-glow"
+                onclick="submitCart()">
+          <i class="bi bi-bag-check-fill me-1"></i>ثبت سفارش
         </button>
       </form>
     </div>
   </div>
 </div>
 {% endblock %}
+
 {% block extra_js %}
+<script src="{% static 'js/tom-select.min.js' %}"></script>
 <script>
-let selPrice = 0, lastCard = null;
-function selectProduct(id, name, price, stock) {
-  document.getElementById('productId').value = id;
-  document.getElementById('selName').textContent = name;
-  document.getElementById('selPrice').textContent = price.toFixed(2);
-  document.getElementById('selStock').textContent = stock;
-  document.getElementById('selectedDisplay').style.display = 'block';
-  document.getElementById('noSelected').style.display = 'none';
-  document.getElementById('sellBtn').disabled = false;
-  document.getElementById('qtyInput').max = stock;
-  selPrice = price; updateTotal();
-  if (lastCard) { lastCard.style.borderColor = 'var(--glass-border)'; lastCard.style.boxShadow = 'none'; }
-  const c = document.getElementById(`pcard-${id}`);
-  c.style.borderColor = 'rgba(168,85,247,0.5)';
-  c.style.boxShadow = '0 0 20px rgba(168,85,247,0.2)';
-  lastCard = c;
-}
-function changeQty(d) {
-  const i = document.getElementById('qtyInput');
-  i.value = Math.max(1, parseInt(i.value||1) + d); updateTotal();
-}
-function updateTotal() {
-  document.getElementById('totalDisplay').textContent = (selPrice * (parseInt(document.getElementById('qtyInput').value)||1)).toFixed(2);
-}
-function toggleCustomerSell() {
-  document.getElementById('customerSellSection').style.display =
-    document.getElementById('payType').value === 'account' ? 'block' : 'none';
+let cart = {}; // pid -> {name, price, stock, qty}
+
+function toggleCart(id, name, price, stock) {
+  if (stock <= 0) return;
+  if (cart[id]) {
+    // Cycle through qty: 1 → 2 → … → stock → remove
+    if (cart[id].qty < stock) {
+      cart[id].qty++;
+    } else {
+      delete cart[id];
+    }
+  } else {
+    cart[id] = {name, price, stock, qty: 1};
+  }
+  renderCart();
 }
 
-// Hover effect on product cards
-document.querySelectorAll('.product-card').forEach(c => {
-  if (c.style.cursor === 'pointer') {
-    c.addEventListener('mouseenter', () => {
-      if (c !== lastCard) c.style.background = 'rgba(168,85,247,0.08)';
-    });
-    c.addEventListener('mouseleave', () => {
-      if (c !== lastCard) c.style.background = 'var(--surface)';
-    });
+function changeQty(id, delta) {
+  if (!cart[id]) return;
+  const nq = cart[id].qty + delta;
+  if (nq <= 0) { delete cart[id]; }
+  else if (nq <= cart[id].stock) { cart[id].qty = nq; }
+  renderCart();
+}
+
+function removeFromCart(id) {
+  delete cart[id];
+  renderCart();
+}
+
+function clearCart() {
+  cart = {};
+  renderCart();
+}
+
+function renderCart() {
+  const keys = Object.keys(cart);
+  const emptyEl  = document.getElementById('cartEmpty');
+  const itemsEl  = document.getElementById('cartItems');
+  const totalEl  = document.getElementById('cartTotal');
+  const submitEl = document.getElementById('submitBtn');
+
+  // Sync card visuals
+  document.querySelectorAll('.product-card[data-pid]').forEach(c => {
+    const id = c.dataset.pid;
+    if (cart[id]) {
+      c.classList.add('selected');
+      document.getElementById('qbadge-'+id).textContent = cart[id].qty;
+    } else {
+      c.classList.remove('selected');
+    }
+  });
+
+  if (!keys.length) {
+    emptyEl.style.display = 'block';
+    itemsEl.innerHTML = '';
+    totalEl.textContent = (0).toLocaleString('fa-IR');
+    submitEl.disabled = true;
+    return;
   }
+
+  emptyEl.style.display = 'none';
+  submitEl.disabled = false;
+
+  let html = '', total = 0;
+  keys.forEach(id => {
+    const item = cart[id];
+    const sub  = item.price * item.qty;
+    total += sub;
+    html += `<div class="d-flex justify-content-between align-items-center py-2" style="border-bottom:1px solid var(--glass-border)">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.name}</div>
+        <div style="font-size:.72rem;color:var(--neon-gold);font-family:'Space Grotesk',sans-serif">${sub.toLocaleString('fa-IR')} تومان</div>
+      </div>
+      <div class="d-flex align-items-center gap-1 me-0 ms-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm px-2" style="padding:.15rem .4rem" onclick="changeQty(${id},-1)">−</button>
+        <span style="font-size:.9rem;min-width:1.2rem;text-align:center;font-family:'Space Grotesk',sans-serif;font-weight:700">${item.qty}</span>
+        <button type="button" class="btn btn-outline-secondary btn-sm px-2" style="padding:.15rem .4rem" onclick="changeQty(${id},1)">+</button>
+        <button type="button" class="btn btn-outline-danger btn-sm px-2" style="padding:.15rem .4rem" onclick="removeFromCart(${id})"><i class="bi bi-x"></i></button>
+      </div>
+    </div>`;
+  });
+
+  itemsEl.innerHTML = html;
+  totalEl.textContent = total.toLocaleString('fa-IR');
+}
+
+function submitCart() {
+  const payType = document.getElementById('payType').value;
+  // Deferred requires a session to be selected
+  if (payType === 'deferred') {
+    const sessionSel = document.getElementById('shopSessionSelect');
+    const val = sessionSel.tomselect ? sessionSel.tomselect.getValue() : sessionSel.value;
+    if (!val) {
+      document.getElementById('sessionHint').style.display = 'block';
+      document.getElementById('sessionRequired').style.display = 'inline';
+      sessionSel.closest('.mb-3').style.borderColor = 'var(--neon-red)';
+      return;
+    }
+  }
+  const form = document.getElementById('cartForm');
+  form.querySelectorAll('.cart-input').forEach(el => el.remove());
+  Object.keys(cart).forEach(id => {
+    const pi = document.createElement('input');
+    pi.type = 'hidden'; pi.name = 'product_ids[]'; pi.value = id; pi.className = 'cart-input';
+    form.appendChild(pi);
+    const qi = document.createElement('input');
+    qi.type = 'hidden'; qi.name = 'quantities[]'; qi.value = cart[id].qty; qi.className = 'cart-input';
+    form.appendChild(qi);
+  });
+  form.submit();
+}
+
+function toggleCustomerField() {
+  const val = document.getElementById('payType').value;
+  document.getElementById('customerSection').style.display = val === 'account' ? 'block' : 'none';
+  const required = document.getElementById('sessionRequired');
+  const hint = document.getElementById('sessionHint');
+  if (val === 'deferred') {
+    required.style.display = 'inline';
+    hint.style.display = 'block';
+  } else {
+    required.style.display = 'none';
+    hint.style.display = 'none';
+  }
+}
+
+// Tom Select on customer + session selects
+document.addEventListener('DOMContentLoaded', () => {
+  new TomSelect('#shopCustomerSelect', { create: false });
+  new TomSelect('#shopSessionSelect', { create: false });
 });
 </script>
 {% endblock %}

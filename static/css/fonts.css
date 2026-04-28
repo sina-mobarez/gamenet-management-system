@@ -10,10 +10,8 @@
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
-  unicode-range: U+0000-00FF, U+0600-06FF, U+FB50-FDFF, U+FE70-FEFF;
 }
 
-/* Fallback individual weights if variable font not available */
 @font-face {
   font-family: 'Vazirmatn';
   src: url('../fonts/Vazirmatn-Regular.woff2') format('woff2');
@@ -57,46 +55,35 @@
   font-display: swap;
 }
 
-/* ─── Oxanium Variable (Latin/Numeric gaming display) ─── */
+/* ─── Space Grotesk (Latin/Numeric display — replaces Oxanium) ─── */
 @font-face {
-  font-family: 'Oxanium';
-  src: url('../fonts/Oxanium[wght].woff2') format('woff2-variations');
-  font-weight: 200 800;
-  font-style: normal;
-  font-display: swap;
-  /* Latin only — Persian falls through to Vazirmatn */
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
-                 U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F,
-                 U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF,
-                 U+FFFD;
-}
-
-/* Fallback individual weights if variable font not available */
-@font-face {
-  font-family: 'Oxanium';
-  src: url('../fonts/Oxanium-Regular.woff2') format('woff2');
+  font-family: 'Space Grotesk';
+  src: url('../fonts/space-grotesk-400.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+                 U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F,
+                 U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
-  font-family: 'Oxanium';
-  src: url('../fonts/Oxanium-SemiBold.woff2') format('woff2');
+  font-family: 'Space Grotesk';
+  src: url('../fonts/space-grotesk-500.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('../fonts/space-grotesk-600.woff2') format('woff2');
   font-weight: 600;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: 'Oxanium';
-  src: url('../fonts/Oxanium-Bold.woff2') format('woff2');
+  font-family: 'Space Grotesk';
+  src: url('../fonts/space-grotesk-700.woff2') format('woff2');
   font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Oxanium';
-  src: url('../fonts/Oxanium-ExtraBold.woff2') format('woff2');
-  font-weight: 800;
   font-style: normal;
   font-display: swap;
 }

@@ -22,13 +22,26 @@
       <div class="input-group">
         <input type="number" name="debt_limit" class="form-control ltr text-center" step="1000" min="0"
                value="{{ customer.debt_limit|default:0 }}"
-               style="font-family:'Oxanium',sans-serif">
+               style="font-family:'Space Grotesk',sans-serif">
         <span class="input-group-text">تومان</span>
       </div>
       <div style="font-size:.73rem;color:var(--text-3);margin-top:.3rem">
         ۰ = بدون سقف &nbsp;·&nbsp; هر مبلغ مثبت = حد مجاز بدهی. پس از رسیدن به سقف، حساب مسدود می‌شود.
       </div>
     </div>
+    {% if not customer %}
+    <div class="mb-3">
+      <label class="form-label">بدهی اولیه (تومان)</label>
+      <div class="input-group">
+        <input type="number" name="initial_debt" class="form-control ltr text-center" step="1000" min="0" value="0"
+               style="font-family:'Space Grotesk',sans-serif">
+        <span class="input-group-text">تومان</span>
+      </div>
+      <div style="font-size:.73rem;color:var(--text-3);margin-top:.3rem">
+        اگر مشتری از قبل بدهی دارد، اینجا وارد کنید. ۰ = بدون بدهی اولیه.
+      </div>
+    </div>
+    {% endif %}
     {% if customer %}
     <div class="mb-4">
       <label class="form-label">یادداشت</label>

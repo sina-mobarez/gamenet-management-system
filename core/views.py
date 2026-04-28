@@ -1,8 +1,9 @@
+import csv
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.db.models import Sum, Count, Q
 from datetime import timedelta
@@ -37,7 +38,13 @@ def logout_view(request):
 
 @login_required
 def dashboard(request):
-    devices   = Device.objects.filter(is_active=True)
+    devices_qs = Device.objects.filter(is_active=True).order_by('device_type', 'name')
+    # Group devices by type for categorized display
+    device_groups = {}
+    for d in devices_qs:
+        key = d.get_device_type_display()
+        device_groups.setdefault(key, []).append(d)
+
     low_stock = Product.objects.filter(is_active=True).extra(
         where=["stock <= low_stock_threshold"]
     )
@@ -65,7 +72,7 @@ def dashboard(request):
     ]
 
     return render(request, 'dashboard.html', {
-        'devices':              devices,
+        'device_groups':        device_groups.items(),
         'low_stock':            low_stock,
         'today_cash':           today_cash + today_sales_cash,
         'total_debt':           total_debt,
@@ -132,6 +139,7 @@ def session_detail(request, pk):
     return render(request, 'session_detail.html', {
         'session':      session,
         'current_cost': current_cost,
+        'customers':    Customer.objects.all().order_by('name'),
     })
 
 
@@ -152,6 +160,8 @@ def session_pay(request, pk):
     customers          = Customer.objects.all().order_by('name')
     existing_payments  = session.payments.all().order_by('created_at')
     players            = session.players.select_related('customer')
+    cafe_tab_items     = session.sales.filter(payment_type='account', customer__isnull=True)
+    cafe_tab_total     = cafe_tab_items.aggregate(t=Sum('total_price'))['t'] or 0
 
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -236,12 +246,51 @@ def session_pay(request, pk):
             messages.info(request, 'پرداخت بعداً تکمیل می‌شود.')
             return redirect('dashboard')
 
+    total_with_tab    = (session.total_cost or 0) + cafe_tab_total
+    remaining_with_tab = max(0, total_with_tab - session.paid_amount)
+    fully_paid_with_tab = remaining_with_tab <= 0
+
     return render(request, 'session_pay.html', {
-        'session':           session,
-        'customers':         customers,
-        'existing_payments': existing_payments,
-        'players':           players,
+        'session':             session,
+        'customers':           customers,
+        'existing_payments':   existing_payments,
+        'players':             players,
+        'cafe_tab_items':      cafe_tab_items,
+        'cafe_tab_total':      cafe_tab_total,
+        'total_with_tab':      total_with_tab,
+        'remaining_with_tab':  remaining_with_tab,
+        'fully_paid_with_tab': fully_paid_with_tab,
     })
+
+
+@login_required
+def session_update(request, pk):
+    """Add/remove players or update notes on an active session without ending it."""
+    session = get_object_or_404(Session, pk=pk, status='active')
+    next_url = request.POST.get('next', 'dashboard')
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'update_notes':
+            session.notes = request.POST.get('notes', '')
+            session.save()
+            messages.success(request, 'یادداشت ذخیره شد.')
+        elif action == 'add_player':
+            cid  = request.POST.get('customer_id', '').strip()
+            name = request.POST.get('player_name', '').strip()
+            if cid:
+                SessionPlayer.objects.create(session=session, customer_id=cid)
+                messages.success(request, 'بازیکن اضافه شد.')
+            elif name:
+                SessionPlayer.objects.create(session=session, player_name=name)
+                messages.success(request, 'بازیکن اضافه شد.')
+            else:
+                messages.error(request, 'نام یا مشتری را وارد کنید.')
+        elif action == 'remove_player':
+            SessionPlayer.objects.filter(pk=request.POST.get('player_id'), session=session).delete()
+            messages.success(request, 'بازیکن حذف شد.')
+    if next_url == 'session_detail':
+        return redirect('session_detail', pk=pk)
+    return redirect('dashboard')
 
 
 @login_required
@@ -284,11 +333,19 @@ def customer_create(request):
         if not name:
             messages.error(request, 'نام الزامی است.')
         else:
+            initial_debt = int(request.POST.get('initial_debt', 0) or 0)
             c = Customer.objects.create(
                 name       = name,
                 phone      = request.POST.get('phone', '').strip(),
                 debt_limit = int(request.POST.get('debt_limit', 0) or 0),
+                balance    = -initial_debt if initial_debt > 0 else 0,
             )
+            if initial_debt > 0:
+                Payment.objects.create(
+                    customer=c, amount=initial_debt,
+                    payment_type='account_debit',
+                    notes='بدهی اولیه هنگام ثبت‌نام',
+                )
             messages.success(request, f'مشتری "{c.name}" ساخته شد.')
             return redirect('customers_list')
     return render(request, 'customer_form.html', {'action': 'ایجاد', 'customer': None})
@@ -341,6 +398,33 @@ def customer_detail(request, pk):
 
 
 @login_required
+def customer_add_debt(request, pk):
+    """Manually add a debt (reduce balance) to a customer."""
+    customer = get_object_or_404(Customer, pk=pk)
+    if request.method == 'POST':
+        try:
+            amount = int(request.POST.get('amount', 0))
+            if amount <= 0:
+                raise ValueError
+        except (ValueError, TypeError):
+            messages.error(request, 'مبلغ نامعتبر است.')
+            return redirect('customer_detail', pk=pk)
+        ok, reason = customer.can_add_debt(amount)
+        if not ok:
+            messages.error(request, reason)
+            return redirect('customer_detail', pk=pk)
+        customer.balance -= amount
+        customer.save()
+        Payment.objects.create(
+            customer=customer, amount=amount,
+            payment_type='account_debit',
+            notes=request.POST.get('notes', '') or 'بدهی دستی',
+        )
+        messages.success(request, f'{amount:,} تومان بدهی برای {customer.name} ثبت شد.')
+    return redirect('customer_detail', pk=pk)
+
+
+@login_required
 def customer_settle(request, pk):
     customer = get_object_or_404(Customer, pk=pk)
     if request.method == 'POST':
@@ -377,40 +461,66 @@ def shop(request):
 
 @login_required
 def shop_sell(request):
+    """Multi-product cart sell. payment_type: cash | account | deferred."""
     if request.method != 'POST':
         return redirect('shop')
-    product     = get_object_or_404(Product, pk=request.POST.get('product_id'))
-    qty         = int(request.POST.get('quantity', 1))
+
     pay_type    = request.POST.get('payment_type', 'cash')
     session_id  = request.POST.get('session_id') or None
     customer_id = request.POST.get('customer_id') or None
+    product_ids = request.POST.getlist('product_ids[]')
+    quantities  = request.POST.getlist('quantities[]')
 
-    if product.stock < qty:
-        messages.error(request, f'موجودی کافی نیست.')
+    if not product_ids:
+        messages.error(request, 'هیچ محصولی انتخاب نشده است.')
         return redirect('shop')
 
-    sale = Sale.objects.create(
-        product=product, quantity=qty, unit_price=product.price,
-        payment_type=pay_type, session_id=session_id, customer_id=customer_id,
-    )
-    product.stock -= qty
-    product.save()
+    sold_names, errors = [], []
+    for pid, qty_str in zip(product_ids, quantities):
+        try:
+            product = Product.objects.get(pk=pid, is_active=True)
+            qty = max(1, int(qty_str))
+        except (Product.DoesNotExist, ValueError):
+            continue
 
-    if pay_type == 'account' and customer_id:
-        customer = Customer.objects.get(pk=customer_id)
-        ok, reason = customer.can_add_debt(sale.total_price)
-        if not ok:
-            sale.delete(); product.stock += qty; product.save()
-            messages.error(request, f'حساب مسدود: {reason}')
-            return redirect('shop')
-        customer.balance -= sale.total_price
-        customer.save()
-    elif pay_type == 'cash':
-        Payment.objects.create(amount=sale.total_price, payment_type='cash',
-                                customer_id=customer_id,
-                                notes=f'فروش: {product.name} ×{qty}')
+        if product.stock < qty:
+            errors.append(f'موجودی {product.name} کافی نیست.')
+            continue
 
-    messages.success(request, f'{product.name} ×{qty} به مبلغ {sale.total_price:,} تومان فروخته شد.')
+        effective_type = 'account' if pay_type == 'deferred' else pay_type
+        cid = None if pay_type == 'deferred' else customer_id
+
+        sale = Sale.objects.create(
+            product=product, quantity=qty, unit_price=product.price,
+            payment_type=effective_type,
+            session_id=session_id, customer_id=cid,
+        )
+        product.stock -= qty
+        product.save()
+
+        if pay_type == 'account' and customer_id:
+            customer = Customer.objects.get(pk=customer_id)
+            ok, reason = customer.can_add_debt(sale.total_price)
+            if not ok:
+                sale.delete(); product.stock += qty; product.save()
+                errors.append(f'حساب {customer.name} مسدود: {reason}')
+                continue
+            customer.balance -= sale.total_price
+            customer.save()
+        elif pay_type == 'cash':
+            Payment.objects.create(
+                amount=sale.total_price, payment_type='cash',
+                customer_id=customer_id, session_id=session_id,
+                notes=f'فروش: {product.name} ×{qty}',
+            )
+
+        sold_names.append(f'{product.name} ×{qty}')
+
+    for e in errors:
+        messages.error(request, e)
+    if sold_names:
+        label = 'ثبت تب کافه' if pay_type == 'deferred' else 'فروش ثبت شد'
+        messages.success(request, f'{label}: {" | ".join(sold_names)}')
     return redirect('shop')
 
 
@@ -537,6 +647,9 @@ def device_delete(request, pk):
 
 @login_required
 def reports(request):
+    if not request.user.is_superuser:
+        messages.error(request, 'فقط سوپریوزر به گزارش‌ها دسترسی دارد.')
+        return redirect('dashboard')
     period = request.GET.get('period', 'today')
     now    = timezone.now()
     if period == 'week':
@@ -583,6 +696,23 @@ def reports(request):
         'top_products':   top_products,
         'settlements':    settlements,
     })
+
+
+@login_required
+def reports_csv(request):
+    if not request.user.is_superuser:
+        return redirect('dashboard')
+    response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+    response['Content-Disposition'] = 'attachment; filename="customers_debts.csv"'
+    writer = csv.writer(response)
+    writer.writerow(['نام', 'تلفن', 'موجودی', 'بدهی'])
+    for c in Customer.objects.all().order_by('name'):
+        writer.writerow([
+            c.name, c.phone,
+            c.balance,
+            abs(c.balance) if c.balance < 0 else 0,
+        ])
+    return response
 
 
 # ── Debts ─────────────────────────────────────────────────────────────────────

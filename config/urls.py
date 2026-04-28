@@ -9,21 +9,23 @@ urlpatterns = [
     path('',        views.dashboard,   name='dashboard'),
 
     # Sessions
-    path('session/start/',           views.session_start,   name='session_start'),
-    path('session/<int:pk>/',        views.session_detail,  name='session_detail'),
-    path('session/<int:pk>/end/',    views.session_end,     name='session_end'),
-    path('session/<int:pk>/cancel/', views.session_cancel,  name='session_cancel'),
-    path('session/<int:pk>/pay/',    views.session_pay,     name='session_pay'),
-    path('session/<int:pk>/status/', views.session_status,  name='session_status'),
-    path('sessions/history/',        views.sessions_history,name='sessions_history'),
+    path('session/start/',            views.session_start,   name='session_start'),
+    path('session/<int:pk>/',         views.session_detail,  name='session_detail'),
+    path('session/<int:pk>/end/',     views.session_end,     name='session_end'),
+    path('session/<int:pk>/cancel/',  views.session_cancel,  name='session_cancel'),
+    path('session/<int:pk>/pay/',     views.session_pay,     name='session_pay'),
+    path('session/<int:pk>/status/',  views.session_status,  name='session_status'),
+    path('session/<int:pk>/update/',  views.session_update,  name='session_update'),
+    path('sessions/history/',         views.sessions_history, name='sessions_history'),
 
     # Customers
-    path('customers/',                 views.customers_list,   name='customers_list'),
-    path('customers/create/',          views.customer_create,  name='customer_create'),
-    path('customers/<int:pk>/',        views.customer_detail,  name='customer_detail'),
-    path('customers/<int:pk>/edit/',   views.customer_edit,    name='customer_edit'),
-    path('customers/<int:pk>/delete/', views.customer_delete,  name='customer_delete'),
-    path('customers/<int:pk>/settle/', views.customer_settle,  name='customer_settle'),
+    path('customers/',                   views.customers_list,    name='customers_list'),
+    path('customers/create/',            views.customer_create,   name='customer_create'),
+    path('customers/<int:pk>/',          views.customer_detail,   name='customer_detail'),
+    path('customers/<int:pk>/edit/',     views.customer_edit,     name='customer_edit'),
+    path('customers/<int:pk>/delete/',   views.customer_delete,   name='customer_delete'),
+    path('customers/<int:pk>/settle/',   views.customer_settle,   name='customer_settle'),
+    path('customers/<int:pk>/add-debt/', views.customer_add_debt, name='customer_add_debt'),
 
     # Shop
     path('shop/',                    views.shop,                name='shop'),
@@ -41,6 +43,7 @@ urlpatterns = [
     path('devices/<int:pk>/delete/',  views.device_delete,  name='device_delete'),
 
     # Reports
-    path('reports/', views.reports, name='reports'),
-    path('debts/',   views.debts,   name='debts'),
+    path('reports/',     views.reports,     name='reports'),
+    path('reports/csv/', views.reports_csv, name='reports_csv'),
+    path('debts/',       views.debts,       name='debts'),
 ]
