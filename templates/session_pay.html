@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
-{% load shamsi humanize %}
+{% load shamsi humanize static %}
 {% block title %}پرداخت سشن{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% load static %}{% static 'css/tom-select.min.css' %}">
+<link rel="stylesheet" href="{% static 'css/tom-select.min.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -76,6 +76,38 @@
   <div class="progress" style="height:8px;border-radius:99px">
     <div class="progress-bar" style="width:{% widthratio session.paid_amount total_with_tab 100 %}%;border-radius:99px"></div>
   </div>
+</div>
+{% endif %}
+
+{% if session.notes %}
+<div class="card p-3 mb-3 fade-in" style="border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.05)">
+  <div style="position:absolute;top:0;right:0;left:0;height:2px;background:var(--grad-gold);border-radius:var(--radius) var(--radius) 0 0"></div>
+  <div class="d-flex align-items-start gap-2 mb-2">
+    <i class="bi bi-sticky-fill" style="color:var(--neon-gold);margin-top:.15rem"></i>
+    <strong style="color:var(--text)">یادداشت سشن</strong>
+  </div>
+  <p style="color:var(--text-2);margin-bottom:.75rem">{{ session.notes }}</p>
+  <form method="post" action="{% url 'session_update' session.pk %}" class="d-flex gap-2">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="update_notes">
+    <input type="hidden" name="next" value="session_pay">
+    <input type="text" name="notes" class="form-control form-control-sm" value="{{ session.notes }}" placeholder="ویرایش یادداشت…">
+    <button type="submit" class="btn btn-outline-secondary btn-sm px-3">ذخیره</button>
+  </form>
+</div>
+{% else %}
+<div class="card p-3 mb-3 fade-in" style="border-color:rgba(255,255,255,.06)">
+  <div class="d-flex align-items-center gap-2">
+    <i class="bi bi-sticky" style="color:var(--text-3)"></i>
+    <span style="color:var(--text-3);font-size:.85rem">یادداشت سشن</span>
+  </div>
+  <form method="post" action="{% url 'session_update' session.pk %}" class="d-flex gap-2 mt-2">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="update_notes">
+    <input type="hidden" name="next" value="session_pay">
+    <input type="text" name="notes" class="form-control form-control-sm" placeholder="افزودن یادداشت…">
+    <button type="submit" class="btn btn-outline-secondary btn-sm px-3">ذخیره</button>
+  </form>
 </div>
 {% endif %}
 
@@ -327,7 +359,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% load static %}{% static 'js/tom-select.min.js' %}"></script>
+<script src="{% static 'js/tom-select.min.js' %}"></script>
 <script>
 function toggleCustomer() {
   const t = document.getElementById('payTypeSelect').value;

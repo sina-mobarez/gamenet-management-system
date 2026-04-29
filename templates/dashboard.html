@@ -49,23 +49,9 @@
 {% endblock %}
 
 {% block content %}
-<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-3">
-  <div>
-    <h2>داشبورد</h2>
-    <div class="subtitle">{% shamsi_today %} &nbsp;·&nbsp; <span id="live-clock" class="ltr"></span></div>
-  </div>
-  {% if user.is_superuser %}
-  <div class="d-flex gap-3">
-    <div class="stat-card" style="min-width:160px">
-      <div class="label">دریافتی امروز</div>
-      <div class="value grad-text-green num">{{ today_cash|intcomma }}</div>
-    </div>
-    <div class="stat-card" style="min-width:160px">
-      <div class="label">بدهی کل</div>
-      <div class="value num" style="background:var(--grad-pink);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">{{ total_debt|intcomma }}</div>
-    </div>
-  </div>
-  {% endif %}
+<div class="page-header">
+  <h2>داشبورد</h2>
+  <div class="subtitle">{% shamsi_today %} &nbsp;·&nbsp; <span id="live-clock" class="ltr"></span></div>
 </div>
 
 {% if unpaid_sessions %}
@@ -361,6 +347,13 @@ const CUSTOMERS = [
               </button>
             </div>
           </div>
+
+          <div class="mt-3 pt-3" style="border-top:1px solid var(--glass-border)">
+            <label class="form-label"><i class="bi bi-clock-history me-1"></i>زمان شروع (اختیاری)</label>
+            <input type="datetime-local" name="started_at" id="startTimeInput"
+                   class="form-control ltr" style="font-family:'Space Grotesk',sans-serif">
+            <div style="font-size:.75rem;color:var(--text-3);margin-top:.3rem">خالی = همین لحظه &nbsp;|&nbsp; برای ثبت سشن گذشته پر کنید</div>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">انصراف</button>
@@ -557,6 +550,11 @@ document.getElementById('startModal').addEventListener('show.bs.modal', e => {
   document.getElementById('playerSelects').innerHTML = '';
   document.getElementById('walkInNames').innerHTML = '';
   document.getElementById('typeFree').checked = true;
+  // Default start time to now (local, formatted for datetime-local input)
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const localISO = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  document.getElementById('startTimeInput').value = localISO;
   toggleTimedFields(); updateRateBanner();
 });
 
@@ -641,23 +639,31 @@ document.getElementById('cancelModal').addEventListener('show.bs.modal', e => {
   document.getElementById('cancelForm').action = `/session/${b.dataset.sid}/cancel/`;
 });
 
-// ── SORTABLE drag-to-reorder (per group) ──────────────────────────────────
-const STORAGE_KEY = 'gamenet_card_order';
+// ── SORTABLE drag across all category grids ───────────────────────────────
+const STORAGE_KEY = 'gamenet_card_order_v2';
 function saveOrder() {
-  const ids = [...document.querySelectorAll('.device-col')].map(c => c.dataset.deviceId);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+  const order = {};
+  document.querySelectorAll('[id^="deviceGrid-"]').forEach(grid => {
+    order[grid.id] = [...grid.querySelectorAll('.device-col')].map(c => c.dataset.deviceId);
+  });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(order));
 }
 function applyOrder() {
-  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
-  if (!saved.length) return;
-  saved.forEach(id => {
-    const col = document.getElementById('col-'+id);
-    if (col) col.parentElement.appendChild(col);
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
+  if (!saved) return;
+  Object.entries(saved).forEach(([gridId, ids]) => {
+    const grid = document.getElementById(gridId);
+    if (!grid) return;
+    ids.forEach(id => {
+      const col = document.getElementById('col-'+id);
+      if (col) grid.appendChild(col);
+    });
   });
 }
 applyOrder();
 document.querySelectorAll('[id^="deviceGrid-"]').forEach(grid => {
   Sortable.create(grid, {
+    group: 'devices',
     animation: 180, handle: '.drag-handle',
     ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen',
     delay: 80, delayOnTouchOnly: true, onEnd: saveOrder,

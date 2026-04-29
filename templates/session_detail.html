@@ -109,8 +109,7 @@
       {% endif %}
     </div>
 
-    <!-- Notes (active session only) -->
-    {% if session.status == 'active' %}
+    <!-- Notes (always editable) -->
     <div class="card p-4 mb-3">
       <div style="position:absolute;top:0;right:0;left:0;height:2px;background:var(--grad-gold);border-radius:var(--radius) var(--radius) 0 0"></div>
       <strong class="d-block mb-2">یادداشت سشن</strong>
@@ -122,7 +121,6 @@
         <button type="submit" class="btn btn-primary btn-sm px-3">ذخیره</button>
       </form>
     </div>
-    {% endif %}
 
     {% if session.sales.exists %}
     <div class="card p-4">

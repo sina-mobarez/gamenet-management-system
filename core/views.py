@@ -40,9 +40,10 @@ def logout_view(request):
 def dashboard(request):
     devices_qs = Device.objects.filter(is_active=True).order_by('device_type', 'name')
     # Group devices by type for categorized display
+    MERGED_TYPES = {'billiard': 'بیلیارد / اسنوکر', 'snooker': 'بیلیارد / اسنوکر'}
     device_groups = {}
     for d in devices_qs:
-        key = d.get_device_type_display()
+        key = MERGED_TYPES.get(d.device_type, d.get_device_type_display())
         device_groups.setdefault(key, []).append(d)
 
     low_stock = Product.objects.filter(is_active=True).extra(
@@ -103,11 +104,21 @@ def session_start(request):
         except (ValueError, TypeError):
             duration_minutes = 60
 
+    started_at = timezone.now()
+    started_at_str = request.POST.get('started_at', '').strip()
+    if started_at_str:
+        try:
+            import datetime as _dt
+            started_at = timezone.make_aware(_dt.datetime.fromisoformat(started_at_str))
+        except (ValueError, TypeError):
+            pass
+
     session = Session.objects.create(
         device           = device,
         extra_controllers= int(request.POST.get('extra_controllers', 0)),
         session_type     = session_type,
         duration_minutes = duration_minutes,
+        started_at       = started_at,
     )
 
     for cid in request.POST.getlist('player_ids'):
@@ -265,8 +276,8 @@ def session_pay(request, pk):
 
 @login_required
 def session_update(request, pk):
-    """Add/remove players or update notes on an active session without ending it."""
-    session = get_object_or_404(Session, pk=pk, status='active')
+    """Update notes (any status) or add/remove players (active only)."""
+    session = get_object_or_404(Session, pk=pk)
     next_url = request.POST.get('next', 'dashboard')
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -275,21 +286,29 @@ def session_update(request, pk):
             session.save()
             messages.success(request, 'یادداشت ذخیره شد.')
         elif action == 'add_player':
-            cid  = request.POST.get('customer_id', '').strip()
-            name = request.POST.get('player_name', '').strip()
-            if cid:
-                SessionPlayer.objects.create(session=session, customer_id=cid)
-                messages.success(request, 'بازیکن اضافه شد.')
-            elif name:
-                SessionPlayer.objects.create(session=session, player_name=name)
-                messages.success(request, 'بازیکن اضافه شد.')
+            if session.status != 'active':
+                messages.error(request, 'افزودن بازیکن فقط در سشن فعال ممکن است.')
             else:
-                messages.error(request, 'نام یا مشتری را وارد کنید.')
+                cid  = request.POST.get('customer_id', '').strip()
+                name = request.POST.get('player_name', '').strip()
+                if cid:
+                    SessionPlayer.objects.create(session=session, customer_id=cid)
+                    messages.success(request, 'بازیکن اضافه شد.')
+                elif name:
+                    SessionPlayer.objects.create(session=session, player_name=name)
+                    messages.success(request, 'بازیکن اضافه شد.')
+                else:
+                    messages.error(request, 'نام یا مشتری را وارد کنید.')
         elif action == 'remove_player':
-            SessionPlayer.objects.filter(pk=request.POST.get('player_id'), session=session).delete()
-            messages.success(request, 'بازیکن حذف شد.')
+            if session.status != 'active':
+                messages.error(request, 'حذف بازیکن فقط در سشن فعال ممکن است.')
+            else:
+                SessionPlayer.objects.filter(pk=request.POST.get('player_id'), session=session).delete()
+                messages.success(request, 'بازیکن حذف شد.')
     if next_url == 'session_detail':
         return redirect('session_detail', pk=pk)
+    if next_url == 'session_pay':
+        return redirect('session_pay', pk=pk)
     return redirect('dashboard')
 
 
@@ -719,6 +738,9 @@ def reports_csv(request):
 
 @login_required
 def debts(request):
+    if not request.user.is_superuser:
+        messages.error(request, 'دسترسی فقط برای مدیر سیستم.')
+        return redirect('dashboard')
     return render(request, 'debts.html', {
         'debtors': Customer.objects.filter(balance__lt=0).order_by('balance')
     })
