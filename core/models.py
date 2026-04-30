@@ -202,6 +202,7 @@ class Sale(models.Model):
     customer     = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True)
     session      = models.ForeignKey(Session, on_delete=models.SET_NULL, null=True, blank=True,
                                      related_name='sales')
+    notes        = models.TextField(blank=True)
     sold_at      = models.DateTimeField(default=timezone.now)
 
     def save(self, *args, **kwargs):

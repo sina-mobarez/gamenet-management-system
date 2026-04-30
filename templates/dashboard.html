@@ -45,6 +45,39 @@
   font-size: .72rem; text-transform: uppercase; letter-spacing: 2px;
   color: var(--text-3); font-family: 'Space Grotesk', sans-serif; font-weight: 600;
 }
+/* ── Per-category card accent colours ── */
+.device-col[data-type="ps4"]      .device-card.busy,
+.device-col[data-type="ps4"]      .device-card.free    { --cat-accent: rgba(59,130,246,0.35); }
+.device-col[data-type="ps5"]      .device-card.busy,
+.device-col[data-type="ps5"]      .device-card.free    { --cat-accent: rgba(168,85,247,0.4); }
+.device-col[data-type="billiard"] .device-card.busy,
+.device-col[data-type="billiard"] .device-card.free,
+.device-col[data-type="snooker"]  .device-card.busy,
+.device-col[data-type="snooker"]  .device-card.free    { --cat-accent: rgba(16,185,129,0.35); }
+.device-col[data-type="airHocky"] .device-card.busy,
+.device-col[data-type="airHocky"] .device-card.free    { --cat-accent: rgba(6,182,212,0.35); }
+.device-col[data-type="tennis"]   .device-card.busy,
+.device-col[data-type="tennis"]   .device-card.free    { --cat-accent: rgba(251,191,36,0.35); }
+.device-col[data-type="system"]   .device-card.busy,
+.device-col[data-type="system"]   .device-card.free    { --cat-accent: rgba(244,114,182,0.35); }
+.device-col[data-type] .device-card.busy { border-color: var(--cat-accent, rgba(244,63,94,0.3)); }
+.device-col[data-type] .device-card.free { border-color: var(--cat-accent, rgba(16,185,129,0.2)); }
+/* Thin coloured top stripe per category */
+.device-col[data-type="ps4"]      .device-card::before { background: linear-gradient(90deg,#3b82f6,#60a5fa); }
+.device-col[data-type="ps5"]      .device-card::before { background: linear-gradient(90deg,#7c3aed,#a855f7); }
+.device-col[data-type="billiard"] .device-card::before,
+.device-col[data-type="snooker"]  .device-card::before { background: linear-gradient(90deg,#059669,#10b981); }
+.device-col[data-type="airHocky"] .device-card::before { background: linear-gradient(90deg,#0891b2,#06b6d4); }
+.device-col[data-type="tennis"]   .device-card::before { background: linear-gradient(90deg,#d97706,#fbbf24); }
+.device-col[data-type="system"]   .device-card::before { background: linear-gradient(90deg,#db2777,#f472b6); }
+.device-col[data-type] .device-card::before {
+  content:''; position:absolute; top:0; right:0; left:0; height:2px;
+  border-radius:var(--radius) var(--radius) 0 0;
+}
+/* Drag visual feedback */
+.device-col.sortable-ghost  { opacity: .3; }
+.device-col.sortable-chosen { transform: scale(1.02); z-index: 10; box-shadow: 0 8px 32px rgba(0,0,0,.4); }
+.device-grid.drag-over      { background: rgba(168,85,247,.04); border-radius: var(--radius); outline: 1px dashed rgba(168,85,247,.3); }
 </style>
 {% endblock %}
 
@@ -66,6 +99,36 @@
 </div>
 {% endif %}
 
+{% if pending_tabs %}
+<div class="card p-3 mb-4 fade-in" style="border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.04)">
+  <div style="position:absolute;top:0;right:0;left:0;height:2px;background:linear-gradient(90deg,#d97706,#fbbf24);border-radius:var(--radius) var(--radius) 0 0"></div>
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <i class="bi bi-clock-history" style="color:var(--neon-gold)"></i>
+    <strong>تب‌های آزاد (پرداخت بعداً)</strong>
+    <span class="badge-ghost" style="font-size:.7rem">{{ pending_tabs|length }} مورد</span>
+  </div>
+  <div class="row g-2">
+    {% for sale in pending_tabs %}
+    <div class="col-sm-6 col-md-4 col-lg-3">
+      <div class="p-2 rounded-3 d-flex flex-column gap-1" style="background:rgba(255,255,255,.04);border:1px solid rgba(251,191,36,.2)">
+        <div style="font-size:.82rem;font-weight:600;color:var(--text)">{{ sale.product.name }} ×{{ sale.quantity }}</div>
+        <div class="num" style="color:var(--neon-gold);font-size:.9rem">{{ sale.total_price|intcomma }} تومان</div>
+        {% if sale.notes %}<div style="font-size:.72rem;color:var(--neon-cyan)"><i class="bi bi-chat-left-text me-1"></i>{{ sale.notes }}</div>{% endif %}
+        <div style="font-size:.68rem;color:var(--text-3)">{{ sale.sold_at|shamsi:'datetime' }}</div>
+        <button class="btn btn-warning btn-sm w-100 mt-1 fw-bold"
+                data-bs-toggle="modal" data-bs-target="#tabPayModal"
+                data-sale-id="{{ sale.pk }}"
+                data-sale-name="{{ sale.product.name }} ×{{ sale.quantity }}"
+                data-sale-amount="{{ sale.total_price }}">
+          <i class="bi bi-wallet2 me-1"></i>پرداخت
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 <!-- ── Device cards grouped by category ── -->
 {% for cat_name, cat_devices in device_groups %}
 <div class="mb-4">
@@ -75,7 +138,7 @@
   </div>
   <div class="device-grid" id="deviceGrid-{{ forloop.counter }}" data-group="{{ forloop.counter }}">
   {% for device in cat_devices %}
-  <div class="device-col" data-device-id="{{ device.id }}" id="col-{{ device.id }}">
+  <div class="device-col" data-device-id="{{ device.id }}" data-type="{{ device.device_type }}" id="col-{{ device.id }}">
 
     {% if device.is_occupied %}{% with session=device.active_session %}
     <!-- BUSY -->
@@ -420,6 +483,54 @@ const CUSTOMERS = [
   </div>
 </div>
 
+<!-- ══ TAB PAY MODAL ══ -->
+<div class="modal fade" id="tabPayModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content" style="border-color:rgba(245,158,11,.3)">
+      <div class="modal-header" style="border-color:rgba(245,158,11,.2)">
+        <h5 class="modal-title" style="color:var(--neon-gold)">
+          <i class="bi bi-wallet2 me-2"></i>پرداخت تب آزاد
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" id="tabPayForm">
+        {% csrf_token %}
+        <div class="modal-body">
+          <p id="tabPayName" class="fw-bold mb-1" style="color:var(--text)"></p>
+          <p id="tabPayAmount" class="num mb-3" style="color:var(--neon-gold);font-size:1.15rem"></p>
+
+          <div class="mb-3">
+            <label class="form-label">روش پرداخت</label>
+            <select name="pay_type" id="tabPayType" class="form-select" onchange="toggleTabCustomer()">
+              <option value="cash">💵 نقد</option>
+              <option value="account">🏦 به حساب مشتری</option>
+            </select>
+          </div>
+
+          <div id="tabCustomerWrap" class="mb-3" style="display:none">
+            <label class="form-label">مشتری</label>
+            <select name="customer_id" id="tabCustomerSelect" class="form-select">
+              <option value="">— انتخاب مشتری —</option>
+              {% for c in customers_for_modal %}
+              <option value="{{ c.id }}">{{ c.name }}{% if c.balance < 0 %} ⚠{% endif %}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-1">
+            <label class="form-label">یادداشت (اختیاری)</label>
+            <input type="text" name="notes" class="form-control form-control-sm" placeholder="توضیح پرداخت…">
+          </div>
+        </div>
+        <div class="modal-footer" style="border-color:rgba(245,158,11,.2)">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">انصراف</button>
+          <button type="submit" class="btn btn-warning fw-bold btn-sm px-4">ثبت پرداخت</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <!-- ══ CANCEL SESSION MODAL ══ -->
 <div class="modal fade" id="cancelModal" tabindex="-1">
   <div class="modal-dialog modal-sm">
@@ -639,34 +750,81 @@ document.getElementById('cancelModal').addEventListener('show.bs.modal', e => {
   document.getElementById('cancelForm').action = `/session/${b.dataset.sid}/cancel/`;
 });
 
-// ── SORTABLE drag across all category grids ───────────────────────────────
-const STORAGE_KEY = 'gamenet_card_order_v2';
-function saveOrder() {
-  const order = {};
-  document.querySelectorAll('[id^="deviceGrid-"]').forEach(grid => {
-    order[grid.id] = [...grid.querySelectorAll('.device-col')].map(c => c.dataset.deviceId);
-  });
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(order));
+// ── TAB PAY MODAL ──────────────────────────────────────────────────────────
+let tabCustomerTS = null;
+document.getElementById('tabPayModal').addEventListener('show.bs.modal', e => {
+  const b = e.relatedTarget;
+  document.getElementById('tabPayName').textContent    = b.dataset.saleName;
+  document.getElementById('tabPayAmount').textContent  = parseInt(b.dataset.saleAmount).toLocaleString('fa-IR') + ' تومان';
+  document.getElementById('tabPayForm').action         = `/shop/sale/${b.dataset.saleId}/paid/`;
+  document.getElementById('tabPayType').value          = 'cash';
+  document.getElementById('tabCustomerWrap').style.display = 'none';
+});
+document.getElementById('tabPayModal').addEventListener('shown.bs.modal', () => {
+  if (!tabCustomerTS) {
+    const el = document.getElementById('tabCustomerSelect');
+    if (el) tabCustomerTS = new TomSelect(el, { create: false, maxOptions: 200 });
+  }
+});
+function toggleTabCustomer() {
+  const show = document.getElementById('tabPayType').value === 'account';
+  document.getElementById('tabCustomerWrap').style.display = show ? 'block' : 'none';
 }
-function applyOrder() {
-  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
-  if (!saved) return;
-  Object.entries(saved).forEach(([gridId, ids]) => {
+
+// ── SORTABLE — drag cards freely between category sections ────────────────
+const DRAG_KEY = 'gamenet_drag_v3';
+
+function saveDragOrder() {
+  const entries = [];
+  document.querySelectorAll('[id^="deviceGrid-"]').forEach(grid => {
+    grid.querySelectorAll('.device-col').forEach(col => {
+      entries.push({ id: col.dataset.deviceId, grid: grid.id });
+    });
+  });
+  try { localStorage.setItem(DRAG_KEY, JSON.stringify(entries)); } catch(e) {}
+}
+
+function applyDragOrder() {
+  let saved;
+  try { saved = JSON.parse(localStorage.getItem(DRAG_KEY)); } catch(e) { return; }
+  if (!Array.isArray(saved) || !saved.length) return;
+  saved.forEach(({ id, grid }) => {
+    const col = document.getElementById('col-' + id);
+    const targetGrid = document.getElementById(grid);
+    if (col && targetGrid && col.parentElement !== targetGrid) {
+      targetGrid.appendChild(col);
+    }
+  });
+  // Re-order within each grid according to saved sequence
+  const gridMap = {};
+  saved.forEach(({ id, grid }) => { (gridMap[grid] = gridMap[grid] || []).push(id); });
+  Object.entries(gridMap).forEach(([gridId, ids]) => {
     const grid = document.getElementById(gridId);
     if (!grid) return;
     ids.forEach(id => {
-      const col = document.getElementById('col-'+id);
+      const col = document.getElementById('col-' + id);
       if (col) grid.appendChild(col);
     });
   });
 }
-applyOrder();
+
+applyDragOrder();
+
 document.querySelectorAll('[id^="deviceGrid-"]').forEach(grid => {
   Sortable.create(grid, {
-    group: 'devices',
-    animation: 180, handle: '.drag-handle',
-    ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen',
-    delay: 80, delayOnTouchOnly: true, onEnd: saveOrder,
+    group:       { name: 'devices', pull: true, put: true },
+    animation:   200,
+    handle:      '.drag-handle',
+    ghostClass:  'sortable-ghost',
+    chosenClass: 'sortable-chosen',
+    dragClass:   'sortable-drag',
+    delay:       60,
+    delayOnTouchOnly: true,
+    onStart: () => document.querySelectorAll('[id^="deviceGrid-"]').forEach(g => g.classList.add('drag-over')),
+    onEnd: () => {
+      document.querySelectorAll('[id^="deviceGrid-"]').forEach(g => g.classList.remove('drag-over'));
+      saveDragOrder();
+    },
   });
 });
 </script>

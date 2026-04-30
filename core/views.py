@@ -72,6 +72,11 @@ def dashboard(request):
         if not s.is_fully_paid
     ]
 
+    pending_tabs = (Sale.objects
+                   .filter(payment_type='account', customer__isnull=True, session__isnull=True)
+                   .select_related('product')
+                   .order_by('-sold_at'))
+
     return render(request, 'dashboard.html', {
         'device_groups':        device_groups.items(),
         'low_stock':            low_stock,
@@ -79,6 +84,7 @@ def dashboard(request):
         'total_debt':           total_debt,
         'customers_for_modal':  Customer.objects.all().order_by('name'),
         'unpaid_sessions':      unpaid_sessions,
+        'pending_tabs':         pending_tabs,
     })
 
 
@@ -463,6 +469,47 @@ def customer_settle(request, pk):
     return redirect('customer_detail', pk=pk)
 
 
+@login_required
+def sale_mark_paid(request, pk):
+    """Pay a free-tab sale — cash or account."""
+    if request.method != 'POST':
+        return redirect('dashboard')
+    sale = get_object_or_404(Sale, pk=pk, payment_type='account',
+                             customer__isnull=True, session__isnull=True)
+    pay_type    = request.POST.get('pay_type', 'cash')
+    customer_id = request.POST.get('customer_id') or None
+    note        = request.POST.get('notes', '').strip()
+
+    base_note = f'تب آزاد: {sale.product.name} ×{sale.quantity}'
+    if note:
+        base_note += f' — {note}'
+
+    if pay_type == 'account' and customer_id:
+        customer = get_object_or_404(Customer, pk=customer_id)
+        ok, reason = customer.can_add_debt(sale.total_price)
+        if not ok:
+            messages.error(request, f'حساب {customer.name} مسدود: {reason}')
+            return redirect('dashboard')
+        sale.payment_type = 'account'
+        sale.customer = customer
+        sale.save()
+        customer.balance -= sale.total_price
+        customer.save()
+        Payment.objects.create(
+            amount=sale.total_price, payment_type='account_debit',
+            customer=customer, notes=base_note,
+        )
+        messages.success(request, f'تب آزاد به حساب {customer.name} ثبت شد.')
+    else:
+        sale.payment_type = 'cash'
+        sale.save()
+        Payment.objects.create(
+            amount=sale.total_price, payment_type='cash', notes=base_note,
+        )
+        messages.success(request, f'تب آزاد نقد تسویه شد: {sale.product.name}')
+    return redirect('dashboard')
+
+
 # ── Shop ──────────────────────────────────────────────────────────────────────
 
 @login_required
@@ -480,19 +527,36 @@ def shop(request):
 
 @login_required
 def shop_sell(request):
-    """Multi-product cart sell. payment_type: cash | account | deferred."""
+    """Multi-product cart sell.
+    payment_type: cash | account | session_tab (linked tab) | free_tab (no session)
+    """
     if request.method != 'POST':
         return redirect('shop')
 
     pay_type    = request.POST.get('payment_type', 'cash')
     session_id  = request.POST.get('session_id') or None
     customer_id = request.POST.get('customer_id') or None
+    sale_notes  = request.POST.get('notes', '').strip()
     product_ids = request.POST.getlist('product_ids[]')
     quantities  = request.POST.getlist('quantities[]')
 
     if not product_ids:
         messages.error(request, 'هیچ محصولی انتخاب نشده است.')
         return redirect('shop')
+
+    # Resolve to DB payment_type and FK values
+    if pay_type in ('session_tab', 'free_tab'):
+        effective_type = 'account'
+        effective_session = session_id if pay_type == 'session_tab' else None
+        effective_customer = None
+    elif pay_type == 'account':
+        effective_type = 'account'
+        effective_session = session_id or None
+        effective_customer = customer_id
+    else:
+        effective_type = 'cash'
+        effective_session = session_id or None
+        effective_customer = customer_id
 
     sold_names, errors = [], []
     for pid, qty_str in zip(product_ids, quantities):
@@ -506,19 +570,17 @@ def shop_sell(request):
             errors.append(f'موجودی {product.name} کافی نیست.')
             continue
 
-        effective_type = 'account' if pay_type == 'deferred' else pay_type
-        cid = None if pay_type == 'deferred' else customer_id
-
         sale = Sale.objects.create(
             product=product, quantity=qty, unit_price=product.price,
             payment_type=effective_type,
-            session_id=session_id, customer_id=cid,
+            session_id=effective_session, customer_id=effective_customer,
+            notes=sale_notes,
         )
         product.stock -= qty
         product.save()
 
-        if pay_type == 'account' and customer_id:
-            customer = Customer.objects.get(pk=customer_id)
+        if pay_type == 'account' and effective_customer:
+            customer = Customer.objects.get(pk=effective_customer)
             ok, reason = customer.can_add_debt(sale.total_price)
             if not ok:
                 sale.delete(); product.stock += qty; product.save()
@@ -527,10 +589,13 @@ def shop_sell(request):
             customer.balance -= sale.total_price
             customer.save()
         elif pay_type == 'cash':
+            note = f'فروش: {product.name} ×{qty}'
+            if sale_notes:
+                note += f' — {sale_notes}'
             Payment.objects.create(
                 amount=sale.total_price, payment_type='cash',
-                customer_id=customer_id, session_id=session_id,
-                notes=f'فروش: {product.name} ×{qty}',
+                customer_id=effective_customer, session_id=effective_session,
+                notes=note,
             )
 
         sold_names.append(f'{product.name} ×{qty}')
@@ -538,7 +603,12 @@ def shop_sell(request):
     for e in errors:
         messages.error(request, e)
     if sold_names:
-        label = 'ثبت تب کافه' if pay_type == 'deferred' else 'فروش ثبت شد'
+        if pay_type == 'session_tab':
+            label = 'ثبت تب کافه'
+        elif pay_type == 'free_tab':
+            label = 'ثبت تب آزاد'
+        else:
+            label = 'فروش ثبت شد'
         messages.success(request, f'{label}: {" | ".join(sold_names)}')
     return redirect('shop')
 

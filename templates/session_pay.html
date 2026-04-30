@@ -118,9 +118,12 @@
     <i class="bi bi-cup-straw" style="color:var(--neon-cyan)"></i>
     <strong style="color:var(--text)">تب کافه — {{ cafe_tab_total|intcomma }} تومان</strong>
   </div>
-  <div class="d-flex flex-wrap gap-2">
+  <div class="d-flex flex-column gap-1">
     {% for s in cafe_tab_items %}
-    <span class="badge-ghost" style="font-size:.78rem;color:var(--text-2)">{{ s.product.name }} ×{{ s.quantity }} — {{ s.total_price|intcomma }}</span>
+    <div class="d-flex align-items-start justify-content-between gap-2">
+      <span class="badge-ghost" style="font-size:.78rem;color:var(--text-2)">{{ s.product.name }} ×{{ s.quantity }} — {{ s.total_price|intcomma }}</span>
+      {% if s.notes %}<span style="font-size:.72rem;color:var(--neon-cyan)"><i class="bi bi-chat-left-text me-1"></i>{{ s.notes }}</span>{% endif %}
+    </div>
     {% endfor %}
   </div>
   <div style="font-size:.78rem;color:var(--text-3);margin-top:.5rem">در مبلغ کل محاسبه شده — جداگانه از هزینه زمان سشن</div>

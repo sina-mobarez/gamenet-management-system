@@ -1,8 +1,7 @@
 {% extends 'base.html' %}
-{% load shamsi humanize %}
+{% load shamsi humanize static %}
 {% block title %}فروش کافه{% endblock %}
 
-{% load static %}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/tom-select.min.css' %}">
 <style>
@@ -99,10 +98,11 @@
 
         <div class="mb-3">
           <label class="form-label">روش پرداخت</label>
-          <select name="payment_type" id="payType" class="form-select" onchange="toggleCustomerField()">
+          <select name="payment_type" id="payType" class="form-select" onchange="togglePayFields()">
             <option value="cash">💵 نقد</option>
             <option value="account">🏦 به حساب مشتری</option>
-            <option value="deferred">📌 تب سشن (پرداخت با سشن)</option>
+            <option value="session_tab">📌 تب سشن (پرداخت با سشن)</option>
+            <option value="free_tab">🕐 پرداخت بعداً (تب آزاد)</option>
           </select>
         </div>
 
@@ -116,17 +116,26 @@
           </select>
         </div>
 
-        <div class="mb-3">
-          <label class="form-label" id="sessionLabel">لینک به سشن <span id="sessionRequired" style="color:var(--neon-red);display:none">*</span></label>
+        <div id="sessionSection" class="mb-3">
+          <label class="form-label">
+            لینک به سشن
+            <span id="sessionRequired" style="color:var(--neon-red);display:none">*</span>
+          </label>
           <select name="session_id" id="shopSessionSelect" class="form-select">
             <option value="">— بدون سشن —</option>
             {% for s in active_sessions %}
             <option value="{{ s.id }}">{{ s.device.name }}</option>
             {% endfor %}
           </select>
-          <div id="sessionHint" style="font-size:.75rem;color:var(--text-3);margin-top:.25rem;display:none">
+          <div id="sessionHint" style="font-size:.75rem;color:var(--neon-red);margin-top:.25rem;display:none">
             برای تب سشن، انتخاب سشن الزامی است.
           </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">یادداشت <span style="color:var(--text-3)">(اختیاری)</span></label>
+          <input type="text" name="notes" id="saleNotes" class="form-control form-control-sm"
+                 placeholder="برای مشتری، میز، یا توضیح…">
         </div>
 
         <div class="text-center p-3 rounded-3 mb-3"
@@ -156,12 +165,8 @@ let cart = {}; // pid -> {name, price, stock, qty}
 function toggleCart(id, name, price, stock) {
   if (stock <= 0) return;
   if (cart[id]) {
-    // Cycle through qty: 1 → 2 → … → stock → remove
-    if (cart[id].qty < stock) {
-      cart[id].qty++;
-    } else {
-      delete cart[id];
-    }
+    if (cart[id].qty < stock) { cart[id].qty++; }
+    else { delete cart[id]; }
   } else {
     cart[id] = {name, price, stock, qty: 1};
   }
@@ -176,15 +181,8 @@ function changeQty(id, delta) {
   renderCart();
 }
 
-function removeFromCart(id) {
-  delete cart[id];
-  renderCart();
-}
-
-function clearCart() {
-  cart = {};
-  renderCart();
-}
+function removeFromCart(id) { delete cart[id]; renderCart(); }
+function clearCart() { cart = {}; renderCart(); }
 
 function renderCart() {
   const keys = Object.keys(cart);
@@ -193,7 +191,6 @@ function renderCart() {
   const totalEl  = document.getElementById('cartTotal');
   const submitEl = document.getElementById('submitBtn');
 
-  // Sync card visuals
   document.querySelectorAll('.product-card[data-pid]').forEach(c => {
     const id = c.dataset.pid;
     if (cart[id]) {
@@ -225,7 +222,7 @@ function renderCart() {
         <div style="font-size:.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.name}</div>
         <div style="font-size:.72rem;color:var(--neon-gold);font-family:'Space Grotesk',sans-serif">${sub.toLocaleString('fa-IR')} تومان</div>
       </div>
-      <div class="d-flex align-items-center gap-1 me-0 ms-2">
+      <div class="d-flex align-items-center gap-1 ms-2">
         <button type="button" class="btn btn-outline-secondary btn-sm px-2" style="padding:.15rem .4rem" onclick="changeQty(${id},-1)">−</button>
         <span style="font-size:.9rem;min-width:1.2rem;text-align:center;font-family:'Space Grotesk',sans-serif;font-weight:700">${item.qty}</span>
         <button type="button" class="btn btn-outline-secondary btn-sm px-2" style="padding:.15rem .4rem" onclick="changeQty(${id},1)">+</button>
@@ -238,16 +235,21 @@ function renderCart() {
   totalEl.textContent = total.toLocaleString('fa-IR');
 }
 
+function togglePayFields() {
+  const val = document.getElementById('payType').value;
+  document.getElementById('customerSection').style.display  = val === 'account' ? 'block' : 'none';
+  document.getElementById('sessionSection').style.display   = val === 'free_tab' ? 'none' : 'block';
+  document.getElementById('sessionRequired').style.display  = val === 'session_tab' ? 'inline' : 'none';
+  document.getElementById('sessionHint').style.display      = 'none';
+}
+
 function submitCart() {
   const payType = document.getElementById('payType').value;
-  // Deferred requires a session to be selected
-  if (payType === 'deferred') {
+  if (payType === 'session_tab') {
     const sessionSel = document.getElementById('shopSessionSelect');
     const val = sessionSel.tomselect ? sessionSel.tomselect.getValue() : sessionSel.value;
     if (!val) {
       document.getElementById('sessionHint').style.display = 'block';
-      document.getElementById('sessionRequired').style.display = 'inline';
-      sessionSel.closest('.mb-3').style.borderColor = 'var(--neon-red)';
       return;
     }
   }
@@ -264,24 +266,9 @@ function submitCart() {
   form.submit();
 }
 
-function toggleCustomerField() {
-  const val = document.getElementById('payType').value;
-  document.getElementById('customerSection').style.display = val === 'account' ? 'block' : 'none';
-  const required = document.getElementById('sessionRequired');
-  const hint = document.getElementById('sessionHint');
-  if (val === 'deferred') {
-    required.style.display = 'inline';
-    hint.style.display = 'block';
-  } else {
-    required.style.display = 'none';
-    hint.style.display = 'none';
-  }
-}
-
-// Tom Select on customer + session selects
 document.addEventListener('DOMContentLoaded', () => {
   new TomSelect('#shopCustomerSelect', { create: false });
-  new TomSelect('#shopSessionSelect', { create: false });
+  new TomSelect('#shopSessionSelect',  { create: false });
 });
 </script>
 {% endblock %}
