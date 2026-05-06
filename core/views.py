@@ -76,6 +76,7 @@ def dashboard(request):
                    .filter(payment_type='account', customer__isnull=True, session__isnull=True)
                    .select_related('product')
                    .order_by('-sold_at'))
+    pending_tabs_total = pending_tabs.aggregate(t=Sum('total_price'))['t'] or 0
 
     return render(request, 'dashboard.html', {
         'device_groups':        device_groups.items(),
@@ -85,6 +86,7 @@ def dashboard(request):
         'customers_for_modal':  Customer.objects.all().order_by('name'),
         'unpaid_sessions':      unpaid_sessions,
         'pending_tabs':         pending_tabs,
+        'pending_tabs_total':   pending_tabs_total,
     })
 
 
@@ -162,10 +164,15 @@ def session_detail(request, pk):
 
 @login_required
 def session_end(request, pk):
-    session           = get_object_or_404(Session, pk=pk, status='active')
-    session.ended_at  = timezone.now()
+    session = get_object_or_404(Session, pk=pk)
+    if session.status == 'finished':
+        return redirect('session_pay', pk=session.pk)
+    if session.status != 'active':
+        messages.error(request, 'این سشن قابل پایان دادن نیست.')
+        return redirect('dashboard')
+    session.ended_at   = timezone.now()
     session.total_cost = session.calculate_cost()
-    session.status    = 'finished'
+    session.status     = 'finished'
     session.save()
     messages.success(request, f'سشن پایان یافت. مبلغ: {session.total_cost:,} تومان')
     return redirect('session_pay', pk=session.pk)
@@ -507,6 +514,58 @@ def sale_mark_paid(request, pk):
             amount=sale.total_price, payment_type='cash', notes=base_note,
         )
         messages.success(request, f'تب آزاد نقد تسویه شد: {sale.product.name}')
+    return redirect('dashboard')
+
+
+@login_required
+def sales_pay_bulk(request):
+    """Pay all selected free-tab sales as one combined payment."""
+    if request.method != 'POST':
+        return redirect('dashboard')
+
+    sale_ids    = request.POST.getlist('sale_ids[]')
+    pay_type    = request.POST.get('pay_type', 'cash')
+    customer_id = request.POST.get('customer_id') or None
+    note        = request.POST.get('notes', '').strip()
+
+    if not sale_ids:
+        messages.error(request, 'هیچ موردی انتخاب نشده.')
+        return redirect('dashboard')
+
+    sales = Sale.objects.filter(
+        pk__in=sale_ids,
+        payment_type='account',
+        customer__isnull=True,
+        session__isnull=True,
+    ).select_related('product')
+
+    if not sales.exists():
+        messages.error(request, 'موردی یافت نشد.')
+        return redirect('dashboard')
+
+    total   = sales.aggregate(t=Sum('total_price'))['t'] or 0
+    summary = ' | '.join(f'{s.product.name} ×{s.quantity}' for s in sales)
+    base_note = f'تب آزاد: {summary}'
+    if note:
+        base_note += f' — {note}'
+
+    if pay_type == 'account' and customer_id:
+        customer = get_object_or_404(Customer, pk=customer_id)
+        ok, reason = customer.can_add_debt(total)
+        if not ok:
+            messages.error(request, f'حساب {customer.name} مسدود: {reason}')
+            return redirect('dashboard')
+        sales.update(payment_type='account', customer_id=customer_id)
+        customer.balance -= total
+        customer.save()
+        Payment.objects.create(amount=total, payment_type='account_debit',
+                               customer=customer, notes=base_note)
+        messages.success(request, f'تب‌های آزاد به حساب {customer.name} ثبت شد: {total:,} تومان')
+    else:
+        sales.update(payment_type='cash')
+        Payment.objects.create(amount=total, payment_type='cash', notes=base_note)
+        messages.success(request, f'تب‌های آزاد نقد تسویه شد: {total:,} تومان')
+
     return redirect('dashboard')
 
 
