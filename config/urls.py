@@ -10,6 +10,7 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('',        views.dashboard,        name='dashboard'),
     path('dashboard/cards/', views.dashboard_cards, name='dashboard_cards'),
+    path('session/<int:pk>/sheet/', views.session_sheet, name='session_sheet'),
 
     # Sessions
     path('session/start/',            views.session_start,   name='session_start'),

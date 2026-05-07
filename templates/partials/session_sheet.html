@@ -1,0 +1,75 @@
+{% load humanize shamsi %}
+<div class="sheet-handle"></div>
+<div class="sheet-header">
+  <div>
+    <div style="font-size:.7rem;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">{{ session.device.get_device_type_display }}</div>
+    <span class="sheet-title">{{ session.device.name }}</span>
+  </div>
+  <button class="btn btn-outline-secondary btn-sm" onclick="closeSessionSheet()">
+    <i class="bi bi-x-lg"></i>
+  </button>
+</div>
+
+<div class="sheet-body">
+  <!-- Timer -->
+  <div class="text-center mb-3">
+    {% if session.session_type == 'timed' and session.duration_minutes %}
+    <div style="font-size:.75rem;color:var(--text-3);margin-bottom:.25rem">مانده</div>
+    <div class="countdown-num" id="sheet-countdown-{{ session.pk }}"
+         data-total="{{ session.duration_minutes }}"
+         data-started="{{ session.started_at|date:'c' }}"
+         style="font-size:2rem;font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--neon-cyan)">--:--</div>
+    <div style="font-size:.75rem;color:var(--text-3);margin-top:.35rem">گذشته</div>
+    {% endif %}
+    <div class="timer-display" id="sheet-timer-{{ session.pk }}"
+         data-started="{{ session.started_at|date:'c' }}"
+         style="{% if session.session_type != 'timed' %}font-size:2.4rem{% else %}font-size:1.4rem{% endif %}">
+      {{ session.duration_display }}
+    </div>
+    <div class="cost-display mt-1" style="font-size:1.3rem">
+      {{ session.calculate_cost|intcomma }}
+      <span style="font-size:.8rem;color:var(--text-3);font-family:'Vazirmatn',sans-serif">تومان</span>
+    </div>
+  </div>
+
+  <!-- Players -->
+  {% with players=session.players.all %}
+  {% if players %}
+  <div class="mb-3">
+    <div class="section-label mb-1">بازیکنان</div>
+    <div class="d-flex flex-wrap gap-1">
+      {% for p in players %}<span class="badge-ghost">{{ p.display_name }}</span>{% endfor %}
+    </div>
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  {% if session.notes %}
+  <div class="mb-3">
+    <div class="section-label mb-1">یادداشت</div>
+    <div style="font-size:.85rem;color:var(--text-2)">{{ session.notes }}</div>
+  </div>
+  {% endif %}
+
+  <div class="divider"></div>
+
+  <!-- Actions -->
+  <div class="d-flex flex-column gap-2">
+    <a href="{% url 'session_end' session.pk %}"
+       class="btn btn-danger fw-bold py-2"
+       onclick="return confirm('سشن پایان یابد؟')">
+      <i class="bi bi-stop-fill me-1"></i>پایان سشن
+    </a>
+    <div class="d-flex gap-2">
+      <a href="{% url 'session_detail' session.pk %}" class="btn btn-outline-secondary flex-fill">
+        <i class="bi bi-list-ul me-1"></i>جزئیات کامل
+      </a>
+      <button class="btn btn-outline-danger flex-fill"
+              data-bs-toggle="modal" data-bs-target="#cancelModal"
+              data-sid="{{ session.pk }}" data-name="{{ session.device.name }}"
+              onclick="closeSessionSheet()">
+        <i class="bi bi-x-circle me-1"></i>لغو
+      </button>
+    </div>
+  </div>
+</div>

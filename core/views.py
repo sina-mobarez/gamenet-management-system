@@ -91,6 +91,12 @@ def dashboard(request):
 
 
 @login_required
+def session_sheet(request, pk):
+    session = get_object_or_404(Session, pk=pk, status='active')
+    return render(request, 'partials/session_sheet.html', {'session': session})
+
+
+@login_required
 def dashboard_cards(request):
     MERGED_TYPES = {'billiard': 'بیلیارد / اسنوکر', 'snooker': 'بیلیارد / اسنوکر'}
     device_groups = {}

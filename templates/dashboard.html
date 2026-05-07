@@ -493,6 +493,16 @@ const CUSTOMERS = [
 </div>
 {% endblock %}
 
+{% block sheets %}
+<!-- Session detail bottom sheet (mobile) -->
+<div class="sheet-backdrop" id="sessionSheetBackdrop" onclick="closeSessionSheet()"></div>
+<div class="bottom-sheet" id="sessionSheet" style="min-height:55vh">
+  <div id="sessionSheetContent" style="min-height:200px;display:flex;align-items:center;justify-content:center;color:var(--text-3)">
+    <i class="bi bi-hourglass-split"></i>
+  </div>
+</div>
+{% endblock %}
+
 {% block extra_js %}
 <script src="{% static 'js/Sortable.min.js' %}"></script>
 <script src="{% static 'js/tom-select.min.js' %}"></script>
@@ -813,5 +823,61 @@ document.querySelectorAll('[id^="deviceGrid-"]').forEach(grid => {
     },
   });
 });
+
+// ── Session detail bottom sheet (mobile) ────────────────────────────────────
+function openSessionSheet(sessionPk) {
+  const sheet   = document.getElementById('sessionSheet');
+  const backdrop= document.getElementById('sessionSheetBackdrop');
+  const content = document.getElementById('sessionSheetContent');
+  content.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-3)"><i class="bi bi-hourglass-split" style="font-size:2rem"></i></div>';
+  sheet.classList.add('open');
+  backdrop.classList.add('open');
+  htmx.ajax('GET', `/session/${sessionPk}/sheet/`, {target: '#sessionSheetContent', swap: 'innerHTML'})
+    .then(() => initSheetTimers());
+}
+function closeSessionSheet() {
+  document.getElementById('sessionSheet').classList.remove('open');
+  document.getElementById('sessionSheetBackdrop').classList.remove('open');
+}
+function initSheetTimers() {
+  document.querySelectorAll('[id^="sheet-timer-"]').forEach(el => {
+    if (!el.dataset.started) return;
+    function tick() {
+      const elapsed = Math.floor((Date.now() - new Date(el.dataset.started)) / 1000);
+      el.textContent = `${String(Math.floor(elapsed/3600)).padStart(2,'0')}:${String(Math.floor((elapsed%3600)/60)).padStart(2,'0')}:${String(elapsed%60).padStart(2,'0')}`;
+    }
+    tick(); setInterval(tick, 1000);
+  });
+  document.querySelectorAll('[id^="sheet-countdown-"]').forEach(el => {
+    if (!el.dataset.started) return;
+    function tick() {
+      const totalSec = parseInt(el.dataset.total) * 60;
+      const elapsed  = (Date.now() - new Date(el.dataset.started)) / 1000;
+      const rem = totalSec - elapsed;
+      if (rem > 0) {
+        el.textContent = `${String(Math.floor(rem/60)).padStart(2,'0')}:${String(Math.floor(rem%60)).padStart(2,'0')}`;
+        el.style.color = rem < 60 ? 'var(--neon-red)' : 'var(--neon-cyan)';
+      } else {
+        const over = Math.abs(Math.floor(rem));
+        el.textContent = `+${String(Math.floor(over/60)).padStart(2,'0')}:${String(over%60).padStart(2,'0')}`;
+        el.style.color = 'var(--neon-red)';
+      }
+    }
+    tick(); setInterval(tick, 500);
+  });
+}
+
+// On mobile, tap the busy card body (not buttons) to open the session sheet
+document.addEventListener('click', e => {
+  if (window.innerWidth > 768) return;
+  const card = e.target.closest('.device-card.busy');
+  if (!card) return;
+  if (e.target.closest('a, button')) return; // let buttons work normally
+  const col = card.closest('.device-col');
+  const countdownEl = card.querySelector('[id^="countdown-"]') || card.querySelector('[id^="timer-"]');
+  if (!countdownEl) return;
+  const sid = (countdownEl.id.replace('countdown-', '').replace('timer-', ''));
+  if (sid) openSessionSheet(sid);
+}, true);
 </script>
 {% endblock %}
