@@ -4,10 +4,25 @@
 
 {% load static %}
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/tom-select.min.css' %}">
 <style>
 .device-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
 .device-col  { min-height: 220px; }
+
+@media (max-width: 768px) {
+  .device-grid { grid-template-columns: repeat(2, 1fr); gap: .6rem; }
+  .device-col  { min-height: 160px; }
+  .device-card { padding: .75rem; }
+  .timer-display { font-size: 1.1rem !important; letter-spacing: 1px; }
+  .cost-display  { font-size: .9rem !important; }
+  .drag-handle   { display: none; }
+  .countdown-wrap { width: 56px; height: 56px; }
+  .countdown-ring { width: 56px; height: 56px; }
+  .countdown-ring circle { r: 22; cx: 28; cy: 28; }
+  .countdown-num { font-size: .78rem; }
+}
+@media (max-width: 360px) {
+  .device-grid { grid-template-columns: repeat(1, 1fr); }
+}
 .device-col.sortable-ghost  { opacity: .35; }
 .device-col.sortable-chosen { transform: scale(1.02); z-index: 10; }
 .drag-handle {
