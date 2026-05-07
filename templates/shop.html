@@ -3,7 +3,6 @@
 {% block title %}فروش کافه{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/tom-select.min.css' %}">
 <style>
 .product-card {
   background: var(--surface);
@@ -28,6 +27,31 @@
   display: none;
 }
 .product-card.selected .qty-badge { display: block; }
+
+/* Mobile cart sticky bar */
+.mobile-cart-bar {
+  display: none;
+  position: fixed;
+  bottom: var(--bottom-nav-h);
+  left: 0; right: 0;
+  background: linear-gradient(135deg, rgba(124,58,237,.95), rgba(168,85,247,.95));
+  padding: .7rem 1rem;
+  z-index: 1040;
+  align-items: center;
+  gap: .75rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.mobile-cart-bar .cart-info { flex: 1; }
+.mobile-cart-bar .cart-info .count { font-size: .75rem; opacity: .85; }
+.mobile-cart-bar .cart-info .total { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.1rem; }
+
+@media (max-width: 768px) {
+  .desktop-cart { display: none !important; }
+  .mobile-cart-bar { display: flex; }
+  .mobile-cart-bar.empty { display: none; }
+  .main { padding-bottom: calc(var(--bottom-nav-h) + 56px + 1rem + env(safe-area-inset-bottom)); }
+}
 </style>
 {% endblock %}
 
@@ -75,8 +99,8 @@
     {% endfor %}
   </div>
 
-  <!-- Cart / Sell panel -->
-  <div class="col-lg-4">
+  <!-- Cart / Sell panel (desktop) -->
+  <div class="col-lg-4 desktop-cart">
     <div class="card p-4 fade-in" style="position:sticky;top:1rem;border-color:rgba(168,85,247,0.2)">
       <div style="position:absolute;top:0;right:0;left:0;height:2px;background:var(--grad-main);border-radius:var(--radius) var(--radius) 0 0"></div>
 
@@ -153,6 +177,71 @@
         </button>
       </form>
     </div>
+  </div>
+</div>
+<!-- Mobile sticky cart bar -->
+<div class="mobile-cart-bar empty" id="mobileCartBar" onclick="openMobileCart()">
+  <div class="cart-info">
+    <div class="count" id="mobileCartCount">۰ محصول</div>
+    <div class="total"><span id="mobileCartTotal">0</span> تومان</div>
+  </div>
+  <i class="bi bi-bag-fill" style="font-size:1.4rem;opacity:.9"></i>
+  <span style="font-size:.85rem;font-weight:700">بررسی سبد ←</span>
+</div>
+
+<!-- Mobile cart bottom sheet -->
+<div class="sheet-backdrop" id="mobileCartBackdrop" onclick="closeMobileCart()"></div>
+<div class="bottom-sheet" id="mobileCartSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title">🛒 سبد خرید</span>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-danger btn-sm" onclick="clearCart()">پاک</button>
+      <button class="btn btn-outline-secondary btn-sm" onclick="closeMobileCart()"><i class="bi bi-x-lg"></i></button>
+    </div>
+  </div>
+  <div class="sheet-body">
+    <div id="mobileCartEmpty" class="text-center py-3" style="color:var(--text-3)">سبد خالی است</div>
+    <div id="mobileCartItems"></div>
+
+    <div class="mt-3">
+      <label class="form-label">روش پرداخت</label>
+      <select id="mobilePayType" class="form-select" onchange="syncPayType('mobile')">
+        <option value="cash">💵 نقد</option>
+        <option value="account">🏦 به حساب مشتری</option>
+        <option value="session_tab">📌 تب سشن</option>
+        <option value="free_tab">🕐 پرداخت بعداً</option>
+      </select>
+    </div>
+    <div id="mobileCustomerSection" class="mt-2" style="display:none">
+      <label class="form-label">مشتری</label>
+      <select id="mobileCustomerSelect" class="form-select">
+        <option value="">— انتخاب —</option>
+        {% for c in customers %}
+        <option value="{{ c.id }}">{{ c.name }}{% if c.balance < 0 %} ⚠{% endif %}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div id="mobileSessionSection" class="mt-2">
+      <label class="form-label">لینک به سشن</label>
+      <select id="mobileSessionSelect" class="form-select">
+        <option value="">— بدون سشن —</option>
+        {% for s in active_sessions %}
+        <option value="{{ s.id }}">{{ s.device.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="mt-2">
+      <input type="text" id="mobileNotes" class="form-control" placeholder="یادداشت (اختیاری)">
+    </div>
+  </div>
+  <div class="sheet-footer" style="flex-direction:column">
+    <div class="text-center mb-2" style="color:var(--neon-gold);font-family:'Space Grotesk',sans-serif;font-size:1.3rem;font-weight:700">
+      <span id="mobileSheetTotal">0</span> تومان
+    </div>
+    <button type="button" class="btn btn-success w-100 fw-bold" onclick="submitMobileCart()">
+      <i class="bi bi-bag-check-fill me-1"></i>ثبت سفارش
+    </button>
   </div>
 </div>
 {% endblock %}
@@ -233,6 +322,21 @@ function renderCart() {
 
   itemsEl.innerHTML = html;
   totalEl.textContent = total.toLocaleString('fa-IR');
+
+  // Sync mobile cart bar
+  const bar = document.getElementById('mobileCartBar');
+  const mTotal = document.getElementById('mobileCartTotal');
+  const mCount = document.getElementById('mobileCartCount');
+  const mSheet = document.getElementById('mobileSheetTotal');
+  const mItems = document.getElementById('mobileCartItems');
+  const mEmpty = document.getElementById('mobileCartEmpty');
+  const totalItems = keys.reduce((s, id) => s + cart[id].qty, 0);
+  if (bar) { bar.classList.toggle('empty', !keys.length); }
+  if (mTotal) mTotal.textContent = total.toLocaleString('fa-IR');
+  if (mSheet) mSheet.textContent = total.toLocaleString('fa-IR');
+  if (mCount) mCount.textContent = totalItems + ' محصول';
+  if (mEmpty) mEmpty.style.display = keys.length ? 'none' : 'block';
+  if (mItems) mItems.innerHTML = html;
 }
 
 function togglePayFields() {
@@ -264,6 +368,33 @@ function submitCart() {
     form.appendChild(qi);
   });
   form.submit();
+}
+
+function openMobileCart() {
+  document.getElementById('mobileCartSheet').classList.add('open');
+  document.getElementById('mobileCartBackdrop').classList.add('open');
+}
+function closeMobileCart() {
+  document.getElementById('mobileCartSheet').classList.remove('open');
+  document.getElementById('mobileCartBackdrop').classList.remove('open');
+}
+function syncPayType(src) {
+  const val = document.getElementById(src === 'mobile' ? 'mobilePayType' : 'payType').value;
+  document.getElementById('payType').value = val;
+  document.getElementById('mobilePayType').value = val;
+  document.getElementById('mobileCustomerSection').style.display = val === 'account' ? 'block' : 'none';
+  document.getElementById('mobileSessionSection').style.display  = val === 'free_tab' ? 'none' : 'block';
+  togglePayFields();
+}
+function submitMobileCart() {
+  document.getElementById('payType').value = document.getElementById('mobilePayType').value;
+  const custSel = document.getElementById('mobileCustomerSelect');
+  if (custSel) document.getElementById('shopCustomerSelect').value = custSel.value;
+  const sessSel = document.getElementById('mobileSessionSelect');
+  if (sessSel) document.getElementById('shopSessionSelect').value = sessSel.value;
+  const notes = document.getElementById('mobileNotes');
+  if (notes) document.getElementById('saleNotes').value = notes.value;
+  submitCart();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
