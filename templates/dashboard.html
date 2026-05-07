@@ -545,7 +545,7 @@ function updateCountdowns() {
       el.textContent = `+${String(Math.floor(overrun/60)).padStart(2,'0')}:${String(overrun%60).padStart(2,'0')}`;
       el.classList.add('overrun');
       if (ring) { ring.style.strokeDashoffset = CIRCUMFERENCE; ring.style.stroke = 'var(--neon-red)'; }
-      if (!alarmFired[sid]) { alarmFired[sid] = true; playAlarm(); showTimerNotification(); }
+      if (!alarmFired[sid]) { alarmFired[sid] = true; triggerAlarm(sid); }
     }
     if (timerEl) {
       const e = Math.floor(elapsed);
@@ -555,31 +555,32 @@ function updateCountdowns() {
 }
 setInterval(updateCountdowns, 500); updateCountdowns();
 
-// ── Web Audio alarm ────────────────────────────────────────────────────────
-let audioCtx = null;
-function getAudioCtx() { if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); return audioCtx; }
-function playBeep(freq, dur, vol=0.4, type='square') {
-  const ctx = getAudioCtx(), osc = ctx.createOscillator(), gain = ctx.createGain();
-  osc.connect(gain); gain.connect(ctx.destination);
-  osc.type = type; osc.frequency.setValueAtTime(freq, ctx.currentTime);
-  gain.gain.setValueAtTime(vol, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
-  osc.start(ctx.currentTime); osc.stop(ctx.currentTime + dur);
+// ── Alarm: visual primary, audio secondary ────────────────────────────────
+function triggerAlarm(sid) {
+  // Visual: add alarm class to the device card containing this session
+  const col = document.getElementById('col-' + (document.getElementById('countdown-' + sid)?.closest('.device-col')?.dataset.deviceId || ''));
+  const card = document.getElementById('countdown-' + sid)?.closest('.device-card');
+  if (card) card.classList.add('alarm');
+
+  // Toast notification
+  window.dispatchEvent(new CustomEvent('show-toast', { detail: { msg: '⏰ زمان سشن تمام شد!', type: 'error' } }));
+
+  // Audio (best-effort — may be blocked on idle mobile browsers)
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [[880,.3],[1100,.3],[1320,.3]].forEach(([f,d], i) => {
+      setTimeout(() => {
+        const osc = ctx.createOscillator(), g = ctx.createGain();
+        osc.connect(g); g.connect(ctx.destination);
+        osc.type = 'square'; osc.frequency.value = f;
+        g.gain.setValueAtTime(0.4, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + d);
+        osc.start(); osc.stop(ctx.currentTime + d);
+      }, i * 350);
+    });
+  } catch(e) {}
 }
-function playAlarm() {
-  [880,1100,1320].forEach((f,i) => setTimeout(()=>playBeep(f,.3,.5,'square'), i*350));
-  setTimeout(()=>[880,1100,1320].forEach((f,i)=>setTimeout(()=>playBeep(f,.3,.5,'square'),i*350)), 1200);
-  if (Notification.permission==='granted') new Notification('⏰ زمان سشن تمام شد!',{body:'یک سشن زمان‌دار به پایان رسیده.'});
-  else if (Notification.permission!=='denied') Notification.requestPermission().then(p=>{ if(p==='granted') new Notification('⏰ زمان سشن تمام شد!'); });
-}
-function showTimerNotification() {
-  const b = document.createElement('div');
-  b.style.cssText = 'position:fixed;top:1rem;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#dc2626,#f43f5e);color:#fff;padding:.75rem 1.5rem;border-radius:12px;font-weight:700;z-index:9999;font-size:1rem;box-shadow:0 8px 32px rgba(244,63,94,.5);';
-  b.textContent = '⏰  زمان سشن تمام شد!';
-  document.body.appendChild(b);
-  setTimeout(()=>b.remove(), 5000);
-}
-if (Notification.permission==='default') Notification.requestPermission();
+if (Notification.permission === 'default') Notification.requestPermission();
 
 // ── START MODAL ────────────────────────────────────────────────────────────
 let modalDeviceData = {};
