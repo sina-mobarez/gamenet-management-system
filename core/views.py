@@ -38,7 +38,7 @@ def logout_view(request):
 
 @login_required
 def dashboard(request):
-    devices_qs = Device.objects.filter(is_active=True).order_by('device_type', 'name')
+    devices_qs = Device.objects.filter(is_active=True).order_by('sort_order', 'device_type', 'name')
     # Group devices by type for categorized display
     MERGED_TYPES = {'billiard': 'بیلیارد / اسنوکر', 'snooker': 'بیلیارد / اسنوکر'}
     device_groups = {}
@@ -743,6 +743,16 @@ def product_update_stock(request, pk):
 @login_required
 def devices_manage(request):
     return render(request, 'devices_manage.html', {'devices': Device.objects.all()})
+
+
+@login_required
+def device_order(request):
+    if request.method == 'POST':
+        ids = request.POST.getlist('ids[]')
+        for i, device_id in enumerate(ids):
+            Device.objects.filter(pk=device_id).update(sort_order=i)
+        return JsonResponse({'ok': True})
+    return JsonResponse({'ok': False}, status=405)
 
 
 @login_required

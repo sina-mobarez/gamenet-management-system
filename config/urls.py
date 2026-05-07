@@ -42,6 +42,7 @@ urlpatterns = [
 
     # Devices
     path('devices/',                  views.devices_manage, name='devices_manage'),
+    path('devices/order/',            views.device_order,   name='device_order'),
     path('devices/create/',           views.device_create,  name='device_create'),
     path('devices/<int:pk>/edit/',    views.device_edit,    name='device_edit'),
     path('devices/<int:pk>/delete/',  views.device_delete,  name='device_delete'),

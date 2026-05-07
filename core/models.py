@@ -18,6 +18,7 @@ class Device(models.Model):
     extra_controller_price = models.IntegerField(default=0)          # اضافه به نرخ ساعتی
     included_controllers   = models.PositiveIntegerField(default=2)
     is_active              = models.BooleanField(default=True)
+    sort_order             = models.IntegerField(default=0)
 
     def __str__(self):
         return f"{self.name} ({self.get_device_type_display()})"

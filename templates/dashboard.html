@@ -935,44 +935,17 @@ function toggleBulkCustomer() {
   document.getElementById('bulkCustomerWrap').style.display = show ? 'block' : 'none';
 }
 
-// ── SORTABLE — drag cards freely between category sections ────────────────
-const DRAG_KEY = 'gamenet_drag_v3';
-
+// ── SORTABLE — save card order to server ──────────────────────────────────
 function saveDragOrder() {
-  const entries = [];
-  document.querySelectorAll('[id^="deviceGrid-"]').forEach(grid => {
-    grid.querySelectorAll('.device-col').forEach(col => {
-      entries.push({ id: col.dataset.deviceId, grid: grid.id });
-    });
+  const ids = [];
+  document.querySelectorAll('[id^="deviceGrid-"] .device-col').forEach(col => {
+    if (col.dataset.deviceId) ids.push(col.dataset.deviceId);
   });
-  try { localStorage.setItem(DRAG_KEY, JSON.stringify(entries)); } catch(e) {}
+  const body = new URLSearchParams();
+  ids.forEach(id => body.append('ids[]', id));
+  body.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  fetch('{% url "device_order" %}', { method: 'POST', body });
 }
-
-function applyDragOrder() {
-  let saved;
-  try { saved = JSON.parse(localStorage.getItem(DRAG_KEY)); } catch(e) { return; }
-  if (!Array.isArray(saved) || !saved.length) return;
-  saved.forEach(({ id, grid }) => {
-    const col = document.getElementById('col-' + id);
-    const targetGrid = document.getElementById(grid);
-    if (col && targetGrid && col.parentElement !== targetGrid) {
-      targetGrid.appendChild(col);
-    }
-  });
-  // Re-order within each grid according to saved sequence
-  const gridMap = {};
-  saved.forEach(({ id, grid }) => { (gridMap[grid] = gridMap[grid] || []).push(id); });
-  Object.entries(gridMap).forEach(([gridId, ids]) => {
-    const grid = document.getElementById(gridId);
-    if (!grid) return;
-    ids.forEach(id => {
-      const col = document.getElementById('col-' + id);
-      if (col) grid.appendChild(col);
-    });
-  });
-}
-
-applyDragOrder();
 
 document.querySelectorAll('[id^="deviceGrid-"]').forEach(grid => {
   Sortable.create(grid, {
@@ -985,7 +958,7 @@ document.querySelectorAll('[id^="deviceGrid-"]').forEach(grid => {
     delay:       60,
     delayOnTouchOnly: true,
     onStart: () => document.querySelectorAll('[id^="deviceGrid-"]').forEach(g => g.classList.add('drag-over')),
-    onEnd: () => {
+    onEnd:   () => {
       document.querySelectorAll('[id^="deviceGrid-"]').forEach(g => g.classList.remove('drag-over'));
       saveDragOrder();
     },
