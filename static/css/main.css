@@ -258,7 +258,7 @@ body::after {
 ═══════════════════════════════════════════ */
 #toast-container {
   position: fixed;
-  bottom: calc(var(--bottom-nav-h) + 12px);
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 9999;
@@ -969,4 +969,7 @@ a:hover { color: #c084fc; }
 
   .sheet-footer { flex-direction: column; }
   .sheet-footer .btn { width: 100%; }
+
+  .table thead tr th { padding: .5rem .6rem; font-size: .68rem; }
+  .table tbody tr td { padding: .6rem .6rem; font-size: .82rem; }
 }
