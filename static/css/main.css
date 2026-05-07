@@ -893,7 +893,24 @@ a:hover { color: #c084fc; }
 
   .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-  .modal-dialog { margin: 0.5rem; }
+  /* Modals as bottom sheets on mobile */
+  .modal { align-items: flex-end !important; }
+  .modal-dialog {
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  .modal-content {
+    border-radius: var(--radius) var(--radius) 0 0 !important;
+    border-bottom: none !important;
+    max-height: 92vh;
+    overflow-y: auto;
+  }
+  .modal.fade .modal-dialog {
+    transform: translateY(100%);
+    transition: transform .3s cubic-bezier(.4,0,.2,1);
+  }
+  .modal.show .modal-dialog { transform: translateY(0); }
 }
 
 /* ═══════════════════════════════════════════
