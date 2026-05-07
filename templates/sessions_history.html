@@ -1,13 +1,23 @@
 {% extends 'base.html' %}
 {% load shamsi humanize %}
 {% block title %}تاریخچه سشن‌ها{% endblock %}
+{% block extra_css %}
+<style>
+@media (max-width: 480px) {
+  .sessions-table th:nth-child(2),
+  .sessions-table td:nth-child(2),
+  .sessions-table th:nth-child(5),
+  .sessions-table td:nth-child(5) { display: none; }
+}
+</style>
+{% endblock %}
 {% block content %}
 <div class="page-header">
   <h2><i class="bi bi-clock-history me-2" style="font-size:1.2rem;vertical-align:middle"></i>تاریخچه سشن‌ها</h2>
 </div>
 <div class="card">
   <div class="table-responsive">
-    <table class="table mb-0">
+    <table class="table mb-0 sessions-table">
       <thead><tr>
         <th>دستگاه</th><th>شروع</th><th>مدت</th><th>کل</th><th>پرداخت‌شده</th><th>مانده</th><th>وضعیت</th><th></th>
       </tr></thead>
