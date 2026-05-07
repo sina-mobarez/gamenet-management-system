@@ -338,6 +338,29 @@ body::after {
   gap: .5rem;
 }
 
+.more-menu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .5rem;
+  padding: 1rem .75rem;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: var(--text-2) !important;
+  font-size: .82rem;
+  font-weight: 500;
+  transition: background .15s, border-color .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.more-menu-item:hover, .more-menu-item:active {
+  background: rgba(168,85,247,0.1);
+  border-color: rgba(168,85,247,0.3);
+  color: var(--text) !important;
+}
+.more-menu-item .bi { font-size: 1.5rem; }
+
 /* ═══════════════════════════════════════════
    CARDS / GLASS PANELS
 ═══════════════════════════════════════════ */

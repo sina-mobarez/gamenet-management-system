@@ -105,12 +105,47 @@
       <i class="bi bi-clock-history"></i>
       <span>تاریخچه</span>
     </a>
-    <a href="{% url 'devices_manage' %}" class="bottom-nav-item {% if 'device' in request.resolver_match.url_name or 'product' in request.resolver_match.url_name or request.resolver_match.url_name == 'debts' or request.resolver_match.url_name == 'reports' %}active{% endif %}">
+    <button type="button" class="bottom-nav-item {% if 'device' in request.resolver_match.url_name or 'product' in request.resolver_match.url_name or request.resolver_match.url_name == 'debts' or request.resolver_match.url_name == 'reports' %}active{% endif %}"
+            onclick="document.getElementById('moreSheet').classList.add('open');document.getElementById('moreBackdrop').classList.add('open')"
+            style="border:none;background:none;cursor:pointer">
       <i class="bi bi-three-dots"></i>
       <span>بیشتر</span>
-    </a>
+    </button>
   </div>
 </nav>
+
+<!-- More menu bottom sheet -->
+<div class="sheet-backdrop" id="moreBackdrop"
+     onclick="document.getElementById('moreSheet').classList.remove('open');this.classList.remove('open')"></div>
+<div class="bottom-sheet" id="moreSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title">منو</span>
+    <button class="btn btn-outline-secondary btn-sm"
+            onclick="document.getElementById('moreSheet').classList.remove('open');document.getElementById('moreBackdrop').classList.remove('open')">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+  <div class="sheet-body" style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+    <a href="{% url 'devices_manage' %}" class="more-menu-item">
+      <i class="bi bi-hdd-stack-fill"></i><span>دستگاه‌ها</span>
+    </a>
+    <a href="{% url 'products_manage' %}" class="more-menu-item">
+      <i class="bi bi-box-seam-fill"></i><span>محصولات</span>
+    </a>
+    <a href="{% url 'debts' %}" class="more-menu-item">
+      <i class="bi bi-exclamation-triangle-fill"></i><span>بدهی‌ها</span>
+    </a>
+    {% if user.is_superuser %}
+    <a href="{% url 'reports' %}" class="more-menu-item">
+      <i class="bi bi-bar-chart-fill"></i><span>گزارش‌ها</span>
+    </a>
+    {% endif %}
+    <a href="{% url 'logout' %}" class="more-menu-item" style="color:var(--neon-red)!important;border-color:rgba(244,63,94,0.3)">
+      <i class="bi bi-box-arrow-left"></i><span>خروج</span>
+    </a>
+  </div>
+</div>
 {% endif %}
 
 <div id="toast-container" x-data="toastSystem()" @show-toast.window="addToast($event.detail)">
