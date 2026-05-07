@@ -1,0 +1,21 @@
+{
+  "name": "گیم‌نت مدیریت",
+  "short_name": "گیم‌نت",
+  "description": "سیستم مدیریت گیم‌نت",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#04040a",
+  "theme_color": "#7c3aed",
+  "lang": "fa",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "/static/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
