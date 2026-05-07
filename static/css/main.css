@@ -893,6 +893,25 @@ a:hover { color: #c084fc; }
 .ts-dropdown .no-results { color: var(--text-3) !important; }
 
 /* ═══════════════════════════════════════════
+   HTMX LOADING INDICATOR
+═══════════════════════════════════════════ */
+#htmx-indicator {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--grad-main);
+  z-index: 9999;
+  animation: htmxProgress 1.5s ease infinite;
+}
+@keyframes htmxProgress {
+  0%   { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+.htmx-request #htmx-indicator { display: block; }
+.htmx-request.htmx-indicator  { display: block; }
+
+/* ═══════════════════════════════════════════
    RESPONSIVE — TABLET (≤768px)
 ═══════════════════════════════════════════ */
 @media (max-width: 768px) {

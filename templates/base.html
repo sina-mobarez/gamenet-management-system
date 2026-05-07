@@ -18,7 +18,8 @@
 <link href="{% static 'css/main.css' %}" rel="stylesheet">
 {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+<div id="htmx-indicator"></div>
 <div class="blob2"></div>
 
 {% if user.is_authenticated %}
