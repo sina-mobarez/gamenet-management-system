@@ -1,0 +1,174 @@
+{% load humanize %}
+{% for cat_name, cat_devices in device_groups %}
+<div class="mb-4">
+  <div class="category-header">
+    <span class="cat-label">{{ cat_name }}</span>
+    <span style="font-size:.7rem;color:var(--text-3)">{{ cat_devices|length }} دستگاه</span>
+  </div>
+  <div class="device-grid" id="deviceGrid-{{ forloop.counter }}" data-group="{{ forloop.counter }}">
+  {% for device in cat_devices %}
+  <div class="device-col" data-device-id="{{ device.id }}" data-type="{{ device.device_type }}" id="col-{{ device.id }}">
+
+    {% if device.is_occupied %}{% with session=device.active_session %}
+    <!-- BUSY -->
+    <div class="device-card busy h-100 pulse-ring" style="position:relative">
+      <span class="drag-handle">⠿</span>
+      <div class="d-flex justify-content-between align-items-start mb-2 pe-4">
+        <div>
+          <div class="section-label">{{ device.get_device_type_display }}</div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem">{{ device.name }}</div>
+        </div>
+        <span class="badge-busy"><span class="dot-pulse">●</span> فعال</span>
+      </div>
+
+      {% if session.session_type == 'timed' and session.duration_minutes %}
+      <div class="d-flex align-items-center gap-3 mb-2">
+        <div class="countdown-wrap">
+          <svg class="countdown-ring" width="72" height="72">
+            <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="4"/>
+            <circle id="ring-{{ session.pk }}" cx="36" cy="36" r="30" fill="none"
+                    stroke="var(--neon-cyan)" stroke-width="4"
+                    stroke-dasharray="188.5" stroke-dashoffset="0" stroke-linecap="round"/>
+          </svg>
+          <div class="countdown-num" id="countdown-{{ session.pk }}"
+               data-total="{{ session.duration_minutes }}"
+               data-started="{{ session.started_at|date:'c' }}">--:--</div>
+        </div>
+        <div>
+          <div style="color:var(--text-3);font-size:.7rem;margin-bottom:.2rem">گذشته</div>
+          <div class="timer-display" style="font-size:1.1rem"
+               id="timer-{{ session.pk }}"
+               data-started="{{ session.started_at|date:'c' }}">
+            {{ session.duration_display }}
+          </div>
+          <div class="cost-display" style="font-size:.95rem">
+            {{ session.calculate_cost|intcomma }} <span style="font-size:.7rem;font-family:'Vazirmatn',sans-serif;color:var(--text-3)">تومان</span>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div class="timer-display active mb-1"
+           id="timer-{{ session.pk }}"
+           data-started="{{ session.started_at|date:'c' }}">
+        {{ session.duration_display }}
+      </div>
+      <div class="cost-display mb-2">
+        {{ session.calculate_cost|intcomma }}
+        <span style="font-size:.72rem;font-family:'Vazirmatn',sans-serif;color:var(--text-3)">تومان</span>
+      </div>
+      {% endif %}
+
+      <div class="d-flex flex-wrap gap-1 mb-2 mt-1">
+        {% for p in session.players.all %}
+        <span class="badge-ghost">{{ p.display_name }}</span>
+        {% empty %}<span style="color:var(--text-3);font-size:.75rem">بدون بازیکن</span>{% endfor %}
+        {% if session.notes %}
+        <span class="badge-ghost" style="font-size:.65rem;color:var(--text-3)">📝 {{ session.notes|truncatechars:20 }}</span>
+        {% endif %}
+      </div>
+
+      <div class="d-flex gap-1 mt-auto flex-wrap">
+        <a href="{% url 'session_detail' session.pk %}" class="btn btn-outline-light btn-sm">جزئیات</a>
+        <button class="btn btn-outline-secondary btn-sm px-2"
+                data-bs-toggle="modal" data-bs-target="#editSessionModal"
+                data-sid="{{ session.pk }}" data-name="{{ device.name }}"
+                title="ویرایش سشن">
+          <i class="bi bi-pencil-fill"></i>
+        </button>
+        <a href="{% url 'session_end' session.pk %}"
+           class="btn btn-danger btn-sm flex-fill"
+           onclick="return confirm('سشن پایان یابد؟')">⏹ پایان</a>
+        <button class="btn btn-outline-danger btn-sm px-2"
+                data-bs-toggle="modal" data-bs-target="#cancelModal"
+                data-sid="{{ session.pk }}" data-name="{{ device.name }}"
+                title="لغو سشن">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+    </div>
+    {% endwith %}
+
+    {% elif device.unpaid_session %}{% with session=device.unpaid_session %}
+    <!-- UNPAID -->
+    <div class="device-card unpaid h-100" style="position:relative">
+      <span class="drag-handle">⠿</span>
+      <div class="d-flex justify-content-between align-items-start mb-3 pe-4">
+        <div>
+          <div class="section-label">{{ device.get_device_type_display }}</div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem">{{ device.name }}</div>
+        </div>
+        <span class="badge-unpaid">⏳ پرداخت‌نشده</span>
+      </div>
+      <div class="d-flex justify-content-between mb-1 small">
+        <span style="color:var(--text-3)">کل</span>
+        <span class="num" style="color:var(--neon-gold)">{{ session.total_cost|intcomma }}</span>
+      </div>
+      <div class="d-flex justify-content-between mb-1 small">
+        <span style="color:var(--text-3)">پرداخت‌شده</span>
+        <span class="num" style="color:var(--neon-green)">{{ session.paid_amount|intcomma }}</span>
+      </div>
+      <div class="d-flex justify-content-between mb-3 fw-bold">
+        <span style="color:var(--text-2)">مانده</span>
+        <span class="num" style="color:var(--neon-red);font-size:1.1rem">{{ session.remaining_amount|intcomma }}</span>
+      </div>
+      {% if session.total_cost %}
+      <div class="progress mb-3" style="height:5px">
+        <div class="progress-bar" style="width:{% widthratio session.paid_amount session.total_cost 100 %}%"></div>
+      </div>
+      {% endif %}
+      <div class="d-flex gap-2 mt-auto">
+        <a href="{% url 'session_pay' session.pk %}" class="btn btn-warning btn-sm flex-fill fw-bold">💳 پرداخت</a>
+        <button class="btn btn-success btn-sm flex-fill"
+                data-bs-toggle="modal" data-bs-target="#startModal"
+                data-device-id="{{ device.id }}" data-device-name="{{ device.name }}"
+                data-device-type="{{ device.get_device_type_display }}"
+                data-price="{{ device.price_per_hour }}"
+                data-extra-price="{{ device.extra_controller_price }}"
+                data-device-type-raw="{{ device.device_type }}">▶ سشن جدید</button>
+      </div>
+    </div>
+    {% endwith %}
+
+    {% else %}
+    <!-- FREE -->
+    <div class="device-card free h-100 d-flex flex-column" style="position:relative"
+         data-bs-toggle="modal" data-bs-target="#startModal"
+         data-device-id="{{ device.id }}" data-device-name="{{ device.name }}"
+         data-device-type="{{ device.get_device_type_display }}"
+         data-price="{{ device.price_per_hour }}"
+         data-extra-price="{{ device.extra_controller_price }}"
+         data-device-type-raw="{{ device.device_type }}">
+      <span class="drag-handle" onclick="event.stopPropagation()">⠿</span>
+      <div class="d-flex justify-content-between align-items-start mb-3 pe-4">
+        <div>
+          <div class="section-label">{{ device.get_device_type_display }}</div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem">{{ device.name }}</div>
+        </div>
+        <span class="badge-free">● آزاد</span>
+      </div>
+      <div style="color:var(--text-3);font-size:.85rem;margin-bottom:.4rem">
+        <span class="num" style="color:var(--neon-green);font-size:1.15rem;font-family:'Space Grotesk',sans-serif;font-weight:700">{{ device.price_per_hour|intcomma }}</span>
+        <span style="font-size:.72rem"> تومان/ساعت</span>
+      </div>
+      {% if device.extra_controller_price > 0 %}
+      <div style="color:var(--text-3);font-size:.75rem">
+        <i class="bi bi-controller me-1"></i>+{{ device.extra_controller_price|intcomma }} تومان/کنترلر/ساعت
+      </div>
+      {% endif %}
+      <div class="mt-auto pt-2">
+        <div class="btn btn-success w-100 fw-bold"><i class="bi bi-play-fill me-1"></i>شروع سشن</div>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+  {% endfor %}
+  </div><!-- /device-grid -->
+</div>
+{% empty %}
+<div class="card p-5 text-center">
+  <i class="bi bi-hdd-stack" style="font-size:3rem;color:var(--text-3)"></i>
+  <p class="mt-3 mb-3" style="color:var(--text-3)">هنوز دستگاهی تنظیم نشده.</p>
+  <a href="{% url 'devices_manage' %}" class="btn btn-primary mx-auto" style="width:200px">افزودن دستگاه</a>
+</div>
+{% endfor %}

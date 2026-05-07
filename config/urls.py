@@ -8,7 +8,8 @@ urlpatterns = [
     path('manifest.json', TemplateView.as_view(template_name='manifest.json', content_type='application/json'), name='pwa_manifest'),
     path('login/',  views.login_view,  name='login'),
     path('logout/', views.logout_view, name='logout'),
-    path('',        views.dashboard,   name='dashboard'),
+    path('',        views.dashboard,        name='dashboard'),
+    path('dashboard/cards/', views.dashboard_cards, name='dashboard_cards'),
 
     # Sessions
     path('session/start/',            views.session_start,   name='session_start'),

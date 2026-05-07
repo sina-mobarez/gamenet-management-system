@@ -90,6 +90,16 @@ def dashboard(request):
     })
 
 
+@login_required
+def dashboard_cards(request):
+    MERGED_TYPES = {'billiard': 'بیلیارد / اسنوکر', 'snooker': 'بیلیارد / اسنوکر'}
+    device_groups = {}
+    for d in Device.objects.filter(is_active=True).order_by('sort_order', 'device_type', 'name'):
+        key = MERGED_TYPES.get(d.device_type, d.get_device_type_display())
+        device_groups.setdefault(key, []).append(d)
+    return render(request, 'partials/device_cards.html', {'device_groups': device_groups.items()})
+
+
 # ── Sessions ──────────────────────────────────────────────────────────────────
 
 @login_required
