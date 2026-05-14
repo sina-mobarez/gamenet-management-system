@@ -603,6 +603,7 @@ def sessions_pay_bulk(request):
     sessions = [
         s for s in Session.objects.filter(pk__in=session_ids, status='finished')
                           .select_related('device')
+                          .prefetch_related('payments')
         if not s.is_fully_paid
     ]
 
@@ -615,9 +616,10 @@ def sessions_pay_bulk(request):
     if note:
         base_note += f' | {note}'
 
+    total = sum(s.remaining_amount for s in sessions)
+
     if pay_type == 'account' and customer_id:
         customer  = get_object_or_404(Customer, pk=customer_id)
-        total     = sum(s.remaining_amount for s in sessions)
         ok, reason = customer.can_add_debt(total)
         if not ok:
             messages.error(request, f'حساب {customer.name} مسدود است: {reason}')
@@ -638,7 +640,6 @@ def sessions_pay_bulk(request):
                 session=s, amount=s.remaining_amount,
                 payment_type='cash', notes=base_note,
             )
-        total = sum(s.remaining_amount for s in sessions)
         messages.success(request,
             f'{len(sessions)} سشن نقد تسویه شد — {total:,} تومان')
 
