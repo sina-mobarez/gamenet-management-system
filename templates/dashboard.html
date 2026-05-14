@@ -106,20 +106,42 @@
 <div class="card mb-4 fade-in" style="border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,.04)">
   <div style="position:absolute;top:0;right:0;left:0;height:2px;background:linear-gradient(90deg,#d97706,#fbbf24);border-radius:var(--radius) var(--radius) 0 0"></div>
   <div class="p-3">
-    <div class="d-flex align-items-center gap-2 mb-3">
+    <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
       <i class="bi bi-hourglass-split dot-pulse" style="color:var(--neon-gold)"></i>
       <strong>پرداخت‌نشده</strong>
       <span class="badge-ghost" style="font-size:.7rem">{{ unpaid_sessions|length }} مورد</span>
+      <div class="ms-auto d-flex align-items-center gap-2">
+        <label class="d-flex align-items-center gap-1 mb-0" style="cursor:pointer;font-size:.8rem;color:var(--text-3)">
+          <input type="checkbox" id="selectAllSessions" onchange="toggleSelectAllSessions(this)" class="form-check-input">
+          همه
+        </label>
+        <button class="btn btn-warning btn-sm fw-bold" id="bulkSessionPayBtn"
+                data-bs-toggle="modal" data-bs-target="#bulkSessionPayModal"
+                onclick="prepareBulkSessionModal()" disabled>
+          <i class="bi bi-wallet2 me-1"></i><span id="bulkSessionPayBtnText">پرداخت انتخاب‌شده</span>
+        </button>
+      </div>
     </div>
     <div class="row g-2">
       {% for s in unpaid_sessions %}
       <div class="col-sm-6 col-md-4 col-lg-3">
-        <div class="p-2 rounded-3 d-flex flex-column gap-1" style="background:rgba(255,255,255,.04);border:1px solid rgba(245,158,11,.25)">
-          <div class="d-flex justify-content-between align-items-center">
-            <span style="font-size:.82rem;font-weight:600;color:var(--text)">{{ s.device.name }}</span>
-            <span class="num" style="color:var(--neon-gold);font-size:.85rem">{{ s.remaining_amount|intcomma }} تومان</span>
+        <div class="p-2 rounded-3 d-flex flex-column gap-1 unpaid-session-card"
+             style="background:rgba(255,255,255,.04);border:1px solid rgba(245,158,11,.25);transition:border-color .15s">
+          <div class="d-flex align-items-start gap-2">
+            <input type="checkbox" class="session-checkbox form-check-input mt-1 flex-shrink-0"
+                   id="ses-check-{{ s.pk }}"
+                   data-session-id="{{ s.pk }}"
+                   data-amount="{{ s.remaining_amount }}"
+                   data-name="{{ s.device.name|escapejs }}"
+                   onchange="updateSessionSelection()">
+            <div class="flex-grow-1" onclick="document.getElementById('ses-check-{{ s.pk }}').click()" style="cursor:pointer">
+              <div class="d-flex justify-content-between align-items-center">
+                <span style="font-size:.82rem;font-weight:600;color:var(--text)">{{ s.device.name }}</span>
+                <span class="num" style="color:var(--neon-gold);font-size:.85rem">{{ s.remaining_amount|intcomma }} تومان</span>
+              </div>
+              {% if s.notes %}<div style="font-size:.72rem;color:var(--neon-cyan)"><i class="bi bi-chat-left-text me-1"></i>{{ s.notes }}</div>{% endif %}
+            </div>
           </div>
-          {% if s.notes %}<div style="font-size:.72rem;color:var(--neon-cyan)"><i class="bi bi-chat-left-text me-1"></i>{{ s.notes }}</div>{% endif %}
           <a href="{% url 'session_pay' s.pk %}" class="btn btn-warning btn-sm w-100 fw-bold mt-1">💳 پرداخت</a>
         </div>
       </div>
