@@ -134,7 +134,7 @@
                    data-amount="{{ s.remaining_amount }}"
                    data-name="{{ s.device.name|escapejs }}"
                    onchange="updateSessionSelection()">
-            <div class="flex-grow-1" onclick="document.getElementById('ses-check-{{ s.pk }}').click()" style="cursor:pointer">
+            <div class="flex-grow-1" onclick="if(event.target.type!=='checkbox'){var cb=document.getElementById('ses-check-{{ s.pk }}');cb.checked=!cb.checked;updateSessionSelection();}" style="cursor:pointer">
               <div class="d-flex justify-content-between align-items-center">
                 <span style="font-size:.82rem;font-weight:600;color:var(--text)">{{ s.device.name }}</span>
                 <span class="num" style="color:var(--neon-gold);font-size:.85rem">{{ s.remaining_amount|intcomma }} تومان</span>

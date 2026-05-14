@@ -135,9 +135,7 @@ class Session(models.Model):
 
     @property
     def paid_amount(self):
-        from django.db.models import Sum
-        total = self.payments.aggregate(t=Sum('amount'))['t']
-        return int(total) if total is not None else 0
+        return sum(p.amount for p in self.payments.all())
 
     @property
     def remaining_amount(self):
