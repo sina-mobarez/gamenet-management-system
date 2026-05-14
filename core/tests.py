@@ -78,3 +78,13 @@ class BulkSessionPayTest(TestCase):
         customer.refresh_from_db()
         self.assertEqual(customer.balance, 0)  # unchanged
         self.assertEqual(Payment.objects.count(), 0)
+
+    def test_account_without_customer_returns_error(self):
+        s1 = self._make_finished_session(50000)
+        resp = self.client.post('/sessions/bulk-pay/', {
+            'session_ids[]': [s1.pk],
+            'pay_type': 'account',
+            # no customer_id
+        })
+        self.assertRedirects(resp, '/', fetch_redirect_response=False)
+        self.assertEqual(Payment.objects.count(), 0)

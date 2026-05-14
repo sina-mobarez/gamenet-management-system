@@ -618,6 +618,10 @@ def sessions_pay_bulk(request):
 
     total = sum(s.remaining_amount for s in sessions)
 
+    if pay_type == 'account' and not customer_id:
+        messages.error(request, 'برای پرداخت حساب، مشتری را انتخاب کنید.')
+        return redirect('dashboard')
+
     if pay_type == 'account' and customer_id:
         customer  = get_object_or_404(Customer, pk=customer_id)
         ok, reason = customer.can_add_debt(total)
