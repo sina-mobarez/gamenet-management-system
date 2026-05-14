@@ -491,6 +491,59 @@ const CUSTOMERS = [
   </div>
 </div>
 
+<!-- ══ BULK SESSION PAY MODAL ══ -->
+<div class="modal fade" id="bulkSessionPayModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content" style="border-color:rgba(245,158,11,.3)">
+      <div class="modal-header" style="border-color:rgba(245,158,11,.2)">
+        <h5 class="modal-title" style="color:var(--neon-gold)">
+          <i class="bi bi-wallet2 me-2"></i>پرداخت سشن‌های انتخاب‌شده
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'sessions_pay_bulk' %}" id="bulkSessionPayForm">
+        {% csrf_token %}
+        <div id="bulkSessionInputs"></div>
+        <div class="modal-body">
+          <div class="p-3 rounded-3 mb-3" style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2)">
+            <div style="font-size:.75rem;color:var(--text-3);margin-bottom:.25rem">جمع انتخاب‌شده</div>
+            <div class="num" id="bulkSessionModalTotal" style="font-size:1.4rem;font-weight:700;color:var(--neon-gold)">0 تومان</div>
+            <div style="font-size:.75rem;color:var(--text-3);margin-top:.35rem" id="bulkSessionModalCount"></div>
+          </div>
+          <div id="bulkSessionModalItems" class="mb-3" style="font-size:.78rem;color:var(--text-2);max-height:120px;overflow-y:auto"></div>
+
+          <div class="mb-3">
+            <label class="form-label">روش پرداخت</label>
+            <select name="pay_type" id="bulkSessionPayType" class="form-select" onchange="toggleBulkSessionCustomer()">
+              <option value="cash">💵 نقد</option>
+              <option value="account">🏦 به حساب مشتری</option>
+            </select>
+          </div>
+
+          <div id="bulkSessionCustomerWrap" class="mb-3" style="display:none">
+            <label class="form-label">مشتری</label>
+            <select name="customer_id" id="bulkSessionCustomerSelect" class="form-select">
+              <option value="">— انتخاب مشتری —</option>
+              {% for c in customers_for_modal %}
+              <option value="{{ c.id }}">{{ c.name }}{% if c.balance < 0 %} ⚠{% endif %}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-1">
+            <label class="form-label">یادداشت (اختیاری)</label>
+            <input type="text" name="notes" class="form-control form-control-sm" placeholder="توضیح…">
+          </div>
+        </div>
+        <div class="modal-footer" style="border-color:rgba(245,158,11,.2)">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">انصراف</button>
+          <button type="submit" class="btn btn-warning fw-bold btn-sm px-4">ثبت پرداخت</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <!-- ══ CANCEL SESSION MODAL ══ -->
 <div class="modal fade" id="cancelModal" tabindex="-1">
   <div class="modal-dialog modal-sm">
@@ -845,6 +898,81 @@ document.querySelectorAll('[id^="deviceGrid-"]').forEach(grid => {
     },
   });
 });
+
+// ── BULK SESSION PAY MODAL ────────────────────────────────────────────────────
+const SESSION_DATA = {};
+{% for s in unpaid_sessions %}
+SESSION_DATA[{{ s.pk }}] = {amount: {{ s.remaining_amount }}, name: "{{ s.device.name|escapejs }}"};
+{% endfor %}
+
+function updateSessionSelection() {
+  const checked = document.querySelectorAll('.session-checkbox:checked');
+  const all     = document.querySelectorAll('.session-checkbox');
+  let total = 0;
+  checked.forEach(cb => { total += parseInt(cb.dataset.amount || 0); });
+  const count = checked.length;
+
+  // button state
+  const btn = document.getElementById('bulkSessionPayBtn');
+  if (btn) {
+    btn.disabled = count === 0;
+    document.getElementById('bulkSessionPayBtnText').textContent =
+      count > 0 ? `پرداخت ${count} مورد — ${total.toLocaleString('fa-IR')} تومان` : 'پرداخت انتخاب‌شده';
+  }
+
+  // select-all checkbox state
+  const allCb = document.getElementById('selectAllSessions');
+  if (allCb) {
+    allCb.checked       = all.length > 0 && count === all.length;
+    allCb.indeterminate = count > 0 && count < all.length;
+  }
+
+  // highlight selected cards
+  document.querySelectorAll('.unpaid-session-card').forEach(card => {
+    const cb = card.querySelector('.session-checkbox');
+    card.style.borderColor = cb?.checked ? 'rgba(245,158,11,.7)' : 'rgba(245,158,11,.25)';
+    card.style.background  = cb?.checked ? 'rgba(245,158,11,.12)' : 'rgba(255,255,255,.04)';
+  });
+}
+
+function toggleSelectAllSessions(allCb) {
+  document.querySelectorAll('.session-checkbox').forEach(cb => { cb.checked = allCb.checked; });
+  updateSessionSelection();
+}
+
+function prepareBulkSessionModal() {
+  const checked = document.querySelectorAll('.session-checkbox:checked');
+  const inputsDiv = document.getElementById('bulkSessionInputs');
+  inputsDiv.innerHTML = '';
+  let total = 0, items = [];
+  checked.forEach(cb => {
+    const id = cb.dataset.sessionId;
+    const inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = 'session_ids[]'; inp.value = id;
+    inputsDiv.appendChild(inp);
+    const d = SESSION_DATA[id];
+    if (d) { total += d.amount; items.push(d.name); }
+  });
+  document.getElementById('bulkSessionModalTotal').textContent = total.toLocaleString('fa-IR') + ' تومان';
+  document.getElementById('bulkSessionModalCount').textContent = checked.length + ' مورد';
+  document.getElementById('bulkSessionModalItems').innerHTML =
+    items.map(n => `<span class="badge-ghost" style="font-size:.72rem;margin:2px">${n}</span>`).join('');
+  document.getElementById('bulkSessionPayType').value = 'cash';
+  document.getElementById('bulkSessionCustomerWrap').style.display = 'none';
+}
+
+let bulkSessionCustomerTS = null;
+document.getElementById('bulkSessionPayModal').addEventListener('shown.bs.modal', () => {
+  if (!bulkSessionCustomerTS) {
+    const el = document.getElementById('bulkSessionCustomerSelect');
+    if (el) bulkSessionCustomerTS = new TomSelect(el, { create: false, maxOptions: 200 });
+  }
+});
+
+function toggleBulkSessionCustomer() {
+  const show = document.getElementById('bulkSessionPayType').value === 'account';
+  document.getElementById('bulkSessionCustomerWrap').style.display = show ? 'block' : 'none';
+}
 
 // ── Session detail bottom sheet (mobile) ────────────────────────────────────
 function openSessionSheet(sessionPk) {
