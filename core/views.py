@@ -585,6 +585,66 @@ def sales_pay_bulk(request):
     return redirect('dashboard')
 
 
+@login_required
+def sessions_pay_bulk(request):
+    """Bulk-settle multiple finished sessions in one action."""
+    if request.method != 'POST':
+        return redirect('dashboard')
+
+    session_ids = request.POST.getlist('session_ids[]')
+    pay_type    = request.POST.get('pay_type', 'cash')
+    customer_id = request.POST.get('customer_id') or None
+    note        = request.POST.get('notes', '').strip()
+
+    if not session_ids:
+        messages.error(request, 'هیچ سشنی انتخاب نشده.')
+        return redirect('dashboard')
+
+    sessions = [
+        s for s in Session.objects.filter(pk__in=session_ids, status='finished')
+                          .select_related('device')
+        if not s.is_fully_paid
+    ]
+
+    if not sessions:
+        messages.error(request, 'سشن پرداخت‌نشده‌ای یافت نشد.')
+        return redirect('dashboard')
+
+    device_names = '، '.join(s.device.name for s in sessions)
+    base_note    = f'تسویه گروهی: {device_names}'
+    if note:
+        base_note += f' | {note}'
+
+    if pay_type == 'account' and customer_id:
+        customer  = get_object_or_404(Customer, pk=customer_id)
+        total     = sum(s.remaining_amount for s in sessions)
+        ok, reason = customer.can_add_debt(total)
+        if not ok:
+            messages.error(request, f'حساب {customer.name} مسدود است: {reason}')
+            return redirect('dashboard')
+        for s in sessions:
+            amt = s.remaining_amount
+            customer.balance -= amt
+            Payment.objects.create(
+                session=s, customer=customer, amount=amt,
+                payment_type='account_debit', notes=base_note,
+            )
+        customer.save()
+        messages.success(request,
+            f'{len(sessions)} سشن به حساب {customer.name} تسویه شد.')
+    else:
+        for s in sessions:
+            Payment.objects.create(
+                session=s, amount=s.remaining_amount,
+                payment_type='cash', notes=base_note,
+            )
+        total = sum(s.remaining_amount for s in sessions)
+        messages.success(request,
+            f'{len(sessions)} سشن نقد تسویه شد — {total:,} تومان')
+
+    return redirect('dashboard')
+
+
 # ── Shop ──────────────────────────────────────────────────────────────────────
 
 @login_required
