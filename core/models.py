@@ -30,14 +30,23 @@ class Device(models.Model):
 
     @property
     def is_occupied(self):
+        if hasattr(self, 'active_sessions_cache'):
+            return bool(self.active_sessions_cache)
         return self.sessions.filter(status='active').exists()
 
     @property
     def active_session(self):
+        if hasattr(self, 'active_sessions_cache'):
+            return self.active_sessions_cache[0] if self.active_sessions_cache else None
         return self.sessions.filter(status='active').first()
 
     @property
     def unpaid_session(self):
+        if hasattr(self, 'finished_sessions_cache'):
+            for s in self.finished_sessions_cache:
+                if not s.is_fully_paid:
+                    return s
+            return None
         for s in self.sessions.filter(status='finished').order_by('-ended_at'):
             if not s.is_fully_paid:
                 return s
