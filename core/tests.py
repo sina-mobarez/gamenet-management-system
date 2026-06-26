@@ -1,7 +1,7 @@
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.utils import timezone
-from .models import Device, Session, Customer, Payment
+from .models import Device, Session, Customer, Payment, Sale, Product, ProductCategory
 
 
 class BulkSessionPayTest(TestCase):
@@ -88,3 +88,63 @@ class BulkSessionPayTest(TestCase):
         })
         self.assertRedirects(resp, '/', fetch_redirect_response=False)
         self.assertEqual(Payment.objects.count(), 0)
+
+
+class SessionCafeTabTest(TestCase):
+    def setUp(self):
+        self.device = Device.objects.create(
+            name='PS5-1', device_type='ps5', price_per_hour=60000
+        )
+        cat = ProductCategory.objects.create(name='نوشیدنی')
+        self.product = Product.objects.create(
+            name='نوشابه', price=8000, stock=100, category=cat
+        )
+
+    def _make_finished_session(self, total_cost):
+        return Session.objects.create(
+            device=self.device, session_type='free',
+            started_at=timezone.now(), ended_at=timezone.now(),
+            status='finished', total_cost=total_cost,
+        )
+
+    def _add_tab(self, session, qty=1):
+        return Sale.objects.create(
+            product=self.product, quantity=qty, unit_price=8000,
+            total_price=8000 * qty, payment_type='account',
+            session=session, customer=None,
+        )
+
+    def test_cafe_tab_total_zero_with_no_sales(self):
+        s = self._make_finished_session(100000)
+        self.assertEqual(s.cafe_tab_total, 0)
+
+    def test_cafe_tab_total_sums_linked_account_sales(self):
+        s = self._make_finished_session(100000)
+        self._add_tab(s, qty=2)          # 16 000
+        self.assertEqual(s.cafe_tab_total, 16000)
+
+    def test_cafe_tab_total_excludes_cash_sales(self):
+        s = self._make_finished_session(100000)
+        Sale.objects.create(
+            product=self.product, quantity=1, unit_price=8000,
+            total_price=8000, payment_type='cash', session=s, customer=None,
+        )
+        self.assertEqual(s.cafe_tab_total, 0)
+
+    def test_remaining_amount_includes_cafe_tab(self):
+        s = self._make_finished_session(100000)
+        self._add_tab(s, qty=2)          # 16 000 café tab
+        self.assertEqual(s.remaining_amount, 116000)
+
+    def test_is_fully_paid_requires_cafe_tab_covered(self):
+        s = self._make_finished_session(100000)
+        self._add_tab(s)                 # 8 000 café tab
+        Payment.objects.create(session=s, amount=100000, payment_type='cash')
+        self.assertFalse(s.is_fully_paid)
+
+    def test_is_fully_paid_true_when_all_covered(self):
+        s = self._make_finished_session(100000)
+        self._add_tab(s)                 # 8 000 café tab
+        Payment.objects.create(session=s, amount=108000, payment_type='cash')
+        s_fresh = Session.objects.get(pk=s.pk)
+        self.assertTrue(s_fresh.is_fully_paid)

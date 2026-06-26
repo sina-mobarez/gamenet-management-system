@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Sum
 from django.utils import timezone
 
 
@@ -138,10 +139,17 @@ class Session(models.Model):
         return sum(p.amount for p in self.payments.all())
 
     @property
+    def cafe_tab_total(self):
+        return (
+            self.sales.filter(payment_type='account', customer__isnull=True)
+                      .aggregate(t=Sum('total_price'))['t'] or 0
+        )
+
+    @property
     def remaining_amount(self):
         if self.total_cost is None:
             return 0
-        return max(0, self.total_cost - self.paid_amount)
+        return max(0, self.total_cost + self.cafe_tab_total - self.paid_amount)
 
     @property
     def is_fully_paid(self):
