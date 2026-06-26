@@ -155,6 +155,12 @@ class Session(models.Model):
     def is_fully_paid(self):
         return self.remaining_amount <= 0
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['status'],           name='session_status_idx'),
+            models.Index(fields=['device', 'status'], name='session_device_status_idx'),
+        ]
+
 
 class SessionPlayer(models.Model):
     session     = models.ForeignKey(Session, on_delete=models.CASCADE, related_name='players')
@@ -216,6 +222,11 @@ class Sale(models.Model):
         self.total_price = self.unit_price * self.quantity
         super().save(*args, **kwargs)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['session', 'payment_type'], name='sale_session_paytype_idx'),
+        ]
+
 
 class Payment(models.Model):
     PAYMENT_TYPES = [
@@ -234,3 +245,8 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"{self.get_payment_type_display()} | {self.amount:,} | {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['session'], name='payment_session_idx'),
+        ]
