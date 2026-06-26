@@ -5,7 +5,8 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
-from django.db.models import Sum, Count, Q
+from django.db.models import Sum, Count, Q, F, Prefetch, OuterRef, Subquery
+from django.db.models.functions import Coalesce
 from datetime import timedelta
 
 from .models import (
@@ -38,7 +39,24 @@ def logout_view(request):
 
 @login_required
 def dashboard(request):
-    devices_qs = Device.objects.filter(is_active=True).order_by('sort_order', 'device_type', 'name')
+    devices_qs = (
+        Device.objects.filter(is_active=True)
+        .order_by('sort_order', 'device_type', 'name')
+        .prefetch_related(
+            Prefetch(
+                'sessions',
+                queryset=Session.objects.filter(status='active').prefetch_related('players'),
+                to_attr='active_sessions_cache',
+            ),
+            Prefetch(
+                'sessions',
+                queryset=Session.objects.filter(status='finished')
+                               .prefetch_related('payments', 'sales')
+                               .order_by('-ended_at'),
+                to_attr='finished_sessions_cache',
+            ),
+        )
+    )
     # Group devices by type for categorized display
     MERGED_TYPES = {'billiard': 'بیلیارد / اسنوکر', 'snooker': 'بیلیارد / اسنوکر'}
     device_groups = {}
@@ -66,11 +84,27 @@ def dashboard(request):
         Customer.objects.filter(balance__lt=0).aggregate(t=Sum('balance'))['t'] or 0
     )
 
-    unpaid_sessions = [
-        s for s in Session.objects.filter(status='finished')
-                          .select_related('device').order_by('-ended_at')
-        if not s.is_fully_paid
-    ]
+    _paid_subq = (
+        Payment.objects.filter(session=OuterRef('pk'))
+        .values('session').annotate(t=Sum('amount')).values('t')
+    )
+    _cafe_subq = (
+        Sale.objects.filter(
+            session=OuterRef('pk'), payment_type='account', customer__isnull=True,
+        )
+        .values('session').annotate(t=Sum('total_price')).values('t')
+    )
+    unpaid_sessions = list(
+        Session.objects.filter(status='finished', total_cost__isnull=False)
+        .annotate(
+            paid_total=Coalesce(Subquery(_paid_subq), 0),
+            cafe_tab=Coalesce(Subquery(_cafe_subq), 0),
+        )
+        .filter(paid_total__lt=F('total_cost') + F('cafe_tab'))
+        .select_related('device')
+        .prefetch_related('payments', 'sales')
+        .order_by('-ended_at')
+    )
 
     pending_tabs = (Sale.objects
                    .filter(payment_type='account', customer__isnull=True, session__isnull=True)
@@ -100,7 +134,25 @@ def session_sheet(request, pk):
 def dashboard_cards(request):
     MERGED_TYPES = {'billiard': 'بیلیارد / اسنوکر', 'snooker': 'بیلیارد / اسنوکر'}
     device_groups = {}
-    for d in Device.objects.filter(is_active=True).order_by('sort_order', 'device_type', 'name'):
+    devices = (
+        Device.objects.filter(is_active=True)
+        .order_by('sort_order', 'device_type', 'name')
+        .prefetch_related(
+            Prefetch(
+                'sessions',
+                queryset=Session.objects.filter(status='active').prefetch_related('players'),
+                to_attr='active_sessions_cache',
+            ),
+            Prefetch(
+                'sessions',
+                queryset=Session.objects.filter(status='finished')
+                               .prefetch_related('payments', 'sales')
+                               .order_by('-ended_at'),
+                to_attr='finished_sessions_cache',
+            ),
+        )
+    )
+    for d in devices:
         key = MERGED_TYPES.get(d.device_type, d.get_device_type_display())
         device_groups.setdefault(key, []).append(d)
     return render(request, 'partials/device_cards.html', {'device_groups': device_groups.items()})
@@ -603,7 +655,7 @@ def sessions_pay_bulk(request):
     sessions = [
         s for s in Session.objects.filter(pk__in=session_ids, status='finished')
                           .select_related('device')
-                          .prefetch_related('payments')
+                          .prefetch_related('payments', 'sales')
         if not s.is_fully_paid
     ]
 
