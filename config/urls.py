@@ -22,6 +22,7 @@ urlpatterns = [
     path('session/<int:pk>/update/',  views.session_update,  name='session_update'),
     path('sessions/history/',         views.sessions_history, name='sessions_history'),
     path('sessions/bulk-pay/',        views.sessions_pay_bulk, name='sessions_pay_bulk'),
+    path('pay/bulk/unified/',         views.unified_pay_bulk,  name='unified_pay_bulk'),
 
     # Customers
     path('customers/',                   views.customers_list,    name='customers_list'),

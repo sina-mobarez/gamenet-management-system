@@ -1016,3 +1016,77 @@ def debts(request):
     return render(request, 'debts.html', {
         'debtors': Customer.objects.filter(balance__lt=0).order_by('balance')
     })
+
+
+@login_required
+def unified_pay_bulk(request):
+    if request.method != 'POST':
+        return redirect('dashboard')
+
+    session_ids = request.POST.getlist('session_ids')
+    sale_ids    = request.POST.getlist('sale_ids')
+    payment_type = request.POST.get('payment_type', 'cash')
+    customer_id  = request.POST.get('customer_id', '').strip()
+
+    if not session_ids and not sale_ids:
+        messages.error(request, 'هیچ موردی انتخاب نشده.')
+        return redirect('dashboard')
+
+    sessions = list(
+        Session.objects.filter(pk__in=session_ids, status='finished')
+        .prefetch_related('payments', 'sales')
+    ) if session_ids else []
+    sessions = [s for s in sessions if not s.is_fully_paid]
+
+    tab_sales = list(
+        Sale.objects.filter(pk__in=sale_ids, payment_type='account', customer__isnull=True)
+    ) if sale_ids else []
+
+    if not sessions and not tab_sales:
+        messages.error(request, 'هیچ مورد پرداخت‌نشده‌ای یافت نشد.')
+        return redirect('dashboard')
+
+    total = sum(s.remaining_amount for s in sessions) + sum(sale.total_price for sale in tab_sales)
+
+    if payment_type == 'account':
+        if not customer_id:
+            messages.error(request, 'برای پرداخت حساب باید مشتری انتخاب شود.')
+            return redirect('dashboard')
+        try:
+            customer = Customer.objects.get(pk=customer_id)
+        except Customer.DoesNotExist:
+            messages.error(request, 'مشتری یافت نشد.')
+            return redirect('dashboard')
+        ok, reason = customer.can_add_debt(total)
+        if not ok:
+            messages.error(request, f'سقف بدهی مشتری ({customer.name}): {reason}')
+            return redirect('dashboard')
+        for s in sessions:
+            amt = s.remaining_amount
+            Payment.objects.create(
+                session=s, customer=customer, amount=amt, payment_type='account_debit',
+            )
+        for sale in tab_sales:
+            Payment.objects.create(
+                amount=sale.total_price, payment_type='account_debit', customer=customer,
+                notes=f'تسویه تب کافه: {sale.product.name} ×{sale.quantity}',
+            )
+            sale.payment_type = 'account'
+            sale.customer = customer
+            sale.save()
+        customer.balance -= total
+        customer.save()
+        messages.success(request, f'پرداخت حساب برای {customer.name} — {total:,} تومان ثبت شد.')
+    else:
+        for s in sessions:
+            Payment.objects.create(session=s, amount=s.remaining_amount, payment_type='cash')
+        for sale in tab_sales:
+            Payment.objects.create(
+                amount=sale.total_price, payment_type='cash',
+                notes=f'تسویه تب کافه: {sale.product.name} ×{sale.quantity}',
+            )
+            sale.payment_type = 'cash'
+            sale.save()
+        messages.success(request, f'پرداخت نقدی {total:,} تومان ثبت شد.')
+
+    return redirect('dashboard')

@@ -148,3 +148,88 @@ class SessionCafeTabTest(TestCase):
         Payment.objects.create(session=s, amount=108000, payment_type='cash')
         s_fresh = Session.objects.get(pk=s.pk)
         self.assertTrue(s_fresh.is_fully_paid)
+
+
+class UnifiedPayBulkTest(TestCase):
+    def setUp(self):
+        self.client.force_login(
+            __import__('django.contrib.auth', fromlist=['get_user_model']).get_user_model()
+            .objects.create_user('op', password='pw')
+        )
+        self.device = Device.objects.create(
+            name='PS5-X', device_type='ps5', price_per_hour=60000
+        )
+        cat = ProductCategory.objects.create(name='کافه')
+        self.product = Product.objects.create(
+            name='چای', price=5000, stock=50, category=cat
+        )
+        self.customer = Customer.objects.create(name='علی', balance=0)
+
+    def _finished_session(self, cost):
+        return Session.objects.create(
+            device=self.device, session_type='free',
+            started_at=timezone.now(), ended_at=timezone.now(),
+            status='finished', total_cost=cost,
+        )
+
+    def _tab_sale(self, session):
+        return Sale.objects.create(
+            product=self.product, quantity=1, unit_price=5000,
+            total_price=5000, payment_type='account',
+            session=session, customer=None,
+        )
+
+    def _post(self, session_ids=None, sale_ids=None, payment_type='cash', customer_id=''):
+        data = {
+            'payment_type': payment_type,
+            'customer_id': str(customer_id),
+        }
+        for sid in (session_ids or []):
+            data.setdefault('session_ids', []).append(str(sid))
+        for sid_id in (sale_ids or []):
+            data.setdefault('sale_ids', []).append(str(sid_id))
+        return self.client.post('/pay/bulk/unified/', data)
+
+    def test_empty_selection_redirects_with_error(self):
+        resp = self._post()
+        self.assertRedirects(resp, '/', fetch_redirect_response=False)
+
+    def test_cash_pays_session_and_tab_sale(self):
+        s = self._finished_session(50000)
+        sale = self._tab_sale(s)
+        resp = self._post(session_ids=[s.pk], sale_ids=[sale.pk])
+        self.assertRedirects(resp, '/', fetch_redirect_response=False)
+        self.assertEqual(Payment.objects.filter(session=s).count(), 1)
+        sale.refresh_from_db()
+        self.assertEqual(sale.payment_type, 'cash')
+
+    def test_account_pays_and_deducts_customer_balance(self):
+        self.customer.balance = 100000
+        self.customer.save()
+        s = self._finished_session(30000)
+        resp = self._post(session_ids=[s.pk], payment_type='account', customer_id=self.customer.pk)
+        self.assertRedirects(resp, '/', fetch_redirect_response=False)
+        self.customer.refresh_from_db()
+        self.assertEqual(self.customer.balance, 70000)
+
+    def test_account_without_customer_fails(self):
+        s = self._finished_session(20000)
+        resp = self._post(session_ids=[s.pk], payment_type='account', customer_id='')
+        self.assertRedirects(resp, '/', fetch_redirect_response=False)
+        self.assertEqual(Payment.objects.count(), 0)
+
+    def test_account_blocked_by_debt_limit(self):
+        self.customer.balance = 0
+        self.customer.debt_limit = 10000
+        self.customer.save()
+        s = self._finished_session(50000)
+        resp = self._post(session_ids=[s.pk], payment_type='account', customer_id=self.customer.pk)
+        self.assertRedirects(resp, '/', fetch_redirect_response=False)
+        self.assertEqual(Payment.objects.count(), 0)
+
+    def test_already_paid_session_skipped(self):
+        s = self._finished_session(20000)
+        Payment.objects.create(session=s, amount=20000, payment_type='cash')
+        resp = self._post(session_ids=[s.pk])
+        self.assertRedirects(resp, '/', fetch_redirect_response=False)
+        self.assertEqual(Payment.objects.filter(session=s).count(), 1)
