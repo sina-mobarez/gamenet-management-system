@@ -243,9 +243,81 @@ const CUSTOMERS = [
   {% endfor %}
 ];
 </script>
+
+<!-- ══ UNIFIED FLOATING PAY BAR ══ -->
+<div id="unifiedPayBar" style="
+  display:none;position:fixed;bottom:0;right:0;left:0;z-index:1050;
+  background:linear-gradient(135deg,rgba(20,20,30,.97),rgba(15,15,25,.99));
+  border-top:1px solid rgba(245,158,11,.35);
+  padding:.75rem 1.25rem;
+  box-shadow:0 -4px 24px rgba(0,0,0,.5);
+  backdrop-filter:blur(12px);
+">
+  <div class="d-flex align-items-center gap-3 flex-wrap justify-content-between">
+    <span style="color:var(--text-2);font-size:.85rem">
+      <i class="bi bi-check2-all me-1" style="color:var(--neon-gold)"></i>
+      <span id="unifiedBarLabel">۰ مورد انتخاب‌شده</span>
+    </span>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-secondary btn-sm" onclick="clearAllSelections()">انصراف</button>
+      <button class="btn btn-warning fw-bold btn-sm px-4"
+              data-bs-toggle="modal" data-bs-target="#unifiedPayModal"
+              onclick="prepareUnifiedModal()">
+        <i class="bi bi-wallet2 me-1"></i><span id="unifiedBarBtn">پرداخت موارد انتخاب‌شده</span>
+      </button>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block modals %}
+<!-- ══ UNIFIED PAY MODAL ══ -->
+<div class="modal fade" id="unifiedPayModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content" style="border-color:rgba(245,158,11,.3)">
+      <div class="modal-header" style="border-color:rgba(245,158,11,.2)">
+        <h5 class="modal-title" style="color:var(--neon-gold)">
+          <i class="bi bi-wallet2 me-2"></i>پرداخت یکجا
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'unified_pay_bulk' %}" id="unifiedPayForm">
+        {% csrf_token %}
+        <div id="unifiedHiddenInputs"></div>
+        <div class="modal-body">
+          <div class="p-3 rounded-3 mb-3" style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2)">
+            <div style="font-size:.75rem;color:var(--text-3);margin-bottom:.25rem">جمع کل</div>
+            <div class="num" id="unifiedModalTotal" style="font-size:1.4rem;font-weight:700;color:var(--neon-gold)">0 تومان</div>
+            <div style="font-size:.75rem;color:var(--text-3);margin-top:.35rem" id="unifiedModalCount"></div>
+          </div>
+          <div id="unifiedModalItems" class="mb-3" style="font-size:.78rem;color:var(--text-2);max-height:120px;overflow-y:auto"></div>
+
+          <div class="mb-3">
+            <label class="form-label">روش پرداخت</label>
+            <select name="payment_type" id="unifiedPayType" class="form-select" onchange="toggleUnifiedCustomer()">
+              <option value="cash">💵 نقد</option>
+              <option value="account">🏦 به حساب مشتری</option>
+            </select>
+          </div>
+
+          <div id="unifiedCustomerWrap" class="mb-3" style="display:none">
+            <label class="form-label">مشتری</label>
+            <select name="customer_id" id="unifiedCustomerSelect" class="form-select">
+              <option value="">— انتخاب مشتری —</option>
+              {% for c in customers_for_modal %}
+              <option value="{{ c.id }}">{{ c.name }}{% if c.balance < 0 %} ⚠{% endif %}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer" style="border-color:rgba(245,158,11,.2)">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">انصراف</button>
+          <button type="submit" class="btn btn-warning fw-bold btn-sm px-4">ثبت پرداخت</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 <!-- ══ START SESSION MODAL ══ -->
 <div class="modal fade" id="startModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
@@ -846,6 +918,7 @@ function updateTabSelection() {
     card.style.borderColor = cb?.checked ? 'rgba(245,158,11,.7)' : 'rgba(251,191,36,.2)';
     card.style.background  = cb?.checked ? 'rgba(245,158,11,.1)' : 'rgba(255,255,255,.04)';
   });
+  updateUnifiedBar();
 }
 
 function toggleSelectAllTabs(allCb) {
@@ -950,6 +1023,7 @@ function updateSessionSelection() {
     card.style.borderColor = cb?.checked ? 'rgba(245,158,11,.7)' : 'rgba(245,158,11,.25)';
     card.style.background  = cb?.checked ? 'rgba(245,158,11,.12)' : 'rgba(255,255,255,.04)';
   });
+  updateUnifiedBar();
 }
 
 function toggleSelectAllSessions(allCb) {
@@ -1046,5 +1120,78 @@ document.addEventListener('click', e => {
   const sid = (countdownEl.id.replace('countdown-', '').replace('timer-', ''));
   if (sid) openSessionSheet(sid);
 }, true);
+
+// ── UNIFIED PAY BAR ──────────────────────────────────────────────────────────
+function updateUnifiedBar() {
+  let total = 0, count = 0, items = [];
+  document.querySelectorAll('.session-checkbox:checked').forEach(cb => {
+    total += parseInt(cb.dataset.amount || 0);
+    count++;
+    const d = SESSION_DATA[cb.dataset.sessionId];
+    if (d) items.push(d.name);
+  });
+  document.querySelectorAll('.tab-checkbox:checked').forEach(cb => {
+    total += parseInt(cb.dataset.amount || 0);
+    count++;
+    const d = TAB_DATA[cb.dataset.saleId];
+    if (d) items.push(d.name);
+  });
+  const bar = document.getElementById('unifiedPayBar');
+  if (!bar) return;
+  if (count === 0) {
+    bar.style.display = 'none';
+    return;
+  }
+  bar.style.display = 'block';
+  document.getElementById('unifiedBarLabel').textContent = `${count} مورد — ${total.toLocaleString('fa-IR')} تومان`;
+  document.getElementById('unifiedBarBtn').textContent   = `پرداخت ${count} مورد — ${total.toLocaleString('fa-IR')} تومان`;
+}
+
+function clearAllSelections() {
+  document.querySelectorAll('.session-checkbox, .tab-checkbox').forEach(cb => { cb.checked = false; });
+  updateSessionSelection();
+  updateTabSelection();
+}
+
+function prepareUnifiedModal() {
+  const inputsDiv = document.getElementById('unifiedHiddenInputs');
+  inputsDiv.innerHTML = '';
+  let total = 0, count = 0, items = [];
+  document.querySelectorAll('.session-checkbox:checked').forEach(cb => {
+    const inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = 'session_ids'; inp.value = cb.dataset.sessionId;
+    inputsDiv.appendChild(inp);
+    total += parseInt(cb.dataset.amount || 0); count++;
+    const d = SESSION_DATA[cb.dataset.sessionId];
+    if (d) items.push(d.name);
+  });
+  document.querySelectorAll('.tab-checkbox:checked').forEach(cb => {
+    const inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = 'sale_ids'; inp.value = cb.dataset.saleId;
+    inputsDiv.appendChild(inp);
+    total += parseInt(cb.dataset.amount || 0); count++;
+    const d = TAB_DATA[cb.dataset.saleId];
+    if (d) items.push(d.name);
+  });
+  document.getElementById('unifiedModalTotal').textContent = total.toLocaleString('fa-IR') + ' تومان';
+  document.getElementById('unifiedModalCount').textContent = count + ' مورد';
+  document.getElementById('unifiedModalItems').innerHTML =
+    items.map(n => `<span class="badge-ghost" style="font-size:.72rem;margin:2px">${n}</span>`).join('');
+  document.getElementById('unifiedPayType').value = 'cash';
+  document.getElementById('unifiedCustomerWrap').style.display = 'none';
+}
+
+function toggleUnifiedCustomer() {
+  const show = document.getElementById('unifiedPayType').value === 'account';
+  document.getElementById('unifiedCustomerWrap').style.display = show ? 'block' : 'none';
+}
+
+let unifiedCustomerTS = null;
+document.getElementById('unifiedPayModal').addEventListener('shown.bs.modal', () => {
+  if (!unifiedCustomerTS) {
+    const el = document.getElementById('unifiedCustomerSelect');
+    if (el) unifiedCustomerTS = new TomSelect(el, { create: false, maxOptions: 200 });
+  }
+});
 </script>
 {% endblock %}
