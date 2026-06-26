@@ -109,17 +109,26 @@ With hundreds of sessions and ~20 devices, this produces 500–2000+ queries per
 
 Must include café tab in the DB filter, otherwise sessions where only the café tab is unpaid are missed.
 
+Use correlated `Subquery` for both aggregations to avoid the SQL cross-join issue: annotating `Sum` on two different reverse FK relations in the same queryset joins both tables, multiplying counts and producing wrong sums for sessions that have both payments and café sales.
+
 ```python
-from django.db.models import Q, Sum, F
+from django.db.models import Q, Sum, F, OuterRef, Subquery
 from django.db.models.functions import Coalesce
 
-_cafe_tab_filter = Q(sales__payment_type='account', sales__customer__isnull=True)
+_paid_subq = (
+    Payment.objects.filter(session=OuterRef('pk'))
+    .values('session').annotate(t=Sum('amount')).values('t')
+)
+_cafe_subq = (
+    Sale.objects.filter(session=OuterRef('pk'), payment_type='account', customer__isnull=True)
+    .values('session').annotate(t=Sum('total_price')).values('t')
+)
 
 unpaid_sessions = list(
     Session.objects.filter(status='finished', total_cost__isnull=False)
     .annotate(
-        paid_total=Coalesce(Sum('payments__amount'), 0),
-        cafe_tab=Coalesce(Sum('sales__total_price', filter=_cafe_tab_filter), 0),
+        paid_total=Coalesce(Subquery(_paid_subq), 0),
+        cafe_tab=Coalesce(Subquery(_cafe_subq), 0),
     )
     .filter(paid_total__lt=F('total_cost') + F('cafe_tab'))
     .select_related('device')
@@ -128,7 +137,7 @@ unpaid_sessions = list(
 )
 ```
 
-One query replaces 1+N. `remaining_amount` uses the prefetch cache.
+Three queries (sessions + 2 subqueries evaluated by DB) replace 1+N. `remaining_amount` uses the prefetch cache.
 
 ### Fix B — Device card prefetch
 
