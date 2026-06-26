@@ -203,12 +203,29 @@
 </div>
 {% endif %}
 
-<!-- ── Device cards — HTMX polls every 120s to sync with other tablets ── -->
+<!-- ── Device cards — deferred load then poll every 120s ── -->
 <div id="device-cards-section"
      hx-get="{% url 'dashboard_cards' %}"
-     hx-trigger="every 120s"
+     hx-trigger="load, every 120s"
      hx-swap="innerHTML">
-  {% include 'partials/device_cards.html' %}
+  <div class="mb-4">
+    <div class="device-grid">
+      {% for i in "123456" %}
+      <div class="device-col">
+        <div class="device-card free h-100" style="opacity:.3;pointer-events:none">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <div class="rounded-2" style="width:36px;height:36px;background:rgba(255,255,255,.06)"></div>
+              <div style="height:14px;width:80px;background:rgba(255,255,255,.06);border-radius:4px"></div>
+            </div>
+            <div style="height:12px;width:60%;background:rgba(255,255,255,.06);border-radius:4px;margin-bottom:8px"></div>
+            <div style="height:12px;width:40%;background:rgba(255,255,255,.06);border-radius:4px"></div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
 </div>
 
 {% if low_stock %}
