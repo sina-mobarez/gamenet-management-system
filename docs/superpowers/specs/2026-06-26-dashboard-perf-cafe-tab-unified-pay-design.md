@@ -107,14 +107,21 @@ With hundreds of sessions and ~20 devices, this produces 500–2000+ queries per
 
 ### Fix A — Annotated unpaid_sessions query
 
+Must include café tab in the DB filter, otherwise sessions where only the café tab is unpaid are missed.
+
 ```python
-from django.db.models import Sum, F
+from django.db.models import Q, Sum, F
 from django.db.models.functions import Coalesce
+
+_cafe_tab_filter = Q(sales__payment_type='account', sales__customer__isnull=True)
 
 unpaid_sessions = list(
     Session.objects.filter(status='finished', total_cost__isnull=False)
-    .annotate(paid_total=Coalesce(Sum('payments__amount'), 0))
-    .filter(total_cost__gt=F('paid_total'))
+    .annotate(
+        paid_total=Coalesce(Sum('payments__amount'), 0),
+        cafe_tab=Coalesce(Sum('sales__total_price', filter=_cafe_tab_filter), 0),
+    )
+    .filter(paid_total__lt=F('total_cost') + F('cafe_tab'))
     .select_related('device')
     .prefetch_related('payments', 'sales')
     .order_by('-ended_at')
