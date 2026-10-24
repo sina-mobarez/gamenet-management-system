@@ -10,13 +10,13 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /app
 
 # Install uv
-RUN pip install -i https://mirror-pypi.runflare.com/simple --upgrade pip
+RUN pip install --upgrade pip
 
 # Copy dependency files
 COPY requirements.txt .
 
 # Install dependencies
-RUN pip install -i https://mirror-pypi.runflare.com/simple -r requirements.txt
+RUN pip install -r requirements.txt
 
 # Copy project
 COPY . .
