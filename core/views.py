@@ -37,33 +37,30 @@ def logout_view(request):
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 
+def _unpaid_sessions_qs():
+    """Finished sessions whose payments don't cover cost + café tab, filtered in SQL."""
+    paid_subq = (
+        Payment.objects.filter(session=OuterRef('pk'))
+        .values('session').annotate(t=Sum('amount')).values('t')
+    )
+    cafe_subq = (
+        Sale.objects.filter(
+            session=OuterRef('pk'), payment_type='account', customer__isnull=True,
+        )
+        .values('session').annotate(t=Sum('total_price')).values('t')
+    )
+    return (
+        Session.objects.filter(status='finished', total_cost__isnull=False)
+        .annotate(
+            paid_total=Coalesce(Subquery(paid_subq), 0),
+            cafe_tab=Coalesce(Subquery(cafe_subq), 0),
+        )
+        .filter(paid_total__lt=F('total_cost') + F('cafe_tab'))
+    )
+
+
 @login_required
 def dashboard(request):
-    devices_qs = (
-        Device.objects.filter(is_active=True)
-        .order_by('sort_order', 'device_type', 'name')
-        .prefetch_related(
-            Prefetch(
-                'sessions',
-                queryset=Session.objects.filter(status='active').prefetch_related('players'),
-                to_attr='active_sessions_cache',
-            ),
-            Prefetch(
-                'sessions',
-                queryset=Session.objects.filter(status='finished')
-                               .prefetch_related('payments', 'sales')
-                               .order_by('-ended_at'),
-                to_attr='finished_sessions_cache',
-            ),
-        )
-    )
-    # Group devices by type for categorized display
-    MERGED_TYPES = {'billiard': 'بیلیارد / اسنوکر', 'snooker': 'بیلیارد / اسنوکر'}
-    device_groups = {}
-    for d in devices_qs:
-        key = MERGED_TYPES.get(d.device_type, d.get_device_type_display())
-        device_groups.setdefault(key, []).append(d)
-
     low_stock = Product.objects.filter(is_active=True).extra(
         where=["stock <= low_stock_threshold"]
     )
@@ -84,26 +81,8 @@ def dashboard(request):
         Customer.objects.filter(balance__lt=0).aggregate(t=Sum('balance'))['t'] or 0
     )
 
-    _paid_subq = (
-        Payment.objects.filter(session=OuterRef('pk'))
-        .values('session').annotate(t=Sum('amount')).values('t')
-    )
-    _cafe_subq = (
-        Sale.objects.filter(
-            session=OuterRef('pk'), payment_type='account', customer__isnull=True,
-        )
-        .values('session').annotate(t=Sum('total_price')).values('t')
-    )
     unpaid_sessions = list(
-        Session.objects.filter(status='finished', total_cost__isnull=False)
-        .annotate(
-            paid_total=Coalesce(Subquery(_paid_subq), 0),
-            cafe_tab=Coalesce(Subquery(_cafe_subq), 0),
-        )
-        .filter(paid_total__lt=F('total_cost') + F('cafe_tab'))
-        .select_related('device')
-        .prefetch_related('payments', 'sales')
-        .order_by('-ended_at')
+        _unpaid_sessions_qs().select_related('device').order_by('-ended_at')
     )
 
     pending_tabs = (Sale.objects
@@ -113,7 +92,6 @@ def dashboard(request):
     pending_tabs_total = pending_tabs.aggregate(t=Sum('total_price'))['t'] or 0
 
     return render(request, 'dashboard.html', {
-        'device_groups':        device_groups.items(),
         'low_stock':            low_stock,
         'today_cash':           today_cash + today_sales_cash,
         'total_debt':           total_debt,
@@ -145,10 +123,8 @@ def dashboard_cards(request):
             ),
             Prefetch(
                 'sessions',
-                queryset=Session.objects.filter(status='finished')
-                               .prefetch_related('payments', 'sales')
-                               .order_by('-ended_at'),
-                to_attr='finished_sessions_cache',
+                queryset=_unpaid_sessions_qs().order_by('-ended_at'),
+                to_attr='unpaid_sessions_cache',
             ),
         )
     )

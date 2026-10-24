@@ -42,11 +42,8 @@ class Device(models.Model):
 
     @property
     def unpaid_session(self):
-        if hasattr(self, 'finished_sessions_cache'):
-            for s in self.finished_sessions_cache:
-                if not s.is_fully_paid:
-                    return s
-            return None
+        if hasattr(self, 'unpaid_sessions_cache'):
+            return self.unpaid_sessions_cache[0] if self.unpaid_sessions_cache else None
         for s in self.sessions.filter(status='finished').order_by('-ended_at'):
             if not s.is_fully_paid:
                 return s
@@ -145,10 +142,14 @@ class Session(models.Model):
 
     @property
     def paid_amount(self):
+        if hasattr(self, 'paid_total'):
+            return self.paid_total
         return sum(p.amount for p in self.payments.all())
 
     @property
     def cafe_tab_total(self):
+        if hasattr(self, 'cafe_tab'):
+            return self.cafe_tab
         return (
             self.sales.filter(payment_type='account', customer__isnull=True)
                       .aggregate(t=Sum('total_price'))['t'] or 0
