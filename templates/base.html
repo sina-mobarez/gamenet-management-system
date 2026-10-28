@@ -8,6 +8,22 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#7c3aed">
+<script>
+  /* Apply the saved face before first paint so there's no flash. */
+  (function () {
+    var COLORS = { neon: '#7c3aed', daylight: '#e9ebf1', arcade: '#030806', sunset: '#140a24' };
+    try {
+      var t = localStorage.getItem('gn-theme');
+      if (t && COLORS[t]) {
+        if (t !== 'neon') document.documentElement.setAttribute('data-theme', t);
+        document.addEventListener('DOMContentLoaded', function () {
+          var m = document.querySelector('meta[name="theme-color"]');
+          if (m) m.setAttribute('content', COLORS[t]);
+        });
+      }
+    } catch (e) {}
+  })();
+</script>
 <title>{% block title %}گیم‌نت{% endblock %}</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="apple-touch-icon" href="{% static 'icons/icon.svg' %}">
@@ -16,6 +32,7 @@
 <link href="{% static 'css/bootstrap-icons.css' %}" rel="stylesheet">
 <link href="{% static 'css/tom-select.min.css' %}" rel="stylesheet">
 <link href="{% static 'css/main.css' %}" rel="stylesheet">
+<link href="{% static 'css/themes.css' %}" rel="stylesheet">
 {% block extra_css %}{% endblock %}
 </head>
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
@@ -193,6 +210,75 @@ function toastSystem() {
     }
   };
 }
+</script>
+<!-- ═══ THEME SWITCHER — pick a face ═══ -->
+<div class="theme-switcher{% if user.is_authenticated %} has-nav{% endif %}" id="themeSwitcher">
+  <div class="theme-menu" role="menu" aria-label="انتخاب پوسته">
+    <div class="theme-menu-head">پوسته</div>
+    <button type="button" class="theme-option" data-face="neon" role="menuitemradio">
+      <span class="theme-swatch swatch-neon"></span>
+      <span class="name">نئون</span>
+      <i class="bi bi-check-lg check"></i>
+    </button>
+    <button type="button" class="theme-option" data-face="daylight" role="menuitemradio">
+      <span class="theme-swatch swatch-daylight"></span>
+      <span class="name">روز</span>
+      <i class="bi bi-check-lg check"></i>
+    </button>
+    <button type="button" class="theme-option" data-face="arcade" role="menuitemradio">
+      <span class="theme-swatch swatch-arcade"></span>
+      <span class="name">آرکید</span>
+      <i class="bi bi-check-lg check"></i>
+    </button>
+    <button type="button" class="theme-option" data-face="sunset" role="menuitemradio">
+      <span class="theme-swatch swatch-sunset"></span>
+      <span class="name">غروب</span>
+      <i class="bi bi-check-lg check"></i>
+    </button>
+  </div>
+  <button type="button" class="theme-fab" id="themeFab" aria-haspopup="true" aria-expanded="false" aria-label="تغییر پوسته">
+    <i class="bi bi-palette-fill"></i>
+  </button>
+</div>
+<script>
+(function () {
+  var KEY = 'gn-theme';
+  var COLORS = { neon: '#7c3aed', daylight: '#e9ebf1', arcade: '#030806', sunset: '#140a24' };
+  var sw  = document.getElementById('themeSwitcher');
+  var fab = document.getElementById('themeFab');
+  if (!sw || !fab) return;
+  var opts = sw.querySelectorAll('.theme-option');
+
+  function current() { return document.documentElement.getAttribute('data-theme') || 'neon'; }
+
+  function mark(face) {
+    opts.forEach(function (o) { o.classList.toggle('active', o.dataset.face === face); });
+  }
+
+  function apply(face) {
+    if (face === 'neon') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', face);
+    try { localStorage.setItem(KEY, face); } catch (e) {}
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', COLORS[face] || COLORS.neon);
+    mark(face);
+  }
+
+  function open()  { sw.classList.add('open');  fab.setAttribute('aria-expanded', 'true'); }
+  function close() { sw.classList.remove('open'); fab.setAttribute('aria-expanded', 'false'); }
+
+  mark(current());
+
+  fab.addEventListener('click', function (e) {
+    e.stopPropagation();
+    sw.classList.contains('open') ? close() : open();
+  });
+  opts.forEach(function (o) {
+    o.addEventListener('click', function () { apply(o.dataset.face); close(); });
+  });
+  document.addEventListener('click', function (e) { if (!sw.contains(e.target)) close(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+})();
 </script>
 {% block extra_js %}{% endblock %}
 </body>
