@@ -109,7 +109,8 @@
     <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
       <i class="bi bi-hourglass-split dot-pulse" style="color:var(--neon-gold)"></i>
       <strong>پرداخت‌نشده</strong>
-      <span class="badge-ghost" style="font-size:.7rem">{{ unpaid_sessions|length }} مورد</span>
+      <span class="badge-ghost" style="font-size:.7rem">{{ unpaid_count }} مورد</span>
+      <span class="num" style="font-size:.78rem;color:var(--neon-gold)">{{ unpaid_total|intcomma }} تومان</span>
       <div class="ms-auto d-flex align-items-center gap-2">
         <label class="d-flex align-items-center gap-1 mb-0" style="cursor:pointer;font-size:.8rem;color:var(--text-3)">
           <input type="checkbox" id="selectAllSessions" onchange="toggleSelectAllSessions(this)" class="form-check-input">
@@ -146,6 +147,13 @@
         </div>
       </div>
       {% endfor %}
+      {% if unpaid_more %}
+      <div class="col-12 text-center mt-1">
+        <a href="{% url 'sessions_history' %}?filter=unpaid" class="btn btn-outline-warning btn-sm">
+          مشاهده همه ({{ unpaid_more }} مورد دیگر) <i class="bi bi-arrow-left ms-1"></i>
+        </a>
+      </div>
+      {% endif %}
     </div>
   </div>
 </div>
@@ -304,9 +312,6 @@ const CUSTOMERS = [
             <label class="form-label">مشتری</label>
             <select name="customer_id" id="unifiedCustomerSelect" class="form-select">
               <option value="">— انتخاب مشتری —</option>
-              {% for c in customers_for_modal %}
-              <option value="{{ c.id }}">{{ c.name }}{% if c.balance < 0 %} ⚠{% endif %}</option>
-              {% endfor %}
             </select>
           </div>
         </div>
@@ -454,9 +459,6 @@ const CUSTOMERS = [
             <div class="d-flex gap-2 mb-2">
               <select name="customer_id" id="editPlayerSelect" class="form-select form-select-sm">
                 <option value="">— مشتری ثبت‌نام‌شده —</option>
-                {% for c in customers_for_modal %}
-                <option value="{{ c.id }}">{{ c.name }}</option>
-                {% endfor %}
               </select>
               <button type="submit" class="btn btn-success btn-sm px-3">+</button>
             </div>
@@ -507,9 +509,6 @@ const CUSTOMERS = [
             <label class="form-label">مشتری</label>
             <select name="customer_id" id="tabCustomerSelect" class="form-select">
               <option value="">— انتخاب مشتری —</option>
-              {% for c in customers_for_modal %}
-              <option value="{{ c.id }}">{{ c.name }}{% if c.balance < 0 %} ⚠{% endif %}</option>
-              {% endfor %}
             </select>
           </div>
 
@@ -560,9 +559,6 @@ const CUSTOMERS = [
             <label class="form-label">مشتری</label>
             <select name="customer_id" id="bulkCustomerSelect" class="form-select">
               <option value="">— انتخاب مشتری —</option>
-              {% for c in customers_for_modal %}
-              <option value="{{ c.id }}">{{ c.name }}{% if c.balance < 0 %} ⚠{% endif %}</option>
-              {% endfor %}
             </select>
           </div>
 
@@ -613,9 +609,6 @@ const CUSTOMERS = [
             <label class="form-label">مشتری</label>
             <select name="customer_id" id="bulkSessionCustomerSelect" class="form-select">
               <option value="">— انتخاب مشتری —</option>
-              {% for c in customers_for_modal %}
-              <option value="{{ c.id }}">{{ c.name }}{% if c.balance < 0 %} ⚠{% endif %}</option>
-              {% endfor %}
             </select>
           </div>
 
@@ -822,6 +815,16 @@ function buildOpts() {
   });
   return o;
 }
+// Populate a customer <select> from the single CUSTOMERS array (once), so the
+// full customer list is emitted to the page only once instead of per-modal.
+function fillCustomerOptions(sel) {
+  if (!sel || sel.dataset.filled) return;
+  sel.insertAdjacentHTML('beforeend', CUSTOMERS.map(c => {
+    const d = c.balance < 0 ? ` ⚠ ${Math.abs(c.balance).toLocaleString('fa')}` : '';
+    return `<option value="${c.id}">${c.name}${d}</option>`;
+  }).join(''));
+  sel.dataset.filled = '1';
+}
 function addPlayerSelect() {
   const d = document.createElement('div'); d.className = 'd-flex gap-2 mb-2';
   const uid = 'ps_' + Date.now();
@@ -842,7 +845,7 @@ let editPlayerTS = null;
 document.getElementById('editSessionModal').addEventListener('shown.bs.modal', () => {
   if (!editPlayerTS) {
     const el = document.getElementById('editPlayerSelect');
-    if (el) editPlayerTS = new TomSelect(el, { create: false, maxOptions: 200 });
+    if (el) { fillCustomerOptions(el); editPlayerTS = new TomSelect(el, { create: false, maxOptions: 200 }); }
   }
 });
 document.getElementById('editSessionModal').addEventListener('show.bs.modal', e => {
@@ -876,7 +879,7 @@ document.getElementById('tabPayModal').addEventListener('show.bs.modal', e => {
 document.getElementById('tabPayModal').addEventListener('shown.bs.modal', () => {
   if (!tabCustomerTS) {
     const el = document.getElementById('tabCustomerSelect');
-    if (el) tabCustomerTS = new TomSelect(el, { create: false, maxOptions: 200 });
+    if (el) { fillCustomerOptions(el); tabCustomerTS = new TomSelect(el, { create: false, maxOptions: 200 }); }
   }
 });
 function toggleTabCustomer() {
@@ -951,7 +954,7 @@ let bulkCustomerTS = null;
 document.getElementById('bulkTabPayModal').addEventListener('shown.bs.modal', () => {
   if (!bulkCustomerTS) {
     const el = document.getElementById('bulkCustomerSelect');
-    if (el) bulkCustomerTS = new TomSelect(el, { create: false, maxOptions: 200 });
+    if (el) { fillCustomerOptions(el); bulkCustomerTS = new TomSelect(el, { create: false, maxOptions: 200 }); }
   }
 });
 function toggleBulkCustomer() {
@@ -1056,7 +1059,7 @@ let bulkSessionCustomerTS = null;
 document.getElementById('bulkSessionPayModal').addEventListener('shown.bs.modal', () => {
   if (!bulkSessionCustomerTS) {
     const el = document.getElementById('bulkSessionCustomerSelect');
-    if (el) bulkSessionCustomerTS = new TomSelect(el, { create: false, maxOptions: 200 });
+    if (el) { fillCustomerOptions(el); bulkSessionCustomerTS = new TomSelect(el, { create: false, maxOptions: 200 }); }
   }
 });
 
@@ -1190,7 +1193,7 @@ let unifiedCustomerTS = null;
 document.getElementById('unifiedPayModal').addEventListener('shown.bs.modal', () => {
   if (!unifiedCustomerTS) {
     const el = document.getElementById('unifiedCustomerSelect');
-    if (el) unifiedCustomerTS = new TomSelect(el, { create: false, maxOptions: 200 });
+    if (el) { fillCustomerOptions(el); unifiedCustomerTS = new TomSelect(el, { create: false, maxOptions: 200 }); }
   }
 });
 </script>

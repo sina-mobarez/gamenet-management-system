@@ -81,9 +81,16 @@ def dashboard(request):
         Customer.objects.filter(balance__lt=0).aggregate(t=Sum('balance'))['t'] or 0
     )
 
-    unpaid_sessions = list(
-        _unpaid_sessions_qs().select_related('device').order_by('-ended_at')
-    )
+    # Only a small preview is rendered on the dashboard; the full list lives at
+    # sessions_history?filter=unpaid. Loading the rows is cheap (remaining_amount
+    # reads the paid_total/cafe_tab annotations — no extra queries); it was the
+    # HTML payload of rendering them all that made the page slow.
+    UNPAID_PREVIEW = 20
+    unpaid_all      = list(_unpaid_sessions_qs().select_related('device').order_by('-ended_at'))
+    unpaid_count    = len(unpaid_all)
+    unpaid_total    = sum(s.remaining_amount for s in unpaid_all)
+    unpaid_sessions = unpaid_all[:UNPAID_PREVIEW]
+    unpaid_more     = unpaid_count - len(unpaid_sessions)
 
     pending_tabs = (Sale.objects
                    .filter(payment_type='account', customer__isnull=True, session__isnull=True)
@@ -97,6 +104,9 @@ def dashboard(request):
         'total_debt':           total_debt,
         'customers_for_modal':  Customer.objects.all().order_by('name'),
         'unpaid_sessions':      unpaid_sessions,
+        'unpaid_count':         unpaid_count,
+        'unpaid_total':         unpaid_total,
+        'unpaid_more':          unpaid_more,
         'pending_tabs':         pending_tabs,
         'pending_tabs_total':   pending_tabs_total,
     })
@@ -118,7 +128,9 @@ def dashboard_cards(request):
         .prefetch_related(
             Prefetch(
                 'sessions',
-                queryset=Session.objects.filter(status='active').prefetch_related('players'),
+                queryset=Session.objects.filter(status='active').prefetch_related(
+                    Prefetch('players', queryset=SessionPlayer.objects.select_related('customer')),
+                ),
                 to_attr='active_sessions_cache',
             ),
             Prefetch(
@@ -384,9 +396,16 @@ def session_status(request, pk):
 
 @login_required
 def sessions_history(request):
-    sessions = (Session.objects.exclude(status='active')
-                .order_by('-started_at').select_related('device')[:100])
-    return render(request, 'sessions_history.html', {'sessions': sessions})
+    unpaid_only = request.GET.get('filter') == 'unpaid'
+    if unpaid_only:
+        # Annotated queryset → paid_amount/remaining_amount read the annotations
+        # (no per-row N+1), unlike the default listing below.
+        sessions = _unpaid_sessions_qs().select_related('device').order_by('-ended_at')[:200]
+    else:
+        sessions = (Session.objects.exclude(status='active')
+                    .order_by('-started_at').select_related('device')[:100])
+    return render(request, 'sessions_history.html',
+                  {'sessions': sessions, 'unpaid_only': unpaid_only})
 
 
 # ── Customers ─────────────────────────────────────────────────────────────────
